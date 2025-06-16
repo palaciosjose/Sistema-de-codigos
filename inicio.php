@@ -39,8 +39,6 @@ try {
     $conn->set_charset("utf8mb4"); // Establecer UTF-8 para la conexión
     
     if ($conn->connect_error) {
-        // Usar la función mostrarPaginaInstalacion para indicar error de DB
-        // ya que el sistema está "instalado" pero la DB falla
         mostrarPaginaInstalacion('Error de conexión a la base de datos'); 
     }
 } catch (Exception $e) {
@@ -51,8 +49,6 @@ try {
 require_once 'security/auth.php';
 
 // Verificar la sesión del usuario de forma condicional
-// Si el valor de REQUIRE_LOGIN es 0, no se verificará la sesión para usuarios regulares
-// Si es 1 o el usuario es admin, siempre se verificará
 check_session(false, 'index.php', true);
 
 header('Content-Type: text/html; charset=utf-8');
@@ -83,64 +79,26 @@ $settings = SimpleCache::get_settings($conn);
 $page_title = $settings['PAGE_TITLE'] ?? 'Sistema de Consulta';
 $require_login = ($settings['REQUIRE_LOGIN'] ?? '1') === '1';
 
-// Procesar login de usuario
-$login_error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_user'])) {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-    
-    $stmt = $conn->prepare("SELECT id, username, password FROM users WHERE username = ? AND status = 1");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        if (password_verify($password, $user['password'])) {
-            // Login exitoso
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            // Redireccionar para evitar reenvío del formulario
-            header("Location: inicio.php");
-            exit();
-        } else {
-            $login_error = "Contraseña incorrecta";
-        }
-    } else {
-        $login_error = "Usuario no encontrado o inactivo";
-    }
-    $stmt->close();
-}
-
 // Procesar logout
 if (isset($_GET['logout'])) {
-    // Mantener algunos datos de sesión si es necesario
-    $temp_result = isset($_SESSION['resultado']) ? $_SESSION['resultado'] : '';
-    $temp_error = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
-    
-    // Destruir la sesión
     session_unset();
     session_destroy();
-    
-    // Iniciar nueva sesión para los mensajes
     session_start();
-    $_SESSION['resultado'] = $temp_result;
-    $_SESSION['error_message'] = $temp_error;
-    
     header("Location: inicio.php");
     exit();
 }
 
-// Recuperar mensajes de sesión (si existen)
-$resultado = isset($_SESSION['resultado']) ? $_SESSION['resultado'] : '';
-$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+// Recuperar mensajes de sesión
+$resultado = $_SESSION['resultado'] ?? '';
+$error_message = $_SESSION['error_message'] ?? '';
 
-// Limpiar variables de sesión para no repetir mensajes
 unset($_SESSION['resultado']);
 unset($_SESSION['error_message']);
 
-// Verificar si el usuario debe iniciar sesión
 $user_logged_in = isset($_SESSION['user_id']);
+
+// Determinar si hay resultados para mostrar
+$has_results = !empty($resultado) || !empty($error_message);
 ?>
 
 <!DOCTYPE html>
@@ -150,132 +108,50 @@ $user_logged_in = isset($_SESSION['user_id']);
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><?= htmlspecialchars($page_title) ?></title>
 
-  <!-- Bootstrap CSS (CDN) -->
-  <link 
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-  />
-
-  <!-- Font Awesome (CDN) -->
-  <link 
-    rel="stylesheet" 
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  />
-
-  <!-- Estilos modernos -->
-  <link rel="stylesheet" href="styles/modern_global.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="styles/modern_inicio.css">
   
-  <!-- Script de seguridad (opcional) -->
   <script src="security/autorizados.js"></script>
 </head>
 <body>
 
-<!-- Partículas flotantes -->
-<div class="floating-particles">
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-  <div class="particle"></div>
-</div>
-
-<!-- Barra de navegación moderna -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-modern fixed-top">
   <div class="container">
-    <!-- Link o Logo de Inicio -->
     <a class="navbar-brand" href="javascript:location.reload();">
       <i class="fas fa-code"></i> <?= htmlspecialchars($page_title) ?>
     </a>
-
-    <!-- Botón para colapsar en pantallas pequeñas -->
-    <button 
-      class="navbar-toggler" 
-      type="button" 
-      data-bs-toggle="collapse" 
-      data-bs-target="#navbarOpciones" 
-      aria-controls="navbarOpciones" 
-      aria-expanded="false" 
-      aria-label="Toggle navigation"
-    >
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarOpciones" aria-controls="navbarOpciones" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-
-    <!-- Contenedor de enlaces colapsables -->
     <div class="collapse navbar-collapse" id="navbarOpciones">
       <ul class="navbar-nav ms-auto">
-        <?php if (is_installed()): // Verificar primero si está instalado ?>
-          <?php if (is_admin()): ?>
-          <!-- Opción de Configurar Sistema (solo para administradores) -->
+        <?php if (is_admin()): ?>
           <li class="nav-item">
-            <a 
-              class="nav-link btn btn-sm btn-outline-primary me-2" 
-              href="admin/admin.php"
-            >
-              <i class="fas fa-cogs"></i> Configurar Sistema
-            </a>
+            <a class="nav-link" href="admin/admin.php"><i class="fas fa-cogs"></i> Configurar Sistema</a>
           </li>
-          <?php elseif (!is_authenticated() && !is_login_required($conn)): ?>
-          <!-- Opción de Login Admin (solo cuando seguridad está deshabilitada, usuario no está autenticado, y el sistema está instalado) -->
-          <li class="nav-item">
-            <a 
-              class="nav-link btn btn-sm btn-outline-secondary me-2" 
-              href="index.php?action=admin_login"
-            >
-              <i class="fas fa-user-shield"></i> Login Admin
-            </a>
-          </li>
-          <?php endif; ?>
         <?php endif; ?>
-        
-        <!-- Link 1: Sitio Web (siempre visible) -->
         <li class="nav-item">
-          <a 
-            class="nav-link" 
-            href="<?php echo htmlspecialchars($settings['enlace_global_1'] ?? '#'); ?>" 
-            target="_blank"
-          >
-            <i class="fas fa-bookmark"></i> <?php echo htmlspecialchars($settings['enlace_global_1_texto'] ?? 'Sitio Web'); ?>
-          </a>
+          <a class="nav-link" href="<?= htmlspecialchars($settings['enlace_global_1'] ?? '#'); ?>" target="_blank"><i class="fas fa-bookmark"></i> <?= htmlspecialchars($settings['enlace_global_1_texto'] ?? 'Sitio Web'); ?></a>
         </li>
-        
-        <!-- Link 2: Telegram -->
         <li class="nav-item">
-          <a 
-            class="nav-link" 
-            href="<?php echo htmlspecialchars($settings['enlace_global_2'] ?? '#'); ?>" 
-            target="_blank"
-          >
-            <i class="fab fa-telegram-plane"></i> <?php echo htmlspecialchars($settings['enlace_global_2_texto'] ?? 'Telegram'); ?>
-          </a>
+          <a class="nav-link" href="<?= htmlspecialchars($settings['enlace_global_2'] ?? '#'); ?>" target="_blank"><i class="fab fa-telegram-plane"></i> <?= htmlspecialchars($settings['enlace_global_2_texto'] ?? 'Telegram'); ?></a>
         </li>
-
-        <!-- Link 3: WhatsApp -->
         <?php
-          // Armar la URL de WhatsApp con el número y el texto
           $whatsappNumero = $settings['enlace_global_numero_whatsapp'] ?? '';
           $whatsappTexto = $settings['enlace_global_texto_whatsapp'] ?? '';
           $whatsappLink = 'https://wa.me/' . $whatsappNumero . '?text=' . urlencode($whatsappTexto);
         ?>
         <li class="nav-item">
-          <a 
-            class="nav-link" 
-            href="<?= htmlspecialchars($whatsappLink) ?>" 
-            target="_blank"
-          >
-            <i class="fab fa-whatsapp"></i> Contacto
-          </a>
+          <a class="nav-link" href="<?= htmlspecialchars($whatsappLink) ?>" target="_blank"><i class="fab fa-whatsapp"></i> Contacto</a>
         </li>
-
         <?php if ($user_logged_in): ?>
-        <!-- Mostrar botón de logout si el usuario está logueado -->
         <li class="nav-item">
-          <a 
-            class="nav-link" 
-            href="inicio.php?logout=1"
-          >
-            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-          </a>
+          <a class="nav-link" href="inicio.php?logout=1"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
         </li>
         <?php endif; ?>
       </ul>
@@ -283,221 +159,175 @@ $user_logged_in = isset($_SESSION['user_id']);
   </div>
 </nav>
 
-<?php if ($require_login && !$user_logged_in): ?>
-<!-- Modal de login cuando se requiere autenticación y el usuario no está logueado -->
-<div class="login-overlay">
-  <div class="login-box">
-    <div class="text-center mb-4">
-      <div class="login-logo">
-        <i class="fas fa-lock"></i>
-      </div>
-      <h3 class="text-gradient">Iniciar Sesión</h3>
-      <p class="text-muted">Accede para consultar códigos</p>
-    </div>
-    
-    <?php if (!empty($login_error)): ?>
-      <div class="alert-modern alert-danger-modern mb-3">
-        <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($login_error) ?>
-      </div>
-    <?php endif; ?>
-    
-    <form method="POST" action="inicio.php" class="search-form">
-      <div class="form-group-modern">
-        <input type="text" name="username" class="form-input-modern" placeholder="Usuario" required autofocus>
-        <i class="fas fa-user form-icon"></i>
-      </div>
-      
-      <div class="form-group-modern">
-        <input type="password" name="password" class="form-input-modern" placeholder="Contraseña" required>
-        <i class="fas fa-lock form-icon"></i>
-      </div>
-      
-      <button type="submit" name="login_user" class="btn-search-modern">
-        <i class="fas fa-sign-in-alt"></i>
-        <span class="btn-text">Ingresar</span>
-      </button>
-    </form>
-  </div>
-</div>
-<?php endif; ?>
-
-<!-- Contenedor principal (centrado con flex; min-vh-100 para ocupar pantalla completa) -->
 <div class="main-container">
-  <div class="main-card fade-in">
-    <!-- Logo -->
-    <div class="logo-container">
-      <img 
-        src="/images/logo/<?php echo htmlspecialchars($settings['LOGO'] ?? 'logo.png'); ?>" 
-        alt="Logo" 
-        class="logo"
-      />
+  <!-- Añadir clase 'expanded' cuando hay resultados -->
+  <div class="main-card<?= $has_results ? ' expanded' : '' ?>">
+    
+    <!-- Contenedor del formulario de búsqueda -->
+    <div id="search-container" class="<?= $has_results ? 'hidden' : '' ?>">
+        <div class="logo-container">
+          <img src="/images/logo/<?= htmlspecialchars($settings['LOGO'] ?? 'logo.png'); ?>" alt="Logo" class="logo"/>
+        </div>
+        <h1 class="main-title" id="typing-title"></h1>
+        <form action="funciones.php" method="POST" class="search-form" id="searchForm">
+          <div class="form-group-modern">
+            <input type="email" id="email" name="email" class="form-input-modern" placeholder="Ingrese el correo a consultar" required maxlength="50"/>
+            <i class="fas fa-envelope form-icon"></i>
+          </div>
+          
+          <div class="form-group-modern">
+              <div class="custom-select-wrapper">
+                  <div class="custom-select">
+                      <div class="custom-select__trigger">
+                          <span>Seleccione una plataforma...</span>
+                          <div class="arrow"></div>
+                      </div>
+                      <div class="custom-options">
+                          <?php
+                            $platforms_query = "SELECT name FROM platforms ORDER BY sort_order ASC";
+                            $platforms_result = $conn->query($platforms_query);
+                            if ($platforms_result && $platforms_result->num_rows > 0) {
+                                while ($platform_row = $platforms_result->fetch_assoc()) {
+                                    $platform_name = htmlspecialchars($platform_row['name']);
+                                    echo '<span class="custom-option" data-value="' . $platform_name . '">' . $platform_name . '</span>';
+                                }
+                            } else {
+                                echo '<span class="custom-option" style="color: #888; pointer-events: none;">No hay plataformas disponibles</span>';
+                            }
+                          ?>
+                      </div>
+                  </div>
+              </div>
+              <input type="hidden" name="plataforma" id="plataforma" required>
+              <i class="fas fa-list form-icon"></i>
+          </div>
+
+          <?php if ($user_logged_in): ?>
+            <input type="hidden" name="user_id" value="<?= htmlspecialchars($_SESSION['user_id']) ?>">
+          <?php endif; ?>
+
+          <button type="submit" class="btn-search-modern" id="searchBtn">
+            <span class="btn-text">Buscar Códigos</span>
+          </button>
+        </form>
     </div>
 
-    <!-- Título -->
-    <h1 class="main-title typing-effect">Consulta tu Código Aquí</h1>
-
-    <!-- Formulario -->
-    <form action="funciones.php" method="POST" class="search-form" id="searchForm">
-      <div class="form-group-modern">
-        <input 
-          type="email" 
-          id="email" 
-          name="email" 
-          class="form-input-modern" 
-          placeholder="Ingrese el correo a consultar" 
-          required 
-          maxlength="50"
-        />
-        <i class="fas fa-envelope form-icon"></i>
+    <!-- Contenedor de resultados -->
+    <div id="results-container" class="results-container <?= !$has_results ? 'hidden' : '' ?>">
+      <!-- Botón de nueva búsqueda AL INICIO -->
+      <div class="text-center" style="margin-bottom: 0.5rem;">
+          <a href="inicio.php" class="btn-back">
+            <i class="fas fa-search"></i> Nueva Búsqueda
+          </a>
       </div>
       
-      <div class="form-group-modern">
-        <select
-          name="plataforma"
-          id="plataforma"
-          class="form-select-modern"
-          required
-        >
-          <option value="" disabled selected>Seleccione una plataforma...</option>
-        
-          <?php
-            // Obtener plataformas desde la base de datos, ordenadas por sort_order
-            $platforms_query = "SELECT name FROM platforms ORDER BY sort_order ASC";
-            $platforms_result = $conn->query($platforms_query);
-            if ($platforms_result && $platforms_result->num_rows > 0) {
-                while ($platform_row = $platforms_result->fetch_assoc()) {
-                    $platform_name = htmlspecialchars($platform_row['name']);
-                    echo "<option value=\"{$platform_name}\">{$platform_name}</option>";
-                }
-            } else {
-                // Opcional: Mostrar un mensaje si no hay plataformas configuradas
-                echo '<option value="" disabled>No hay plataformas disponibles</option>';
-            }
-          ?>
-        </select>
-        <i class="fas fa list form-icon"></i>
-      </div>
-
-      <!-- Agregar campo oculto con el ID de usuario para el registro de logs -->
-      <?php if ($user_logged_in): ?>
-        <input type="hidden" name="user_id" value="<?= htmlspecialchars($_SESSION['user_id']) ?>">
-      <?php endif; ?>
-
-      <button type="submit" class="btn-search-modern" id="searchBtn">
-        <span class="loading-spinner" id="loadingSpinner" style="display: none;"></span>
-        <i class="fas fa-search"></i>
-        <span class="btn-text">Buscar Códigos</span>
-      </button>
-    </form>
-
-    <!-- Contenedor de resultado -->
-    <div class="results-container">
       <?php if (!empty($resultado)): ?>
-        <?php if (strpos($resultado, '<div class="alert') === 0): ?>
-          <!-- Es un mensaje de alerta - convertir a diseño moderno -->
-          <div class="alert-modern alert-success-modern">
-            <i class="fas fa-check-circle"></i>
-            <?= strip_tags($resultado, '<strong><b><i><em>') ?>
-          </div>
-        <?php else: ?>
-          <!-- Es un código HTML (email) -->
-          <div class="alert-modern alert-info-modern">
-            <i class="fas fa-envelope-open"></i>
-            <strong>Código encontrado:</strong> Se ha encontrado tu código de verificación.
-          </div>
-          <div class="email-content">
-            <?= $resultado ?>
-          </div>
-        <?php endif; ?>
+        <!-- Indicador de éxito -->
+        <div class="alert-modern alert-success-modern" style="margin-bottom: 0.5rem;">
+          <i class="fas fa-check-circle"></i>
+          <strong>¡Código encontrado!</strong> Tu código de verificación está listo.
+        </div>
+        
+        <!-- Contenido del resultado - SIN MODIFICAR -->
+        <div class="result-content-wrapper">
+          <?= $resultado ?>
+        </div>
       <?php endif; ?>
-
-      <!-- Contenedor de error -->
+      
       <?php if (!empty($error_message)): ?>
-        <div class="alert-modern alert-danger-modern">
+        <!-- Mensaje de error -->
+        <div class="alert-modern alert-danger-modern" style="margin-bottom: 0.5rem;">
           <i class="fas fa-exclamation-triangle"></i>
           <?= strip_tags($error_message, '<strong><b><i><em>') ?>
         </div>
       <?php endif; ?>
     </div>
+
   </div>
 </div>
 
-<!-- Footer moderno -->
 <footer class="footer-modern">
   <div class="container">
     <p class="mb-0">
       ¿Estás interesado en una página web y en un bot de códigos?<br>
-      <a href="https://clientes.hostsbl.com/aff.php?aff=<?php echo htmlspecialchars($settings['ID_VENDEDOR'] ?? ''); ?>" target="_blank">
+      <a href="https://clientes.hostsbl.com/aff.php?aff=<?= htmlspecialchars($settings['ID_VENDEDOR'] ?? ''); ?>" target="_blank">
         Click aquí para más información
       </a>
     </p>
   </div>
 </footer>
 
-<!-- Bootstrap JS (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const form = document.getElementById('searchForm');
-  const searchBtn = document.getElementById('searchBtn');
-  const loadingSpinner = document.getElementById('loadingSpinner');
-  const btnText = searchBtn.querySelector('.btn-text');
-  const navbar = document.querySelector('.navbar-modern');
-  
-  // Efecto de scroll en navbar
-  window.addEventListener('scroll', function() {
-    if (window.scrollY > 50) {
-      navbar.classList.add('scrolled');
-    } else {
-      navbar.classList.remove('scrolled');
-    }
-  });
-  
-  // Animación del formulario al enviar
-  form.addEventListener('submit', function() {
-    // Mostrar estado de carga
-    searchBtn.classList.add('loading');
-    loadingSpinner.style.display = 'inline-block';
-    btnText.textContent = 'Buscando...';
-    searchBtn.disabled = true;
-  });
-  
-  // Efectos de hover en inputs
-  const inputs = document.querySelectorAll('.form-input-modern, .form-select-modern');
-  inputs.forEach(input => {
-    input.addEventListener('focus', function() {
-      this.parentElement.style.transform = 'translateY(-2px)';
-    });
-    
-    input.addEventListener('blur', function() {
-      this.parentElement.style.transform = 'translateY(0)';
-    });
-  });
-  
-  // Efecto de escritura en el título (si no tiene la clase typing-effect ya aplicada)
-  const title = document.querySelector('.main-title');
-  if (title && title.classList.contains('typing-effect')) {
-    const titleText = title.textContent;
-    title.textContent = '';
-    title.style.borderRight = '2px solid var(--primary-color)';
-    
+    // Efecto máquina de escribir para el título
+    const title = document.getElementById('typing-title');
+    const titleText = 'Consulta tu Código Aquí';
     let i = 0;
-    const typeWriter = () => {
-      if (i < titleText.length) {
-        title.textContent += titleText.charAt(i);
-        i++;
-        setTimeout(typeWriter, 100);
-      } else {
-        // Remover cursor después de completar
-        setTimeout(() => {
-          title.style.borderRight = 'none';
-        }, 1000);
-      }
-    };
     
+    function typeWriter() {
+        if (i < titleText.length) {
+            title.innerHTML += titleText.charAt(i);
+            i++;
+            setTimeout(typeWriter, 100); // Velocidad de escritura (100ms por letra)
+        } else {
+            // Añadir cursor parpadeante al final
+            title.style.borderRight = '2px solid var(--accent-green)';
+            title.style.animation = 'blink 1s infinite';
+        }
+    }
+    
+    // Iniciar el efecto después de un pequeño delay
     setTimeout(typeWriter, 500);
-  }
+    
+    // Manejar el select personalizado
+    const customSelect = document.querySelector('.custom-select');
+    if (customSelect) {
+        const trigger = customSelect.querySelector('.custom-select__trigger');
+        const options = customSelect.querySelectorAll('.custom-option');
+        const hiddenInput = document.getElementById('plataforma');
+        const triggerSpan = trigger.querySelector('span');
+
+        trigger.addEventListener('click', function() {
+            customSelect.classList.toggle('open');
+        });
+
+        options.forEach(option => {
+            option.addEventListener('click', function(e) {
+                if (e.target.hasAttribute('data-value')) {
+                    triggerSpan.textContent = this.textContent;
+                    triggerSpan.style.color = 'var(--text-primary)';
+                    hiddenInput.value = this.getAttribute('data-value');
+                    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    customSelect.classList.remove('open');
+                }
+            });
+        });
+
+        window.addEventListener('click', function(e) {
+            if (!customSelect.contains(e.target)) {
+                customSelect.classList.remove('open');
+            }
+        });
+    }
+
+    // Efectos adicionales para resultados
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer && !resultsContainer.classList.contains('hidden')) {
+        // Añadir animación de entrada para los resultados
+        resultsContainer.style.opacity = '0';
+        resultsContainer.style.transform = 'translateY(30px)';
+        
+        setTimeout(() => {
+            resultsContainer.style.transition = 'all 0.6s ease';
+            resultsContainer.style.opacity = '1';
+            resultsContainer.style.transform = 'translateY(0)';
+        }, 100);
+    }
+
+    // Asegurar que el fondo siempre esté visible
+    document.body.style.position = 'relative';
+    document.body.style.zIndex = '0';
 });
 </script>
 
