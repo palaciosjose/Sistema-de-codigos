@@ -94,7 +94,7 @@ define('DB_PASSWORD', '{$db_password}');
         
         // Implementación independiente de SQL para crear tablas e insertar datos
         $crearTablas = true;
-        $usarArchivoSQL = true;
+        $usarArchivoSQL = false;
         
         if ($crearTablas) {
             // Crear tablas directamente desde PHP
@@ -202,9 +202,16 @@ define('DB_PASSWORD', '{$db_password}');
                 ['IMAP_SEARCH_OPTIMIZATION', '1', 'Activar optimizaciones de búsqueda IMAP (1=activado, 0=desactivado)'],
                 ['PERFORMANCE_LOGGING', '0', 'Activar logs de rendimiento (1=activado, 0=desactivado)'],
                 ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado (1=activado, 0=desactivado)'],
-                ['CACHE_ENABLED', '1', 'Activar sistema de cache para mejorar performance (1=activado, 0=desactivado)'],
+                [['CACHE_ENABLED', '1', 'Activar sistema de cache para mejorar performance (1=activado, 0=desactivado)'],
                 ['CACHE_TIME_MINUTES', '5', 'Tiempo de vida del cache en minutos (recomendado: 5-15 minutos)'],
-                ['CACHE_MEMORY_ENABLED', '1', 'Activar cache en memoria para consultas repetidas en la misma sesión (1=activado, 0=desactivado)']
+                ['CACHE_MEMORY_ENABLED', '1', 'Activar cache en memoria para consultas repetidas en la misma sesión (1=activado, 0=desactivado)'],
+                ['TRUST_IMAP_DATE_FILTER', '1', 'Confiar en el filtrado de fechas IMAP sin verificación adicional (1=activado, 0=desactivado, mejora velocidad)'],
+                ['USE_PRECISE_IMAP_SEARCH', '1', 'Usar búsquedas IMAP más precisas con fecha y hora específica (1=activado, 0=desactivado)'],
+                ['MAX_EMAILS_TO_CHECK', '50', 'Número máximo de emails a verificar por consulta (recomendado: 20-100)'],
+                ['IMAP_SEARCH_TIMEOUT', '30', 'Tiempo límite para búsquedas IMAP en segundos (recomendado: 15-60)'],
+                ['EMAIL_PROCESSING_MODE', 'selective', 'Modo de procesamiento de emails (selective=solo headers, full=contenido completo)'],
+                ['HEADER_ONLY_SEARCH', '1', 'Buscar solo en headers para mayor velocidad (1=activado, 0=desactivado)'],
+                ['CONCURRENT_SERVER_SEARCH', '0', 'Buscar en múltiples servidores simultáneamente (1=activado, 0=desactivado, experimental)']
             ];
             $stmt_settings = $pdo->prepare("INSERT IGNORE INTO settings (name, value, description) VALUES (?, ?, ?)");
             foreach ($settingsData as $setting) {
@@ -323,30 +330,6 @@ define('DB_PASSWORD', '{$db_password}');
     $pdo->exec("INSERT IGNORE INTO users (username, password, email, status) VALUES 
         ('cliente', '{$clientePassword}', 'cliente@ejemplo.com', 1)");
     
-    // *** RESPALDO CON ARCHIVO SQL (SI ESTÁ HABILITADO) ***
-    if ($usarArchivoSQL) {
-        // Leer el archivo SQL
-        $sql_file = file_get_contents(__DIR__ . '/instalacion.sql');
-        
-        // Dividir el archivo SQL en consultas individuales
-        $queries = preg_split('/;\s*$/m', $sql_file);
-        
-        // Ejecutar cada consulta
-        foreach ($queries as $query) {
-            $query = trim($query);
-            if (!empty($query)) {
-                // Intentar ejecutar la consulta, pero ignorar errores de duplicación
-                try {
-                    $pdo->exec($query);
-                } catch (PDOException $e) {
-                    // Ignorar errores de duplicación (código 1062) o tablas ya existentes (código 1050)
-                    if (!in_array($e->errorInfo[1], [1062, 1050])) {
-                        throw $e;
-                    }
-                }
-            }
-        }
-    }
         
         // Actualizar el estado de instalación
         $stmt = $pdo->prepare("UPDATE settings SET value = '1' WHERE name = 'INSTALLED'");
