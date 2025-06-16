@@ -95,30 +95,118 @@ class EmailSearchEngine {
     }
     
     /**
-     * Verificación de email autorizado (optimizada con cache)
-     */
-    private function isAuthorizedEmail($email) {
-        $auth_enabled = ($this->settings['EMAIL_AUTH_ENABLED'] ?? '0') === '1';
-        
-        if (!$auth_enabled) {
-            return true;
-        }
-        
-        // Consulta en tiempo real por seguridad
-        $stmt = $this->conn->prepare("SELECT 1 FROM authorized_emails WHERE email = ? LIMIT 1");
-        if (!$stmt) {
-            error_log("Error preparando consulta de autorización: " . $this->conn->error);
-            return false;
-        }
-        
-        $stmt->bind_param("s", $email);
+ * Verificación de email autorizado con restricciones por usuario
+ */
+private function isAuthorizedEmail($email) {
+    $auth_enabled = ($this->settings['EMAIL_AUTH_ENABLED'] ?? '0') === '1';
+    $user_restrictions_enabled = ($this->settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1';
+    
+    // Si no hay filtro de autorizacion, permitir todos
+    if (!$auth_enabled) {
+        return true;
+    }
+    
+    // Verificar si el email está en la lista de autorizados
+    $stmt = $this->conn->prepare("SELECT id FROM authorized_emails WHERE email = ? LIMIT 1");
+    if (!$stmt) {
+        error_log("Error preparando consulta de autorización: " . $this->conn->error);
+        return false;
+    }
+    
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows == 0) {
+        $stmt->close();
+        return false; // Email no está en la lista de autorizados
+    }
+    
+    $email_data = $result->fetch_assoc();
+    $authorized_email_id = $email_data['id'];
+    $stmt->close();
+    
+    // Si las restricciones por usuario están deshabilitadas, permitir
+    if (!$user_restrictions_enabled) {
+        return true;
+    }
+    
+    // Verificar si el usuario actual tiene acceso a este email específico
+    $user_id = $_SESSION['user_id'] ?? null;
+    
+    // Si no hay usuario logueado, denegar
+    if (!$user_id) {
+        return false;
+    }
+    
+    // Si es admin, permitir acceso a todos los correos
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+        return true;
+    }
+    
+    // Verificar si el usuario tiene asignado este email específico
+    $stmt_user = $this->conn->prepare("
+        SELECT 1 FROM user_authorized_emails 
+        WHERE user_id = ? AND authorized_email_id = ? 
+        LIMIT 1
+    ");
+    
+    if (!$stmt_user) {
+        error_log("Error preparando consulta de restricción por usuario: " . $this->conn->error);
+        return false;
+    }
+    
+    $stmt_user->bind_param("ii", $user_id, $authorized_email_id);
+    $stmt_user->execute();
+    $result_user = $stmt_user->get_result();
+    $has_access = $result_user->num_rows > 0;
+    $stmt_user->close();
+    
+    return $has_access;
+}
+
+/**
+ * Nueva función para obtener emails asignados a un usuario específico
+ */
+public function getUserAuthorizedEmails($user_id) {
+    $user_restrictions_enabled = ($this->settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1';
+    
+    // Si no hay restricciones por usuario, devolver todos los emails autorizados
+    if (!$user_restrictions_enabled) {
+        $stmt = $this->conn->prepare("SELECT email FROM authorized_emails ORDER BY email ASC");
         $stmt->execute();
         $result = $stmt->get_result();
-        $authorized = $result->num_rows > 0;
-        $stmt->close();
         
-        return $authorized;
+        $emails = [];
+        while ($row = $result->fetch_assoc()) {
+            $emails[] = $row['email'];
+        }
+        $stmt->close();
+        return $emails;
     }
+    
+    // Si hay restricciones, devolver solo los emails asignados al usuario
+    $query = "
+        SELECT ae.email 
+        FROM user_authorized_emails uae 
+        JOIN authorized_emails ae ON uae.authorized_email_id = ae.id 
+        WHERE uae.user_id = ? 
+        ORDER BY ae.email ASC
+    ";
+    
+    $stmt = $this->conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $emails = [];
+    while ($row = $result->fetch_assoc()) {
+        $emails[] = $row['email'];
+    }
+    $stmt->close();
+    
+    return $emails;
+}
     
     /**
      * Obtener asuntos para una plataforma

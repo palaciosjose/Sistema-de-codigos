@@ -1,0 +1,371 @@
+/* ========================================
+   DISEÑO "ARCADE NEÓN" - NO TOCA EL RESULTADO
+   ======================================== */
+
+/* --- VARIABLES DE COLOR --- */
+:root {
+    --bg-purple-dark: #1A1235;
+    --card-purple: #2A1F4D;
+    --input-dark: rgba(0, 0, 0, 0.3);
+    --text-primary: #FFFFFF;
+    --text-secondary: #BCAEE5;
+    --accent-green: #32FFB5;
+    --glow-green: rgba(50, 255, 181, 0.15);
+    --glow-border: rgba(50, 255, 181, 0.4);
+}
+
+/* --- ESTILOS GENERALES Y FONDO --- */
+body {
+    background-color: var(--bg-purple-dark);
+    color: var(--text-primary);
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* FONDO FIJO - Asegurar que siempre sea visible */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/fondo/fondo.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    filter: brightness(0.6) saturate(1.2);
+    z-index: -2;
+    animation: kenburns-effect 40s ease-in-out infinite alternate;
+}
+
+@keyframes kenburns-effect {
+    from { transform: scale(1) translate(0, 0); }
+    to { transform: scale(1.1) translate(2%, -2%); }
+}
+
+/* OVERLAY FIJO - Asegurar que siempre esté presente */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(26, 18, 53, 0.6), rgba(26, 18, 53, 0.6));
+    z-index: -1;
+}
+
+/* --- SCROLLBAR PERSONALIZADA BONITA --- */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--accent-green), #20d084);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #20d084, var(--accent-green));
+}
+
+/* Firefox */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-green) rgba(255, 255, 255, 0.1);
+}
+
+/* --- BARRA DE NAVEGACIÓN --- */
+.navbar-modern {
+    background: rgba(31, 22, 62, 0.7) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glow-border) !important;
+    padding: 1rem 0;
+    z-index: 1000;
+}
+.navbar-modern .navbar-brand { font-weight: 600; color: var(--text-primary) !important; }
+.navbar-modern .nav-link {
+    color: var(--text-secondary) !important;
+    font-weight: 500;
+    border: 1px solid var(--text-secondary);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem !important;
+    margin: 0 0.2rem;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+}
+.navbar-modern .nav-link:hover {
+    color: var(--accent-green) !important;
+    border-color: var(--accent-green);
+    background-color: var(--glow-green);
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+.main-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 20px 40px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* --- TARJETA PRINCIPAL --- */
+.main-card {
+    background: var(--card-purple);
+    border: 1px solid var(--glow-border);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: inset 0 0 15px rgba(50, 255, 181, 0.1), 0 10px 30px rgba(0,0,0,0.4);
+    position: relative;
+    transition: all 0.5s ease;
+    backdrop-filter: blur(10px);
+}
+
+/* Cuando se muestran resultados, la tarjeta puede crecer */
+.main-card.expanded {
+    max-width: 700px;
+    /* Sin limitaciones de altura - crece naturalmente */
+}
+
+/* --- FORMULARIO Y SUS ELEMENTOS --- */
+.logo-container { text-align: center; margin-bottom: 1rem; }
+.logo { width: 100px; border-radius: 12px; }
+.main-title { 
+    font-weight: 700; 
+    font-size: 1.8rem; 
+    text-align: center; 
+    margin-bottom: 2rem; 
+    color: var(--text-primary);
+    min-height: 2.2rem; /* Altura fija para evitar saltos durante la animación */
+}
+
+/* Animación del cursor parpadeante */
+@keyframes blink {
+    0%, 50% { border-right-color: var(--accent-green); }
+    51%, 100% { border-right-color: transparent; }
+}
+.form-group-modern { position: relative; margin-bottom: 1.2rem; }
+.form-input-modern, .form-select-modern {
+    width: 100%;
+    padding: 0.9rem 1rem 0.9rem 3rem;
+    background-color: var(--input-dark);
+    border: 1px solid var(--text-secondary);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+.form-input-modern:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px var(--glow-green);
+}
+.form-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+.form-input-modern:focus + .form-icon { color: var(--accent-green); }
+
+/* --- SELECT PERSONALIZADO --- */
+.custom-select-wrapper { position: relative; user-select: none; width: 100%; }
+.custom-select { position: relative; }
+.custom-select__trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1rem 0.9rem 3rem;
+    background-color: var(--input-dark);
+    border: 1px solid var(--text-secondary);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.custom-select.open .custom-select__trigger {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px var(--glow-green);
+}
+.arrow { position: relative; height: 10px; width: 10px; }
+.arrow::before, .arrow::after { content: ""; position: absolute; bottom: 0px; width: 0.15rem; height: 100%; background-color: var(--text-secondary); transition: all 0.3s ease;}
+.arrow::before { left: -5px; transform: rotate(45deg); }
+.arrow::after { left: 0px; transform: rotate(-45deg); }
+.custom-select.open .arrow::before { transform: rotate(-45deg); }
+.custom-select.open .arrow::after { transform: rotate(45deg); }
+.custom-options {
+    position: absolute;
+    display: block;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    background: var(--card-purple);
+    border: 1px solid var(--glow-border);
+    border-radius: 12px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-10px);
+    z-index: 2;
+    padding: 10px;
+    max-height: 110px;
+    overflow-y: auto;
+    transition: all 0.3s ease-in-out;
+}
+.custom-select.open .custom-options { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+.custom-option {
+    display: block;
+    padding: 0.8rem 1rem;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.custom-option:hover {
+    background-color: var(--glow-green);
+    color: var(--accent-green);
+}
+
+/* --- BOTÓN DE BÚSQUEDA --- */
+.btn-search-modern {
+    width: 100%; padding: 0.9rem; border: none; border-radius: 10px; color: var(--bg-purple-dark);
+    background: var(--accent-green); font-weight: 700; font-size: 1rem; cursor: pointer;
+    margin-top: 1rem; text-transform: uppercase; letter-spacing: 1px;
+    box-shadow: 0 0 20px var(--glow-green); transition: all 0.3s ease;
+}
+.btn-search-modern:hover { transform: translateY(-3px); box-shadow: 0 0 25px 5px var(--glow-green); }
+
+/* --- SISTEMA DE OCULTACIÓN --- */
+.hidden {
+    display: none !important;
+}
+
+/* --- CONTENEDOR DE RESULTADOS --- */
+.results-container {
+    margin-top: 0.5rem; /* Reducido de 1.5rem a 0.5rem */
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(20px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+/* --- WRAPPER DEL CONTENIDO - COMPLETAMENTE NEUTRAL --- */
+.result-content-wrapper {
+    /* SOLO un contenedor básico - NO interfiere con el contenido */
+    border-radius: 12px;
+    padding: 0;
+    margin: 0;
+    /* NO background, NO border, NO color - deja que el email se muestre tal como es */
+}
+
+/* IMPORTANTE: NO aplicar estilos a elementos dentro del resultado */
+/* El contenido del email se muestra exactamente como viene */
+
+/* --- BOTÓN DE NUEVA BÚSQUEDA --- */
+.btn-back {
+    display: inline-block;
+    padding: 0.6rem 1.2rem; /* Reducido de 0.8rem 1.5rem */
+    border: 1px solid var(--accent-green);
+    border-radius: 10px;
+    color: var(--accent-green);
+    background: transparent;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-top: 0; /* Eliminado margen superior */
+}
+
+.btn-back:hover {
+    background: var(--accent-green);
+    color: var(--bg-purple-dark);
+    box-shadow: 0 0 15px var(--glow-green);
+    transform: translateY(-2px);
+}
+
+/* --- ALERTAS MODERNAS --- */
+.alert-modern {
+    padding: 0.8rem 1.2rem; /* Reducido de 1rem 1.5rem */
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border-left: 4px solid;
+    backdrop-filter: blur(10px);
+    animation: alertSlide 0.5s ease;
+}
+
+@keyframes alertSlide {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.alert-danger-modern {
+    background: rgba(239, 68, 68, 0.1);
+    border-left-color: #ef4444;
+    color: #fca5a5;
+}
+
+.alert-success-modern {
+    background: rgba(34, 197, 94, 0.1);
+    border-left-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+/* --- FOOTER --- */
+.footer-modern {
+    background: transparent;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem 0;
+    text-align: center;
+    color: var(--text-secondary);
+    position: relative;
+    z-index: 1;
+}
+
+.footer-modern a {
+    color: var(--accent-green);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.footer-modern a:hover {
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--glow-green);
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 100px 15px 30px;
+    }
+    
+    .main-card {
+        padding: 1.5rem;
+        max-width: 100%;
+    }
+    
+    .main-card.expanded {
+        max-width: 100%;
+    }
+    
+    .main-title {
+        font-size: 1.5rem;
+    }
+    
+    .result-content-wrapper {
+        padding: 0;
+    }
+    
+    .navbar-modern .nav-link {
+        margin: 0.2rem 0;
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.85rem;
+    }
+}

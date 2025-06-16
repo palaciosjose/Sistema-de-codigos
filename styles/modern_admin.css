@@ -1,0 +1,261 @@
+/* ========================================
+   PANEL DE ADMINISTRACIÓN "ARCADE NEÓN" - AJUSTE FINAL DE FORMULARIOS
+   ======================================== */
+
+/* --- VARIABLES DE COLOR --- */
+:root {
+    --bg-purple-dark: #1A1235;
+    --card-purple: #2A1F4D;
+    --card-purple-light: #3a2d6d;
+    --input-dark: rgba(0, 0, 0, 0.3);
+    --text-primary: #FFFFFF;
+    --text-secondary: #BCAEE5;
+    --accent-green: #32FFB5;
+    --glow-green: rgba(50, 255, 181, 0.15);
+    --glow-border: rgba(50, 255, 181, 0.4);
+    --danger-red: #ff4d4d;
+}
+
+/* --- FONDO ANIMADO --- */
+body.admin-page {
+    background-color: var(--bg-purple-dark);
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+}
+
+body.admin-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/fondo/fondo.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    filter: brightness(0.5) saturate(1.1) blur(2px);
+    z-index: -2;
+    animation: kenburns-effect 40s ease-in-out infinite alternate;
+}
+
+@keyframes kenburns-effect {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
+
+body.admin-page::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(26, 18, 53, 0.6), rgba(26, 18, 53, 0.6));
+    z-index: -1;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+.admin-container {
+    background: var(--card-purple);
+    border: 1px solid var(--glow-border);
+    border-radius: 20px;
+    margin: 2rem;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+/* --- HEADER --- */
+.admin-header {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2));
+}
+
+.admin-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.btn-back-modern {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glow-border);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.btn-back-modern:hover {
+    background: var(--glow-green);
+    color: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+/* --- PESTAÑAS DE NAVEGACIÓN --- */
+.nav-tabs-modern {
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--glow-border);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+
+.nav-tabs-modern .nav-link {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    position: relative;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.nav-tabs-modern .nav-link:hover {
+    color: var(--text-primary);
+}
+
+.nav-tabs-modern .nav-link.active {
+    color: var(--accent-green);
+    background: var(--glow-green);
+    position: relative;
+}
+
+.nav-tabs-modern .nav-link.active::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent-green);
+    box-shadow: 0 0 10px var(--accent-green);
+}
+
+.tab-content { padding: 2rem; }
+
+/* --- TARJETAS INTERNAS --- */
+.admin-card {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--glow-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.admin-card-header { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--glow-border); }
+.admin-card-title { font-size: 1.2rem; font-weight: 600; color: var(--text-primary); }
+
+
+/*
+*
+*
+* --- INICIO DE CAMBIOS ---
+*
+*
+*/
+
+/* --- FORMULARIOS (CORREGIDO) --- */
+.form-group-admin {
+    margin-bottom: 1.5rem; /* Aumentamos el espacio entre cada grupo de campos */
+}
+
+.form-label-admin { 
+    font-weight: 500; 
+    color: var(--text-secondary); 
+    margin-bottom: 0.5rem; 
+    font-size: 0.9rem;
+    display: flex; /* Alineación de icono y texto */
+    align-items: center;
+    gap: 0.5rem;
+}
+.form-control-admin {
+    background: var(--input-dark);
+    border: 1px solid var(--text-secondary);
+    border-radius: 10px;
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    width: 100%;
+}
+.form-control-admin:focus {
+    border-color: var(--accent-green);
+    background: var(--input-dark);
+    box-shadow: 0 0 0 3px var(--glow-green);
+    outline: none;
+}
+/* Hacemos visible el texto de ayuda */
+.form-group-admin .text-muted {
+    color: var(--text-secondary) !important;
+    opacity: 0.8;
+    font-size: 0.8rem;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+
+/* --- BOTONES --- */
+.btn-admin {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.btn-primary-admin { background: var(--accent-green); color: var(--bg-purple-dark); box-shadow: 0 0 15px var(--glow-green); }
+.btn-primary-admin:hover { transform: translateY(-2px); box-shadow: 0 0 25px var(--glow-green); }
+.btn-danger-admin { background: transparent; color: var(--danger-red); border: 1px solid var(--danger-red); }
+.btn-danger-admin:hover { background: rgba(255, 77, 77, 0.1); box-shadow: 0 0 10px rgba(255, 77, 77, 0.2); }
+.btn-success-admin { background: var(--accent-green); color: var(--bg-purple-dark); }
+
+
+/* --- TABLAS --- */
+.table-admin { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+.table-admin thead th {
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--glow-border);
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+.table-admin tbody tr { background: transparent; }
+.table-admin tbody td {
+    padding: 1rem;
+    background: var(--card-purple-light);
+    color: var(--text-primary);
+    vertical-align: middle;
+    border-top: 1px solid var(--glow-border);
+    border-bottom: 1px solid var(--glow-border);
+}
+.table-admin tbody td:first-child { border-left: 1px solid var(--glow-border); border-radius: 10px 0 0 10px; }
+.table-admin tbody td:last-child { border-right: 1px solid var(--glow-border); border-radius: 0 10px 10px 0; }
+.table-admin .d-flex {
+    gap: 0.5rem; /* Espacio entre botones */
+}
+
+
+/* --- MODALES --- */
+.modal-admin .modal-content {
+    background: var(--card-purple);
+    border: 1px solid var(--glow-border);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.modal-admin .modal-header {
+    border-bottom: 1px solid var(--glow-border);
+    color: var(--text-primary);
+}
+.modal-admin .modal-body, .modal-admin .modal-footer {
+    background: transparent;
+    border-top: 1px solid var(--glow-border);
+}

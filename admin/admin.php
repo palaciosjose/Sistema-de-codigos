@@ -19,6 +19,7 @@ if (empty($db_host) || empty($db_user) || empty($db_password) || empty($db_name)
         <meta charset="UTF-8">
         <title>Instalación NO Detectada</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="../styles/modern_global.css">
     </head>
     <body class="bg-dark text-white d-flex align-items-center justify-content-center min-vh-100">
         <div class="text-center">
@@ -32,7 +33,7 @@ if (empty($db_host) || empty($db_user) || empty($db_password) || empty($db_name)
 
 // Crear una única conexión a la base de datos para todo el script
 $conn = new mysqli($db_host, $db_user, $db_password, $db_name);
-$conn->set_charset("utf8mb4"); // Establecer UTF-8 para la conexión
+$conn->set_charset("utf8mb4");
 
 if ($conn->connect_error) {
     echo '
@@ -40,13 +41,14 @@ if ($conn->connect_error) {
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <title>Instalación NO Detectada</title>
+        <title>Error de Base de Datos</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="../styles/modern_global.css">
     </head>
     <body class="bg-dark text-white d-flex align-items-center justify-content-center min-vh-100">
         <div class="text-center">
-            <h1 class="mb-4">Instalación NO Detectada</h1>
-            <a href="../instalacion/instalador.php" class="btn btn-primary">Instalar Sistema</a>
+            <h1 class="mb-4">Error de Base de Datos</h1>
+            <a href="../instalacion/instalador.php" class="btn btn-primary">Reinstalar Sistema</a>
         </div>
     </body>
     </html>';
@@ -63,13 +65,15 @@ foreach ($required_tables as $table) {
         <html lang="es">
         <head>
             <meta charset="UTF-8">
-            <title>Instalación NO Detectada</title>
+            <title>Instalación Incompleta</title>
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+            <link rel="stylesheet" href="../styles/modern_global.css">
         </head>
         <body class="bg-dark text-white d-flex align-items-center justify-content-center min-vh-100">
             <div class="text-center">
-                <h1 class="mb-4">Instalación NO Detectada</h1>
-                <a href="../instalacion/instalador.php" class="btn btn-primary">Instalar Sistema</a>
+                <h1 class="mb-4">Instalación Incompleta</h1>
+                <p>Faltan tablas necesarias en la base de datos.</p>
+                <a href="../instalacion/instalador.php" class="btn btn-primary">Reinstalar Sistema</a>
             </div>
         </body>
         </html>';
@@ -86,7 +90,6 @@ if ($check_servers && $row = $check_servers->fetch_assoc()) {
 
 // Si no hay servidores, crear 5 servidores predeterminados
 if ($server_count == 0) {
-    // Insertar servidores predeterminados
     $default_servers = [
         ["SERVIDOR_1", 0, "imap.gmail.com", 993, "usuario1@gmail.com", ""],
         ["SERVIDOR_2", 0, "imap.gmail.com", 993, "usuario2@gmail.com", ""],
@@ -118,7 +121,7 @@ while ($row = $result->fetch_assoc()) {
 }
 $result->close();
 
-// *** INICIO: Lógica para Correos Autorizados ***
+// *** LÓGICA PARA CORREOS AUTORIZADOS ***
 $auth_email_message = '';
 $auth_email_error = '';
 
@@ -137,7 +140,6 @@ if (isset($_GET['delete_auth_email']) && is_numeric($_GET['delete_auth_email']))
     } else {
         $_SESSION['auth_email_error'] = 'Error al preparar la consulta de eliminación: ' . $conn->error;
     }
-    // Redirigir para limpiar la URL y mostrar el mensaje
     header("Location: admin.php?tab=correos_autorizados");
     exit();
 }
@@ -146,14 +148,12 @@ if (isset($_GET['delete_auth_email']) && is_numeric($_GET['delete_auth_email']))
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_authorized_email'])) {
     $new_email = filter_var(trim($_POST['new_email']), FILTER_SANITIZE_EMAIL);
     if (filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
-        // Verificar si el correo ya existe
         $stmt_check = $conn->prepare("SELECT id FROM authorized_emails WHERE email = ?");
         if ($stmt_check) {
             $stmt_check->bind_param("s", $new_email);
             $stmt_check->execute();
             $stmt_check->store_result();
             if ($stmt_check->num_rows == 0) {
-                // Insertar nuevo correo
                 $stmt_insert = $conn->prepare("INSERT INTO authorized_emails (email) VALUES (?)");
                 if ($stmt_insert) {
                     $stmt_insert->bind_param("s", $new_email);
@@ -176,7 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_authorized_email'
     } else {
         $_SESSION['auth_email_error'] = 'Por favor, introduce una dirección de correo electrónico válida.';
     }
-    // Redirigir para limpiar el POST y mostrar el mensaje
     header("Location: admin.php?tab=correos_autorizados");
     exit();
 }
@@ -187,14 +186,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_authorized_email
     $edit_email_value = filter_var(trim($_POST['edit_email_value']), FILTER_SANITIZE_EMAIL);
 
     if (filter_var($edit_email_value, FILTER_VALIDATE_EMAIL) && !empty($edit_email_id)) {
-        // Verificar si el nuevo correo ya existe (excluyendo el actual)
         $stmt_check = $conn->prepare("SELECT id FROM authorized_emails WHERE email = ? AND id != ?");
         if ($stmt_check) {
             $stmt_check->bind_param("si", $edit_email_value, $edit_email_id);
             $stmt_check->execute();
             $stmt_check->store_result();
             if ($stmt_check->num_rows == 0) {
-                // Actualizar correo
                 $stmt_update = $conn->prepare("UPDATE authorized_emails SET email = ? WHERE id = ?");
                 if ($stmt_update) {
                     $stmt_update->bind_param("si", $edit_email_value, $edit_email_id);
@@ -217,11 +214,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_authorized_email
     } else {
         $_SESSION['auth_email_error'] = 'Por favor, introduce una dirección de correo electrónico válida para editar.';
     }
-     // Redirigir para limpiar el POST y mostrar el mensaje
     header("Location: admin.php?tab=correos_autorizados");
     exit();
 }
-
 
 // Recuperar mensajes de sesión y limpiarlos
 if (isset($_SESSION['auth_email_message'])) {
@@ -244,12 +239,9 @@ if ($result_auth) {
 } else {
     $auth_email_error = "Error al obtener la lista de correos autorizados: " . $conn->error;
 }
-// *** FIN: Lógica para Correos Autorizados ***
-
 
 // Manejar formulario de actualización
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
-    // Verificar si es actualización solo de servidores
     $update_servers_only = isset($_POST['update_servers_only']) && $_POST['update_servers_only'] == '1';
 
     // Solo actualizar servidores de correo si estamos en la pestaña de servidores o es update_servers_only
@@ -271,9 +263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 $imap_password = $server['imap_password'];
             }
 
-            // Validar el valor de imap_port
             if (!is_numeric($imap_port) || $imap_port < 1 || $imap_port > 65535) {
-                $imap_port = 993; // Valor por defecto si el puerto no es válido
+                $imap_port = 993;
             }
 
             $stmt = $conn->prepare("UPDATE email_servers 
@@ -293,13 +284,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
     // Si no es actualización solo de servidores, actualizar el resto de configuraciones
     if (!$update_servers_only) {
-        // Actualizar settings
         $updatable_keys = [
             'PAGE_TITLE',
             'EMAIL_AUTH_ENABLED',
             'enlace_global_1', 'enlace_global_1_texto', 'enlace_global_2', 'enlace_global_2_texto',
             'enlace_global_numero_whatsapp', 'enlace_global_texto_whatsapp','ID_VENDEDOR','LOGO',
             'REQUIRE_LOGIN',
+            'USER_EMAIL_RESTRICTIONS_ENABLED',
             'EMAIL_QUERY_TIME_LIMIT_MINUTES',
             'IMAP_CONNECTION_TIMEOUT',
             'IMAP_SEARCH_OPTIMIZATION', 
@@ -316,12 +307,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
         foreach ($updatable_keys as $key) {
             if (isset($_POST[$key])) {
-                // Manejar checkbox
                 $final_value = $_POST[$key];
                 if (in_array($key, [
                     'EMAIL_AUTH_ENABLED',
                     'REQUIRE_LOGIN',
-                    // NUEVOS checkboxes de performance
+                    'USER_EMAIL_RESTRICTIONS_ENABLED',
                     'IMAP_SEARCH_OPTIMIZATION',
                     'PERFORMANCE_LOGGING',
                     'EARLY_SEARCH_STOP',
@@ -332,13 +322,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 ])) {
                     $final_value = ($final_value === '1') ? '1' : '0';
                 }
-                // Usar INSERT ... ON DUPLICATE KEY UPDATE para manejar claves nuevas o existentes
                 $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?");
                 $stmt->bind_param("sss", $key, $final_value, $final_value);
                 $stmt->execute();
                 $stmt->close();
             } else {
-                // Si es checkbox y no se define, se marca como '0'
                 if (in_array($key, [
                     'EMAIL_AUTH_ENABLED',
                     'REQUIRE_LOGIN',
@@ -347,7 +335,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                     'EARLY_SEARCH_STOP'
                 ])) {
                     $zero = '0';
-                    // Usar INSERT ... ON DUPLICATE KEY UPDATE aquí también
                     $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?");
                     $stmt->bind_param("sss", $key, $zero, $zero);  
                     $stmt->execute();
@@ -362,17 +349,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             $target_file = $target_dir . basename($_FILES["logo"]["name"]);
             $name_file = $_FILES['logo']['name'];
             
-            // Validación del lado del servidor para el logo
             $file_extension = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
             $valid_file = true;
             
-            // Verificar extensión
             if($file_extension != "png") {
                 $_SESSION['message'] = 'Error: Solo se permiten archivos PNG.';
                 $valid_file = false;
             }
             
-            // Verificar dimensiones
             if($valid_file) {
                 list($width, $height) = getimagesize($rutaTemporal);
                 if($width != 512 || $height != 315) {
@@ -381,10 +365,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 }
             }
             
-            // Proceder con la subida si todo es válido
             if($valid_file) {
                 if(move_uploaded_file($rutaTemporal, $target_file)) {
-                    // Usar sentencia preparada para actualizar el nombre del logo
                     $stmt_logo = $conn->prepare("UPDATE settings SET value = ? WHERE name = 'LOGO'");
                     $stmt_logo->bind_param("s", $name_file);
                     $stmt_logo->execute();
@@ -399,14 +381,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             $_SESSION['message'] = 'Configuración actualizada con éxito.';
         }
         
-        // Limpiar cache después de actualizar configuraciones (OPTIMIZADO)
         SimpleCache::clear_settings_cache();
-        // También limpiar cache de servidores si se actualizaron configuraciones relacionadas
         SimpleCache::clear_servers_cache();
-        
-        // Limpiar cache después de actualizar servidores (OPTIMIZADO)
-        SimpleCache::clear_servers_cache();
-        SimpleCache::clear_settings_cache();
     }
     
     header("Location: admin.php?tab=" . ($_POST['current_tab'] ?? 'configuracion'));
@@ -414,232 +390,389 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 }
 
 ?>
-<?php
- if($show_form == true) {
-    echo '
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta charset="UTF-8">
-        <title>Sistema NO Instalado</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    </head>
-    <body class="bg-dark text-white d-flex align-items-center justify-content-center min-vh-100">
-        <div class="text-center">
-            <h1 class="mb-4">Sistema NO Instalado</h1>
-            <a href="../instalacion/instalador.php" class="btn btn-primary">Instalar Sistema</a>
-        </div>
-    </body>
-    </html>';
-    exit();
-}else{
-?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrar Configuración</title>
+    <title>Panel de Administración - <?= htmlspecialchars($settings['PAGE_TITLE'] ?? 'Sistema de Códigos') ?></title>
+    
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <!-- Añadir Font Awesome para los iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="/styles/inicio_design.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Estilos modernos -->
+    <link rel="stylesheet" href="../styles/modern_global.css">
+    <link rel="stylesheet" href="../styles/modern_admin.css">
 </head>
-<body class="bg-dark text-white">
-    <div class="container mt-5">
-        <!-- Botón Volver a Inicio -->
-        <div class="mb-4">
-            <a href="../inicio.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Volver a Inicio
-            </a>
-        </div>
+<body class="admin-page">
 
-        <h1 class="text-center mb-4">Panel de Administración</h1>
-        <?php if (isset($_SESSION['message'])): ?>
-            <div class="alert alert-success">
-                <?= $_SESSION['message'] ?>
-                <?php unset($_SESSION['message']); ?>
+<!-- Partículas flotantes -->
+<div class="floating-particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+</div>
+
+<div class="admin-container">
+    <!-- Header del Admin -->
+    <div class="admin-header">
+        <h1 class="admin-title">
+            <i class="fas fa-cogs me-3"></i>
+            Panel de Administración
+        </h1>
+        <p class="mb-0 opacity-75">Sistema de gestión de códigos por email</p>
+    </div>
+
+    <!-- Botón Volver a Inicio -->
+    <div class="p-4">
+        <a href="../inicio.php" class="btn-back-modern">
+            <i class="fas fa-arrow-left"></i>
+            Volver a Inicio
+        </a>
+    </div>
+
+    <!-- Mensajes de estado -->
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="mx-4">
+            <div class="alert-admin alert-success-admin">
+                <i class="fas fa-check-circle"></i>
+                <span><?= htmlspecialchars($_SESSION['message']) ?></span>
             </div>
-        <?php endif; ?>
+        </div>
+        <?php unset($_SESSION['message']); ?>
+    <?php endif; ?>
 
-        <!-- Navegación por pestañas -->
-        <ul class="nav nav-tabs mb-4 justify-content-center" id="adminTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab" aria-controls="config" aria-selected="true">Configuración</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="servidores-tab" data-bs-toggle="tab" data-bs-target="#servidores" type="button" role="tab" aria-controls="servidores" aria-selected="false">Servidores</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="false">Usuarios</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">Registro de Consultas</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="correos-autorizados-tab" data-bs-toggle="tab" data-bs-target="#correos-autorizados" type="button" role="tab" aria-controls="correos-autorizados" aria-selected="false">Correos Autorizados</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="platforms-tab" data-bs-toggle="tab" data-bs-target="#platforms" type="button" role="tab" aria-controls="platforms" aria-selected="false">Plataformas</button>
-            </li>
-        </ul>
+    <!-- Navegación por pestañas moderna -->
+    <ul class="nav nav-tabs nav-tabs-modern" id="adminTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab">
+                <i class="fas fa-cog me-2"></i>Configuración
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="servidores-tab" data-bs-toggle="tab" data-bs-target="#servidores" type="button" role="tab">
+                <i class="fas fa-server me-2"></i>Servidores
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                <i class="fas fa-users me-2"></i>Usuarios
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
+                <i class="fas fa-list-alt me-2"></i>Registros
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="correos-autorizados-tab" data-bs-toggle="tab" data-bs-target="#correos-autorizados" type="button" role="tab">
+                <i class="fas fa-envelope-open me-2"></i>Correos Autorizados
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="platforms-tab" data-bs-toggle="tab" data-bs-target="#platforms" type="button" role="tab">
+                <i class="fas fa-th-large me-2"></i>Plataformas
+            </button>
+        </li>
 
-        <div class="tab-content" id="adminTabContent">
-            <!-- Pestaña de Configuración -->
-            <div class="tab-pane fade show active p-3" id="config" role="tabpanel" aria-labelledby="config-tab">
-                <form method="POST" action="/admin/admin.php" onsubmit="refreshPage()" enctype="multipart/form-data" id="formulario">
+        <li class="nav-item" role="presentation">
+                <button class="nav-link" id="asignaciones-tab" data-bs-toggle="tab" data-bs-target="#asignaciones" type="button" role="tab" aria-controls="asignaciones" aria-selected="false">Asignar Correos</button>
+        </li>
+
+    </ul>
+
+    <div class="tab-content" id="adminTabContent">
+        <!-- Pestaña de Configuración -->
+        <div class="tab-pane fade show active" id="config" role="tabpanel">
+            <form method="POST" action="admin.php" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <input type="hidden" name="current_tab" value="config">
-                <h2 class="text-center mt-4">Opciones</h2>
-<div class="row d-flex justify-content-center">
-    <div class="col-md-8">
-        <div class="mb-3 form-group text-center">
-            <label for="EMAIL_AUTH_ENABLED" class="form-label">Filtro de Correos Electrónicos</label>
-            <input type="checkbox" class="form-check-input" id="EMAIL_AUTH_ENABLED" name="EMAIL_AUTH_ENABLED" value="1" <?= $settings['EMAIL_AUTH_ENABLED'] ? 'checked' : '' ?>>
-        </div>
-        <div class="mb-3 form-group text-center">
-            <label for="REQUIRE_LOGIN" class="form-label">Seguridad de Login Habilitada</label>
-            <input type="checkbox" class="form-check-input" id="REQUIRE_LOGIN" name="REQUIRE_LOGIN" value="1" <?= ($settings['REQUIRE_LOGIN'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Si está activado, todos los usuarios necesitan iniciar sesión. Si está desactivado, solo los administradores necesitan iniciar sesión.</small>
-        </div>
-        <div class="mb-3 reduced-width">
-            <label for="EMAIL_QUERY_TIME_LIMIT_MINUTES" class="form-label">Límite de tiempo para consulta de correos (minutos)</label>
-            <input type="number" class="form-control" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '15' ?>">
-            <small class="form-text text-muted d-block">Tiempo máximo (en minutos) para buscar correos. Correos más antiguos que este límite no serán procesados.</small>
-        </div>
-
-<!-- NUEVAS CONFIGURACIONES DE PERFORMANCE -->
-        <h3 class="text-center mt-5 mb-4">⚡ Configuraciones de Performance</h3>
-        
-        <div class="mb-3 reduced-width">
-            <label for="IMAP_CONNECTION_TIMEOUT" class="form-label">Timeout de conexión IMAP (segundos)</label>
-            <input type="number" class="form-control" id="IMAP_CONNECTION_TIMEOUT" name="IMAP_CONNECTION_TIMEOUT" min="5" max="60" value="<?= $settings['IMAP_CONNECTION_TIMEOUT'] ?? '10' ?>">
-            <small class="form-text text-muted d-block">Tiempo máximo para conectar a servidores IMAP. Valores más bajos = conexiones más rápidas pero menos tolerancia a servidores lentos.</small>
-        </div>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="IMAP_SEARCH_OPTIMIZATION" class="form-label">Optimizaciones de búsqueda IMAP</label>
-            <input type="checkbox" class="form-check-input" id="IMAP_SEARCH_OPTIMIZATION" name="IMAP_SEARCH_OPTIMIZATION" value="1" <?= ($settings['IMAP_SEARCH_OPTIMIZATION'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Buscar todos los asuntos en una sola consulta IMAP (más rápido). Deshabilitar solo si causa problemas.</small>
-        </div>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="EARLY_SEARCH_STOP" class="form-label">Parada temprana de búsqueda</label>
-            <input type="checkbox" class="form-check-input" id="EARLY_SEARCH_STOP" name="EARLY_SEARCH_STOP" value="1" <?= ($settings['EARLY_SEARCH_STOP'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Parar la búsqueda inmediatamente al encontrar el primer resultado (más rápido).</small>
-        </div>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="PERFORMANCE_LOGGING" class="form-label">Logs de rendimiento</label>
-            <input type="checkbox" class="form-check-input" id="PERFORMANCE_LOGGING" name="PERFORMANCE_LOGGING" value="1" <?= ($settings['PERFORMANCE_LOGGING'] ?? '0') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Registrar tiempos de ejecución en los logs del servidor (para debugging).</small>
-        </div>
-
-        <h3 class="text-center mt-5 mb-4">💾 Configuraciones de Cache</h3>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="CACHE_ENABLED" class="form-label">Sistema de cache activado</label>
-            <input type="checkbox" class="form-check-input" id="CACHE_ENABLED" name="CACHE_ENABLED" value="1" <?= ($settings['CACHE_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Cachear configuraciones y datos para mejorar velocidad (recomendado: activado).</small>
-        </div>
-        
-        <div class="mb-3 reduced-width">
-            <label for="CACHE_TIME_MINUTES" class="form-label">Tiempo de vida del cache (minutos)</label>
-            <input type="number" class="form-control" id="CACHE_TIME_MINUTES" name="CACHE_TIME_MINUTES" min="1" max="60" value="<?= $settings['CACHE_TIME_MINUTES'] ?? '5' ?>">
-            <small class="form-text text-muted d-block">Cuánto tiempo mantener datos en cache antes de recargar (recomendado: 5-15 minutos).</small>
-        </div>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="CACHE_MEMORY_ENABLED" class="form-label">Cache en memoria activado</label>
-            <input type="checkbox" class="form-check-input" id="CACHE_MEMORY_ENABLED" name="CACHE_MEMORY_ENABLED" value="1" <?= ($settings['CACHE_MEMORY_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Mantener datos en memoria durante la sesión para máxima velocidad (recomendado: activado).</small>
-        </div>
-        
-        <!-- Estadísticas de cache -->
-        <div class="mb-3 text-center">
-            <button type="button" class="btn btn-info btn-sm" onclick="showCacheStats()">
-                <i class="fas fa-chart-bar"></i> Ver Estadísticas de Cache
-            </button>
-            <button type="button" class="btn btn-warning btn-sm" onclick="clearCache()">
-                <i class="fas fa-broom"></i> Limpiar Cache
-            </button>
-        </div>
-
-        <div class="mb-3 text-center">
-            <button type="button" class="btn btn-info btn-sm" onclick="showTimeFilteringStats()">
-                <i class="fas fa-clock"></i> Diagnosticar Filtrado de Tiempo
-            </button>
-            <button type="button" class="btn btn-success btn-sm" onclick="testSearchSpeed()">
-                <i class="fas fa-tachometer-alt"></i> Test de Velocidad
-            </button>
-        </div>
-
-        <h3 class="text-center mt-5 mb-4">⏰ Configuraciones de Filtrado de Tiempo</h3>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="TRUST_IMAP_DATE_FILTER" class="form-label">Confiar en filtrado IMAP</label>
-            <input type="checkbox" class="form-check-input" id="TRUST_IMAP_DATE_FILTER" name="TRUST_IMAP_DATE_FILTER" value="1" <?= ($settings['TRUST_IMAP_DATE_FILTER'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">No re-verificar fechas en PHP (más rápido). Deshabilitar solo si hay problemas con fechas incorrectas.</small>
-        </div>
-        
-        <div class="mb-3 form-group text-center">
-            <label for="USE_PRECISE_IMAP_SEARCH" class="form-label">Búsqueda IMAP precisa</label>
-            <input type="checkbox" class="form-check-input" id="USE_PRECISE_IMAP_SEARCH" name="USE_PRECISE_IMAP_SEARCH" value="1" <?= ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1' ? 'checked' : '' ?>>
-            <small class="form-text text-muted d-block">Usar fecha y hora específica en lugar de solo fecha (más preciso pero algunos servidores pueden no soportarlo).</small>
-        </div>
-        
-        <div class="mb-3 reduced-width">
-            <label for="MAX_EMAILS_TO_CHECK" class="form-label">Máximo emails a verificar</label>
-            <input type="number" class="form-control" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="500" value="<?= $settings['MAX_EMAILS_TO_CHECK'] ?? '50' ?>">
-            <small class="form-text text-muted d-block">Limitar cuántos emails verificar para evitar lentitud. Valores más bajos = más rápido.</small>
-        </div>
-        
-        <div class="mb-3 reduced-width">
-            <label for="IMAP_SEARCH_TIMEOUT" class="form-label">Timeout de búsqueda IMAP (segundos)</label>
-            <input type="number" class="form-control" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= $settings['IMAP_SEARCH_TIMEOUT'] ?? '30' ?>">
-            <small class="form-text text-muted d-block">Tiempo máximo para búsquedas IMAP antes de cancelar.</small>
-        </div>        
-
-                        <?php foreach (['PAGE_TITLE' => 'Titulo SEO de la Página', 'enlace_global_1' => 'Enlace del Botón 1', 'enlace_global_1_texto' => 'Texto del botón 1', 'enlace_global_2' => 'Enlace del Botón 2', 'enlace_global_2_texto' => 'Texto del botón 2', 'enlace_global_numero_whatsapp' => 'Número de WhatsApp', 'enlace_global_texto_whatsapp' => 'Texto Botón de WhatsApp','ID_VENDEDOR'=> 'Id Vendedor','LOGO' => 'Logo'] as $option => $label): ?>
-                            <div class="mb-3 reduced-width">
-                                <label for="<?= $option ?>" class="form-label">
-                                    <?= $label ?>
-                                    <?php if($label == 'Logo'){ ?>
-                                        <br>Tamaño: 512px x 315px PNG
-                                    <?php } ?>
+                
+                <!-- Opciones Principales -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-toggle-on me-2 text-primary"></i>
+                            Opciones Principales
+                        </h3>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="EMAIL_AUTH_ENABLED" name="EMAIL_AUTH_ENABLED" value="1" <?= $settings['EMAIL_AUTH_ENABLED'] ? 'checked' : '' ?>>
+                                <label for="EMAIL_AUTH_ENABLED" class="form-check-label-admin">
+                                    <i class="fas fa-filter me-2"></i>
+                                    Filtro de Correos Electrónicos
                                 </label>
-                                <?php if($label == 'Logo'){ ?>
-                                    <input type="file" class="form-control" accept=".png"  onchange="validarArchivo()" id="logo" name="logo" value="<?= $settings[$option] ?? '' ?>">
-                                <?php }else{ ?>
-                                    <input type="text" class="form-control" id="<?= $option ?>" name="<?= $option ?>" value="<?= $settings[$option] ?? '' ?>">
-                                <?php } ?>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="REQUIRE_LOGIN" name="REQUIRE_LOGIN" value="1" <?= ($settings['REQUIRE_LOGIN'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="REQUIRE_LOGIN" class="form-check-label-admin">
+                                    <i class="fas fa-lock me-2"></i>
+                                    Seguridad de Login Habilitada
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">Si está activado, todos los usuarios necesitan iniciar sesión.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-admin">
+                        <label for="EMAIL_QUERY_TIME_LIMIT_MINUTES" class="form-label-admin">
+                            <i class="fas fa-clock me-2"></i>
+                            Límite de tiempo para consulta de correos (minutos)
+                        </label>
+                        <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '15' ?>">
+                        <small class="text-muted">Tiempo máximo para buscar correos. Correos más antiguos no serán procesados.</small>
                     </div>
                 </div>
 
-                <div class="text-center">
-                    <button type="submit" name="update" class="btn btn-primary">ACTUALIZAR</button>
+                <!-- Configuraciones de Performance -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-tachometer-alt me-2 text-warning"></i>
+                            Configuraciones de Performance
+                        </h3>
+                    </div>
+                    
+                    <div class="form-group-admin">
+                        <label for="IMAP_CONNECTION_TIMEOUT" class="form-label-admin">
+                            <i class="fas fa-plug me-2"></i>
+                            Timeout de conexión IMAP (segundos)
+                        </label>
+                        <input type="number" class="form-control-admin" id="IMAP_CONNECTION_TIMEOUT" name="IMAP_CONNECTION_TIMEOUT" min="5" max="60" value="<?= $settings['IMAP_CONNECTION_TIMEOUT'] ?? '10' ?>">
+                        <small class="text-muted">Tiempo máximo para conectar a servidores IMAP.</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="IMAP_SEARCH_OPTIMIZATION" name="IMAP_SEARCH_OPTIMIZATION" value="1" <?= ($settings['IMAP_SEARCH_OPTIMIZATION'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="IMAP_SEARCH_OPTIMIZATION" class="form-check-label-admin">
+                                    <i class="fas fa-search me-2"></i>
+                                    Optimizaciones de búsqueda IMAP
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Buscar todos los asuntos en una sola consulta.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="EARLY_SEARCH_STOP" name="EARLY_SEARCH_STOP" value="1" <?= ($settings['EARLY_SEARCH_STOP'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="EARLY_SEARCH_STOP" class="form-check-label-admin">
+                                    <i class="fas fa-stop me-2"></i>
+                                    Parada temprana de búsqueda
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Parar al encontrar el primer resultado.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check-admin">
+                        <input type="checkbox" class="form-check-input-admin" id="PERFORMANCE_LOGGING" name="PERFORMANCE_LOGGING" value="1" <?= ($settings['PERFORMANCE_LOGGING'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <label for="PERFORMANCE_LOGGING" class="form-check-label-admin">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Logs de rendimiento
+                        </label>
+                    </div>
+                    <small class="text-muted d-block">Registrar tiempos de ejecución en los logs del servidor.</small>
                 </div>
-                </form>
-            </div>
 
-            <!-- Pestaña de Servidores IMAP -->
-            <div class="tab-pane fade p-3" id="servidores" role="tabpanel" aria-labelledby="servidores-tab">
-                <h2 class="text-center mb-4">Configuración de Servidores IMAP</h2>
-                <!-- *** INICIO: Limitar ancho de alerta *** -->
-                <div class="row d-flex justify-content-center">
-                    <div class="col-md-10 col-lg-8">
-                        <div class="alert alert-info text-center mb-4">
-                             <p>En esta sección puedes configurar los servidores IMAP para la verificación de correos.</p>
-                             <p><strong>Nota:</strong> Esta configuración no se ve afectada por cambios en otras pestañas.</p>
-                         </div>
-                     </div>
-                 </div>
-                 <!-- *** FIN: Limitar ancho de alerta *** -->
+                <!-- Configuraciones de Cache -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-database me-2 text-info"></i>
+                            Configuraciones de Cache
+                        </h3>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="CACHE_ENABLED" name="CACHE_ENABLED" value="1" <?= ($settings['CACHE_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="CACHE_ENABLED" class="form-check-label-admin">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Sistema de cache activado
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Cachear configuraciones y datos para mejorar velocidad.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="CACHE_MEMORY_ENABLED" name="CACHE_MEMORY_ENABLED" value="1" <?= ($settings['CACHE_MEMORY_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="CACHE_MEMORY_ENABLED" class="form-check-label-admin">
+                                    <i class="fas fa-memory me-2"></i>
+                                    Cache en memoria activado
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Mantener datos en memoria durante la sesión.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-admin">
+                        <label for="CACHE_TIME_MINUTES" class="form-label-admin">
+                            <i class="fas fa-hourglass-half me-2"></i>
+                            Tiempo de vida del cache (minutos)
+                        </label>
+                        <input type="number" class="form-control-admin" id="CACHE_TIME_MINUTES" name="CACHE_TIME_MINUTES" min="1" max="60" value="<?= $settings['CACHE_TIME_MINUTES'] ?? '5' ?>">
+                        <small class="text-muted">Cuánto tiempo mantener datos en cache antes de recargar.</small>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="button" class="btn-admin btn-info-admin btn-sm-admin" onclick="showCacheStats()">
+                            <i class="fas fa-chart-bar"></i> Ver Estadísticas
+                        </button>
+                        <button type="button" class="btn-admin btn-warning-admin btn-sm-admin" onclick="clearCache()">
+                            <i class="fas fa-broom"></i> Limpiar Cache
+                        </button>
+                        <button type="button" class="btn-admin btn-success-admin btn-sm-admin" onclick="testSearchSpeed()">
+                            <i class="fas fa-tachometer-alt"></i> Test de Velocidad
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Configuraciones de Filtrado de Tiempo -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-clock me-2 text-success"></i>
+                            Configuraciones de Filtrado de Tiempo
+                        </h3>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="TRUST_IMAP_DATE_FILTER" name="TRUST_IMAP_DATE_FILTER" value="1" <?= ($settings['TRUST_IMAP_DATE_FILTER'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="TRUST_IMAP_DATE_FILTER" class="form-check-label-admin">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    Confiar en filtrado IMAP
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">No re-verificar fechas en PHP (más rápido).</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check-admin">
+                                <input type="checkbox" class="form-check-input-admin" id="USE_PRECISE_IMAP_SEARCH" name="USE_PRECISE_IMAP_SEARCH" value="1" <?= ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1' ? 'checked' : '' ?>>
+                                <label for="USE_PRECISE_IMAP_SEARCH" class="form-check-label-admin">
+                                    <i class="fas fa-crosshairs me-2"></i>
+                                    Búsqueda IMAP precisa
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Usar fecha y hora específica en lugar de solo fecha.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group-admin">
+                                <label for="MAX_EMAILS_TO_CHECK" class="form-label-admin">
+                                    <i class="fas fa-list-ol me-2"></i>
+                                    Máximo emails a verificar
+                                </label>
+                                <input type="number" class="form-control-admin" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="500" value="<?= $settings['MAX_EMAILS_TO_CHECK'] ?? '50' ?>">
+                                <small class="text-muted">Limitar cuántos emails verificar para evitar lentitud.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-admin">
+                                <label for="IMAP_SEARCH_TIMEOUT" class="form-label-admin">
+                                    <i class="fas fa-stopwatch me-2"></i>
+                                    Timeout de búsqueda IMAP (segundos)
+                                </label>
+                                <input type="number" class="form-control-admin" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= $settings['IMAP_SEARCH_TIMEOUT'] ?? '30' ?>">
+                                <small class="text-muted">Tiempo máximo para búsquedas IMAP antes de cancelar.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuraciones de Personalización -->
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-paint-brush me-2 text-primary"></i>
+                            Personalización del Sitio
+                        </h3>
+                    </div>
+                    
+                    <div class="row">
+                        <?php 
+                        $personalization_fields = [
+                            'PAGE_TITLE' => ['Título SEO de la Página', 'fas fa-heading'],
+                            'enlace_global_1' => ['Enlace del Botón 1', 'fas fa-link'],
+                            'enlace_global_1_texto' => ['Texto del Botón 1', 'fas fa-text-width'],
+                            'enlace_global_2' => ['Enlace del Botón 2', 'fas fa-link'],
+                            'enlace_global_2_texto' => ['Texto del Botón 2', 'fas fa-text-width'],
+                            'enlace_global_numero_whatsapp' => ['Número de WhatsApp', 'fab fa-whatsapp'],
+                            'enlace_global_texto_whatsapp' => ['Texto Botón de WhatsApp', 'fas fa-comment'],
+                            'ID_VENDEDOR' => ['ID Vendedor', 'fas fa-user-tag']
+                        ];
+                        
+                        foreach ($personalization_fields as $field => $info): 
+                        ?>
+                        <div class="col-md-6">
+                            <div class="form-group-admin">
+                                <label for="<?= $field ?>" class="form-label-admin">
+                                    <i class="<?= $info[1] ?> me-2"></i>
+                                    <?= $info[0] ?>
+                                </label>
+                                <input type="text" class="form-control-admin" id="<?= $field ?>" name="<?= $field ?>" value="<?= htmlspecialchars($settings[$field] ?? '') ?>">
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <div class="form-group-admin">
+                        <label for="logo" class="form-label-admin">
+                            <i class="fas fa-image me-2"></i>
+                            Logo del Sitio
+                        </label>
+                        <input type="file" class="form-control-admin" accept=".png" onchange="validarArchivo()" id="logo" name="logo">
+                        <small class="text-muted">Tamaño requerido: 512px x 315px PNG</small>
+                        <?php if (!empty($settings['LOGO'])): ?>
+                            <div class="mt-2">
+                                <small class="text-info">Logo actual: <?= htmlspecialchars($settings['LOGO']) ?></small>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" name="update" class="btn-admin btn-primary-admin btn-lg-admin">
+                        <i class="fas fa-save"></i>
+                        ACTUALIZAR CONFIGURACIÓN
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Pestaña de Servidores IMAP -->
+        <div class="tab-pane fade" id="servidores" role="tabpanel">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-server me-2"></i>
+                        Configuración de Servidores IMAP
+                    </h3>
+                </div>
+                
+                <div class="alert-admin alert-info-admin">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Información:</strong> Configura los servidores IMAP para la verificación de correos.<br>
+                        <small>Esta configuración no se ve afectada por cambios en otras pestañas.</small>
+                    </div>
+                </div>
+                
                 <?php 
-                // Recargamos los datos de los servidores directamente de la base de datos para evitar problemas
                 $email_servers_query = $conn->query("SELECT * FROM email_servers ORDER BY id ASC");
                 $email_servers_data = [];
                 $servers_found = false;
@@ -651,74 +784,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                     }
                 }
                 ?>
-                <form method="POST" action="/admin/admin.php" onsubmit="refreshPage()" enctype="multipart/form-data" id="formulario_servidores">
+                
+                <form method="POST" action="admin.php" enctype="multipart/form-data">
                     <input type="hidden" name="current_tab" value="servidores">
                     <input type="hidden" name="update_servers_only" value="1">
-                    <div class="row d-flex justify-content-center">
-                        <div class="col-md-8">
-                            <?php if (!$servers_found): ?>
-                                <div class="alert alert-warning text-center">
-                                    No hay servidores IMAP configurados en el sistema.
-                                </div>
-                            <?php else: ?>
+                    
+                    <?php if (!$servers_found): ?>
+                        <div class="alert-admin alert-warning-admin">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            No hay servidores IMAP configurados en el sistema.
+                        </div>
+                    <?php else: ?>
+                        <div class="row">
                             <?php foreach ($email_servers_data as $server): ?>
-                                <div class="card mb-4 bg-dark border-secondary border-2">
-                                    <div class="card-header text-center">
-                                        <div class="form-group d-flex justify-content-center align-items-center pt-2">
-                                            <label for="srv_enabled_<?= $server['id'] ?>" class="form-label fs-5 fw-bold text-white me-2">
-                                                <?= str_replace("SERVIDOR_", "Servidor ", $server['server_name']) ?>
-                                            </label>
-                                            <input type="checkbox" class="form-check-input ms-2" id="srv_enabled_<?= $server['id'] ?>" name="enabled_<?= $server['id'] ?>" value="1" <?= $server['enabled'] ? 'checked' : '' ?> onchange="toggleServerView('<?= $server['id'] ?>')">
+                                <div class="col-lg-6 mb-4">
+                                    <div class="admin-card">
+                                        <div class="admin-card-header">
+                                            <div class="d-flex justify-content-between align-items-center w-100">
+                                                <h5 class="mb-0">
+                                                    <i class="fas fa-server me-2"></i>
+                                                    <?= str_replace("SERVIDOR_", "Servidor ", $server['server_name']) ?>
+                                                </h5>
+                                                <div class="form-check-admin">
+                                                    <input type="checkbox" class="form-check-input-admin" id="srv_enabled_<?= $server['id'] ?>" name="enabled_<?= $server['id'] ?>" value="1" <?= $server['enabled'] ? 'checked' : '' ?> onchange="toggleServerView('<?= $server['id'] ?>')">
+                                                    <label for="srv_enabled_<?= $server['id'] ?>" class="form-check-label-admin">Habilitado</label>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="card-body bg-dark text-white" id="server_<?= $server['id'] ?>_settings" style="display: <?= $server['enabled'] ? 'block' : 'none' ?>;">
-                                        <div class="mb-3">
-                                            <label for="srv_imap_server_<?= $server['id'] ?>" class="form-label">Servidor IMAP</label>
-                                            <input type="text" class="form-control bg-dark text-white border-secondary" id="srv_imap_server_<?= $server['id'] ?>" name="imap_server_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_server']) ?>">
-                                            <small class="form-text text-muted">Ejemplo: imap.gmail.com, imap.outlook.com</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="srv_imap_port_<?= $server['id'] ?>" class="form-label">Puerto IMAP</label>
-                                            <input type="text" class="form-control bg-dark text-white border-secondary" id="srv_imap_port_<?= $server['id'] ?>" name="imap_port_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_port']) ?>">
-                                            <small class="form-text text-muted">Puerto estándar: 993 (SSL)</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="srv_imap_user_<?= $server['id'] ?>" class="form-label">Usuario IMAP</label>
-                                            <input type="text" class="form-control bg-dark text-white border-secondary" id="srv_imap_user_<?= $server['id'] ?>" name="imap_user_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_user']) ?>">
-                                            <small class="form-text text-muted">Correo electrónico completo</small>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="srv_imap_password_<?= $server['id'] ?>" class="form-label">Contraseña IMAP</label>
-                                            <input type="password" class="form-control bg-dark text-white border-secondary" id="srv_imap_password_<?= $server['id'] ?>" name="imap_password_<?= $server['id'] ?>" value="<?= empty($server['imap_password']) ? '' : '**********' ?>">
-                                            <small class="form-text text-muted">Deja en blanco para no cambiar la contraseña actual</small>
-                                        </div>
-                                        <div class="mb-3 text-center">
-                                            <p class="text-muted small">Para Gmail y Outlook es posible que necesites crear una contraseña de aplicación.</p>
+                                        
+                                        <div class="server-settings" id="server_<?= $server['id'] ?>_settings" style="display: <?= $server['enabled'] ? 'block' : 'none' ?>;">
+                                            <div class="form-group-admin">
+                                                <label for="srv_imap_server_<?= $server['id'] ?>" class="form-label-admin">
+                                                    <i class="fas fa-globe me-2"></i>
+                                                    Servidor IMAP
+                                                </label>
+                                                <input type="text" class="form-control-admin" id="srv_imap_server_<?= $server['id'] ?>" name="imap_server_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_server']) ?>" placeholder="imap.gmail.com">
+                                            </div>
+                                            
+                                            <div class="form-group-admin">
+                                                <label for="srv_imap_port_<?= $server['id'] ?>" class="form-label-admin">
+                                                    <i class="fas fa-plug me-2"></i>
+                                                    Puerto IMAP
+                                                </label>
+                                                <input type="number" class="form-control-admin" id="srv_imap_port_<?= $server['id'] ?>" name="imap_port_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_port']) ?>" placeholder="993">
+                                                <small class="text-muted">Puerto estándar: 993 (SSL)</small>
+                                            </div>
+                                            
+                                            <div class="form-group-admin">
+                                                <label for="srv_imap_user_<?= $server['id'] ?>" class="form-label-admin">
+                                                    <i class="fas fa-user me-2"></i>
+                                                    Usuario IMAP
+                                                </label>
+                                                <input type="text" class="form-control-admin" id="srv_imap_user_<?= $server['id'] ?>" name="imap_user_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_user']) ?>" placeholder="usuario@gmail.com">
+                                            </div>
+                                            
+                                            <div class="form-group-admin">
+                                                <label for="srv_imap_password_<?= $server['id'] ?>" class="form-label-admin">
+                                                    <i class="fas fa-key me-2"></i>
+                                                    Contraseña IMAP
+                                                </label>
+                                                <input type="password" class="form-control-admin" id="srv_imap_password_<?= $server['id'] ?>" name="imap_password_<?= $server['id'] ?>" value="<?= empty($server['imap_password']) ? '' : '**********' ?>" placeholder="Contraseña o App Password">
+                                                <small class="text-muted">Deja en blanco para no cambiar. Para Gmail/Outlook usa App Password.</small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
-                            <?php endif; ?>
-                            <div class="text-center mt-4">
-                                <button type="submit" name="update" class="btn btn-primary btn-lg">ACTUALIZAR SERVIDORES</button>
-                            </div>
                         </div>
+                    <?php endif; ?>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" name="update" class="btn-admin btn-primary-admin btn-lg-admin">
+                            <i class="fas fa-sync-alt"></i>
+                            ACTUALIZAR SERVIDORES
+                        </button>
                     </div>
                 </form>
             </div>
+        </div>
 
-            <!-- Pestaña de Gestión de Usuarios -->
-            <div class="tab-pane fade p-3" id="users" role="tabpanel" aria-labelledby="users-tab">
-                <div class="row mb-4">
-                    <div class="col-md-12 text-center">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <!-- Pestaña de Gestión de Usuarios -->
+        <div class="tab-pane fade" id="users" role="tabpanel">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="admin-card-title mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            Gestión de Usuarios
+                        </h3>
+                        <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addUserModal">
                             <i class="fas fa-plus"></i> Nuevo Usuario
                         </button>
                     </div>
                 </div>
 
                 <?php
-                // Obtener lista de usuarios
                 $users_stmt = $conn->prepare("SELECT id, username, email, status, created_at FROM users ORDER BY id DESC");
                 $users_stmt->execute();
                 $users_result = $users_stmt->get_result();
@@ -730,67 +890,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 ?>
 
                 <div class="table-responsive">
-                    <table class="table table-dark table-striped">
+                    <table class="table-admin">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Usuario</th>
-                                <th>Correo</th>
-                                <th>Estado</th>
-                                <th>Fecha Creación</th>
-                                <th>Acciones</th>
+                                <th><i class="fas fa-hashtag me-2"></i>ID</th>
+                                <th><i class="fas fa-user me-2"></i>Usuario</th>
+                                <th><i class="fas fa-envelope me-2"></i>Correo</th>
+                                <th><i class="fas fa-toggle-on me-2"></i>Estado</th>
+                                <th><i class="fas fa-calendar me-2"></i>Fecha Creación</th>
+                                <th><i class="fas fa-cogs me-2"></i>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($users as $user): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($user['id']) ?></td>
-                                <td><?= htmlspecialchars($user['username']) ?></td>
-                                <td><?= htmlspecialchars($user['email']) ?></td>
-                                <td>
-                                    <?php if ($user['status'] == 1): ?>
-                                        <span class="badge bg-success">Activo</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger">Inactivo</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= htmlspecialchars($user['created_at']) ?></td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary" 
-                                            onclick="editUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['email']) ?>', <?= $user['status'] ?>)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" 
-                                            onclick="deleteUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                            <?php if (empty($users)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No hay usuarios registrados</p>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($users as $user): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($user['id']) ?></td>
+                                    <td>
+                                        <i class="fas fa-user-circle me-2 text-primary"></i>
+                                        <?= htmlspecialchars($user['username']) ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($user['email']) ?></td>
+                                    <td>
+                                        <?php if ($user['status'] == 1): ?>
+                                            <span class="badge-admin badge-success-admin">
+                                                <i class="fas fa-check"></i> Activo
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge-admin badge-danger-admin">
+                                                <i class="fas fa-times"></i> Inactivo
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                                        <?= htmlspecialchars($user['created_at']) ?>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-sm">
+                                            <button class="btn-admin btn-primary-admin btn-sm-admin" 
+                                                    onclick="editUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['email']) ?>', <?= $user['status'] ?>)">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </button>
+                                            <button class="btn-admin btn-danger-admin btn-sm-admin" 
+                                                    onclick="deleteUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
+        </div>
 
-            <!-- Pestaña de Logs -->
-            <div class="tab-pane fade p-3" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+        <!-- Pestaña de Logs -->
+        <div class="tab-pane fade" id="logs" role="tabpanel">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-list-alt me-2"></i>
+                        Registro de Consultas
+                    </h3>
+                </div>
+
                 <?php
-                // Obtener logs de consultas usando sentencia preparada
-                $logs_stmt = $conn->prepare("
-                    SELECT l.*, u.username 
-                    FROM logs l 
-                    LEFT JOIN users u ON l.user_id = u.id 
-                    ORDER BY l.fecha DESC 
-                    LIMIT 100");
-                $logs_stmt->execute();
-                $logs_result = $logs_stmt->get_result();
-                $logs = [];
-                while ($log_row = $logs_result->fetch_assoc()) {
-                    $logs[] = $log_row;
-                }
-                $logs_stmt->close();
-
-                // Paginación
                 $logs_per_page = 20;
                 $total_logs_query = $conn->query("SELECT COUNT(*) as total FROM logs");
                 $total_logs = $total_logs_query->fetch_assoc()['total'];
@@ -802,7 +976,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
                 $offset = ($current_page - 1) * $logs_per_page;
 
-                // Obtener logs para la página actual
                 $logs_paged_stmt = $conn->prepare("
                     SELECT l.*, u.username
                     FROM logs l
@@ -821,52 +994,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 ?>
 
                 <div class="table-responsive">
-                    <table class="table table-dark table-striped">
+                    <table class="table-admin">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Usuario</th>
-                                <th>Email Consultado</th>
-                                <th>Plataforma</th>
-                                <th>IP</th>
-                                <th>Fecha</th>
-                                <th>Resultado</th>
+                                <th><i class="fas fa-hashtag me-2"></i>ID</th>
+                                <th><i class="fas fa-user me-2"></i>Usuario</th>
+                                <th><i class="fas fa-envelope me-2"></i>Email Consultado</th>
+                                <th><i class="fas fa-th-large me-2"></i>Plataforma</th>
+                                <th><i class="fas fa-globe me-2"></i>IP</th>
+                                <th><i class="fas fa-clock me-2"></i>Fecha</th>
+                                <th><i class="fas fa-eye me-2"></i>Resultado</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($logs_paged as $log): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($log['id']) ?></td>
-                                <td><?= htmlspecialchars($log['username'] ?? 'Sin usuario') ?></td>
-                                <td><?= htmlspecialchars($log['email_consultado']) ?></td>
-                                <td><?= htmlspecialchars(ucfirst($log['plataforma'])) ?></td>
-                                <td><?= htmlspecialchars($log['ip']) ?></td>
-                                <td><?= htmlspecialchars($log['fecha']) ?></td>
-                                <td>
-                                    <button class="btn btn-sm btn-info" onclick="verResultado('<?= htmlspecialchars(addslashes($log['resultado'])) ?>')">
-                                        Ver Resultado
-                                    </button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                            <?php if (empty($logs_paged)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="fas fa-list-alt fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No hay registros de consultas</p>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($logs_paged as $log): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($log['id']) ?></td>
+                                    <td>
+                                        <i class="fas fa-user-circle me-2 text-muted"></i>
+                                        <?= htmlspecialchars($log['username'] ?? 'Sin usuario') ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($log['email_consultado']) ?></td>
+                                    <td>
+                                        <span class="badge-admin badge-info-admin">
+                                            <?= htmlspecialchars(ucfirst($log['plataforma'])) ?>
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars($log['ip']) ?></td>
+                                    <td>
+                                        <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                                        <?= htmlspecialchars($log['fecha']) ?>
+                                    </td>
+                                    <td>
+                                        <button class="btn-admin btn-info-admin btn-sm-admin" onclick="verResultado('<?= htmlspecialchars(addslashes($log['resultado'])) ?>')">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Controles de Paginación -->
+                <!-- Paginación -->
                 <?php if ($total_pages > 1): ?>
-                <nav aria-label="Paginación de logs">
+                <nav class="pagination-admin">
                     <ul class="pagination justify-content-center">
-                        <!-- Botón Anterior -->
                         <li class="page-item <?= ($current_page <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?tab=logs&log_page=<?= $current_page - 1 ?>" aria-label="Anterior">
-                                <span aria-hidden="true">&laquo;</span>
+                            <a class="page-link" href="?tab=logs&log_page=<?= $current_page - 1 ?>">
+                                <i class="fas fa-chevron-left"></i>
                             </a>
                         </li>
 
                         <?php 
-                        // Lógica para mostrar rangos de páginas (ej. 1 ... 5 6 7 ... 10)
-                        $max_visible_pages = 5; // Número de enlaces de página visibles alrededor de la actual
+                        $max_visible_pages = 5;
                         $start_page = max(1, $current_page - floor($max_visible_pages / 2));
                         $end_page = min($total_pages, $current_page + floor($max_visible_pages / 2));
 
@@ -878,7 +1068,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                             }
                         }
                         
-                        // Mostrar "..." al principio si es necesario
                         if ($start_page > 1) {
                             echo '<li class="page-item"><a class="page-link" href="?tab=logs&log_page=1">1</a></li>';
                             if ($start_page > 2) {
@@ -886,7 +1075,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                             }
                         }
 
-                        // Enlaces de páginas numéricos
                         for ($i = $start_page; $i <= $end_page; $i++):
                         ?>
                         <li class="page-item <?= ($i == $current_page) ? 'active' : '' ?>">
@@ -894,7 +1082,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         </li>
                         <?php endfor; ?>
 
-                        <!-- Mostrar "..." al final si es necesario -->
                         <?php if ($end_page < $total_pages): ?>
                             <?php if ($end_page < $total_pages - 1): ?>
                                 <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -902,118 +1089,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                             <li class="page-item"><a class="page-link" href="?tab=logs&log_page=<?= $total_pages ?>"><?= $total_pages ?></a></li>
                         <?php endif; ?>
 
-                        <!-- Botón Siguiente -->
                         <li class="page-item <?= ($current_page >= $total_pages) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?tab=logs&log_page=<?= $current_page + 1 ?>" aria-label="Siguiente">
-                                <span aria-hidden="true">&raquo;</span>
+                            <a class="page-link" href="?tab=logs&log_page=<?= $current_page + 1 ?>">
+                                <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>
                     </ul>
                 </nav>
                 <?php endif; ?>
-                <!-- Fin Controles de Paginación -->
             </div>
+        </div>
 
-            <!-- Pestaña de Correos Autorizados -->
-            <div class="tab-pane fade p-3" id="correos-autorizados" role="tabpanel" aria-labelledby="correos-autorizados-tab">
-                <h3 class="text-center">Gestionar Correos Autorizados</h3>
-                <p class="text-center">Aquí puedes añadir, editar o eliminar los correos electrónicos que tendrán permiso para usar el buscador si el filtro está habilitado.</p>
-
-                <!-- *** INICIO: Limitar y centrar alertas *** -->
-                <div class="row d-flex justify-content-center">
-                    <div class="col-md-10 col-lg-8">
-                        <?php if ($auth_email_message): ?>
-                            <div class="alert alert-success text-center" role="alert">
-                                <?php echo htmlspecialchars($auth_email_message); ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($auth_email_error): ?>
-                            <div class="alert alert-danger text-center" role="alert">
-                                <?php echo htmlspecialchars($auth_email_error); ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                 <!-- *** FIN: Limitar y centrar alertas *** -->
-
-                <!-- Botón para abrir modal de añadir correo -->
-                <div class="row mb-4">
-                    <div class="col-md-12 text-center">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addAuthEmailModal">
-                            <i class="fas fa-plus"></i> Nuevo Correo Autorizado
+        <!-- Pestaña de Correos Autorizados -->
+        <div class="tab-pane fade" id="correos-autorizados" role="tabpanel">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="admin-card-title mb-0">
+                            <i class="fas fa-envelope-open me-2"></i>
+                            Correos Autorizados
+                        </h3>
+                        <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addAuthEmailModal">
+                            <i class="fas fa-plus"></i> Nuevo Correo
                         </button>
                     </div>
                 </div>
 
-                <!-- Tabla de correos autorizados -->
+                <?php if ($auth_email_message): ?>
+                    <div class="alert-admin alert-success-admin">
+                        <i class="fas fa-check-circle"></i>
+                        <span><?= htmlspecialchars($auth_email_message) ?></span>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if ($auth_email_error): ?>
+                    <div class="alert-admin alert-danger-admin">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span><?= htmlspecialchars($auth_email_error) ?></span>
+                    </div>
+                <?php endif; ?>
+
                 <div class="table-responsive">
-                    <table class="table table-dark table-striped">
+                    <table class="table-admin">
                         <thead>
                             <tr>
-                                <th>Correo Electrónico</th>
-                                <th>Añadido el</th>
-                                <th>Acciones</th>
+                                <th><i class="fas fa-envelope me-2"></i>Correo Electrónico</th>
+                                <th><i class="fas fa-calendar me-2"></i>Añadido el</th>
+                                <th><i class="fas fa-cogs me-2"></i>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!empty($authorized_emails_list)): ?>
                                 <?php foreach ($authorized_emails_list as $auth_email): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($auth_email['email']); ?></td>
-                                        <td><?php echo htmlspecialchars($auth_email['created_at']); ?></td>
                                         <td>
-                                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editEmailModal" data-bs-id="<?php echo $auth_email['id']; ?>" data-bs-email="<?php echo htmlspecialchars($auth_email['email']); ?>">
-                                                <i class="fas fa-edit"></i> Editar
-                                            </button>
-                                            <a href="admin.php?delete_auth_email=<?php echo $auth_email['id']; ?>" class="btn btn-danger btn-sm delete-auth-email-btn">
-                                                <i class="fas fa-trash"></i> Eliminar
-                                            </a>
+                                            <i class="fas fa-envelope me-2 text-primary"></i>
+                                            <?= htmlspecialchars($auth_email['email']) ?>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                                            <?= htmlspecialchars($auth_email['created_at']) ?>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-sm">
+                                                <button type="button" class="btn-admin btn-primary-admin btn-sm-admin" data-bs-toggle="modal" data-bs-target="#editEmailModal" data-bs-id="<?= $auth_email['id'] ?>" data-bs-email="<?= htmlspecialchars($auth_email['email']) ?>">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </button>
+                                                <a href="admin.php?delete_auth_email=<?= $auth_email['id'] ?>&tab=correos_autorizados" class="btn-admin btn-danger-admin btn-sm-admin delete-auth-email-btn" onclick="return confirm('¿Estás seguro de eliminar este correo?')">
+                                                    <i class="fas fa-trash"></i> Eliminar
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="3" class="text-center">No hay correos autorizados todavía.</td>
+                                    <td colspan="3" class="text-center py-4">
+                                        <i class="fas fa-envelope-open fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No hay correos autorizados</p>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
+        </div>
 
-            <!-- NUEVA Pestaña de Plataformas -->
-            <div class="tab-pane fade p-3" id="platforms" role="tabpanel" aria-labelledby="platforms-tab">
-                <h3 class="text-center">Gestionar Plataformas y Asuntos</h3>
-                <p class="text-center">Añade, edita o elimina plataformas y los asuntos de correo asociados.</p>
-
-                <!-- Mensajes de feedback -->
-                <div class="row d-flex justify-content-center">
-                    <div class="col-md-10 col-lg-8">
-                        <?php if (isset($_SESSION['platform_message'])): ?>
-                            <div class="alert alert-success text-center" role="alert">
-                                <?= htmlspecialchars($_SESSION['platform_message']); unset($_SESSION['platform_message']); ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['platform_error'])): ?>
-                            <div class="alert alert-danger text-center" role="alert">
-                                <?= htmlspecialchars($_SESSION['platform_error']); unset($_SESSION['platform_error']); ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <!-- Botón para añadir nueva plataforma -->
-                <div class="row mb-4">
-                    <div class="col-md-12 text-center">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
+        <!-- Pestaña de Plataformas -->
+        <div class="tab-pane fade" id="platforms" role="tabpanel">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="admin-card-title mb-0">
+                            <i class="fas fa-th-large me-2"></i>
+                            Gestionar Plataformas y Asuntos
+                        </h3>
+                        <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
                             <i class="fas fa-plus"></i> Nueva Plataforma
                         </button>
                     </div>
                 </div>
 
-                <!-- Tabla de Plataformas -->
+                <!-- Mensajes de feedback -->
+                <?php if (isset($_SESSION['platform_message'])): ?>
+                    <div class="alert-admin alert-success-admin">
+                        <i class="fas fa-check-circle"></i>
+                        <span><?= htmlspecialchars($_SESSION['platform_message']); unset($_SESSION['platform_message']); ?></span>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($_SESSION['platform_error'])): ?>
+                    <div class="alert-admin alert-danger-admin">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span><?= htmlspecialchars($_SESSION['platform_error']); unset($_SESSION['platform_error']); ?></span>
+                    </div>
+                <?php endif; ?>
+
                 <?php
-                $platforms_stmt = $conn->prepare("SELECT id, name, created_at FROM platforms ORDER BY sort_order ASC"); // Ordenar por sort_order
+                $platforms_stmt = $conn->prepare("SELECT id, name, created_at FROM platforms ORDER BY sort_order ASC");
                 $platforms_stmt->execute();
                 $platforms_result = $platforms_stmt->get_result();
                 $platforms_list = [];
@@ -1022,981 +1216,1252 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 }
                 $platforms_stmt->close();
                 ?>
+
                 <div class="table-responsive">
-                    <table class="table table-dark table-striped">
+                    <table class="table-admin">
                         <thead>
                             <tr>
-                                <th scope="col">Nombre Plataforma</th>
-                                <th scope="col">Fecha Creación</th>
-                                <th scope="col">Acciones</th>
+                                <th><i class="fas fa-th-large me-2"></i>Nombre Plataforma</th>
+                                <th><i class="fas fa-calendar me-2"></i>Fecha Creación</th>
+                                <th><i class="fas fa-cogs me-2"></i>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="platformsTableBody"> <!-- Añadir ID al tbody -->
+                        <tbody id="platformsTableBody">
                             <?php if (!empty($platforms_list)): ?>
                                 <?php foreach ($platforms_list as $platform): ?>
-                                    <tr data-id="<?= $platform['id'] ?>"> <!-- Añadir data-id para identificar la fila -->
-                                        <td><i class="fas fa-arrows-alt-v me-2 text-muted"></i><?= htmlspecialchars($platform['name']) ?></td> <!-- Icono para indicar arrastre -->
-                                        <td><?= htmlspecialchars($platform['created_at']) ?></td>
+                                    <tr data-id="<?= $platform['id'] ?>" class="sortable-item">
                                         <td>
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="openEditPlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
-                                                <i class="fas fa-edit"></i> Editar / Ver Asuntos
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" 
-                                                    onclick="openDeletePlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
-                                                <i class="fas fa-trash"></i> Eliminar
-                                            </button>
+                                            <i class="fas fa-arrows-alt-v me-2 text-muted"></i>
+                                            <i class="fas fa-th-large me-2 text-primary"></i>
+                                            <?= htmlspecialchars($platform['name']) ?>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                                            <?= htmlspecialchars($platform['created_at']) ?>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-sm">
+                                                <button class="btn-admin btn-primary-admin btn-sm-admin" 
+                                                        onclick="openEditPlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
+                                                    <i class="fas fa-edit"></i> Editar / Ver Asuntos
+                                                </button>
+                                                <button class="btn-admin btn-danger-admin btn-sm-admin" 
+                                                        onclick="openDeletePlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
+                                                    <i class="fas fa-trash"></i> Eliminar
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="3" class="text-center">No hay plataformas creadas todavía.</td>
+                                    <td colspan="3" class="text-center py-4">
+                                        <i class="fas fa-th-large fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No hay plataformas creadas</p>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
-            <!-- FIN Pestaña de Plataformas -->
-
         </div>
-    </div>
 
-    <!-- Modal para añadir usuario -->
-    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addUserModalLabel">Añadir Usuario</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addUserForm" method="POST" action="/admin/procesar_usuario.php">
-                        <input type="hidden" name="action" value="create">
-                        <div class="mb-3">
-                            <label for="add_username" class="form-label">Usuario</label>
-                            <input type="text" class="form-control bg-dark text-white" id="add_username" name="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="add_email" class="form-label">Correo Electrónico</label>
-                            <input type="email" class="form-control bg-dark text-white" id="add_email" name="email">
-                        </div>
-                        <div class="mb-3">
-                            <label for="add_password" class="form-label">Contraseña</label>
-                            <input type="password" class="form-control bg-dark text-white" id="add_password" name="password" required>
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="add_status" name="status" value="1" checked>
-                            <label class="form-check-label" for="add_status">Usuario Activo</label>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="document.getElementById('addUserForm').submit()">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+         <!-- Pestaña de Asignaciones de Correos a Usuarios -->
+            <div class="tab-pane fade p-3" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
+                <h3 class="text-center text-white mb-3">Asignar Correos a Usuarios</h3>
+                <p class="text-center text-light mb-4">Configura qué correos puede consultar cada usuario del sistema.</p>
 
-    <!-- Modal para editar usuario -->
-    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editUserModalLabel">Editar Usuario</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editUserForm" method="POST" action="/admin/procesar_usuario.php">
-                        <input type="hidden" name="action" value="update">
-                        <input type="hidden" name="user_id" id="edit_user_id">
-                        <div class="mb-3">
-                            <label for="edit_username" class="form-label">Usuario</label>
-                            <input type="text" class="form-control bg-dark text-white" id="edit_username" name="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_email" class="form-label">Correo Electrónico</label>
-                            <input type="email" class="form-control bg-dark text-white" id="edit_email" name="email">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_password" class="form-label">Contraseña (dejar en blanco para mantener la actual)</label>
-                            <input type="password" class="form-control bg-dark text-white" id="edit_password" name="password">
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="edit_status" name="status" value="1">
-                            <label class="form-check-label" for="edit_status">Usuario Activo</label>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="document.getElementById('editUserForm').submit()">Actualizar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para eliminar usuario -->
-    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteUserModalLabel">Eliminar Usuario</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>¿Está seguro que desea eliminar al usuario <span id="delete_username"></span>?</p>
-                    <form id="deleteUserForm" method="POST" action="/admin/procesar_usuario.php">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="user_id" id="delete_user_id">
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteUserForm').submit()">Eliminar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para ver resultado de log -->
-    <div class="modal fade" id="viewResultModal" tabindex="-1" aria-labelledby="viewResultModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="viewResultModalLabel">Resultado de la Consulta</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="resultado_contenido" class="border p-3 bg-secondary"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- *** INICIO: Modal para Añadir Correo Autorizado *** -->
-    <div class="modal fade" id="addAuthEmailModal" tabindex="-1" aria-labelledby="addAuthEmailModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addAuthEmailModalLabel">Añadir Correo Autorizado</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addAuthEmailForm" method="POST" action="admin.php?tab=correos_autorizados">
-                        <input type="hidden" name="add_authorized_email" value="1"> <!-- Para activar la lógica PHP -->
-                        <div class="mb-3">
-                            <label for="add_auth_email_value" class="form-label">Correo Electrónico:</label>
-                            <input type="email" class="form-control bg-dark text-white" id="add_auth_email_value" name="new_email" placeholder="nuevo.correo@ejemplo.com" required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="document.getElementById('addAuthEmailForm').submit()">Añadir</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- *** FIN: Modal para Añadir Correo Autorizado *** -->
-
-    <!-- Modal para editar correo autorizado -->
-    <div class="modal fade" id="editEmailModal" tabindex="-1" aria-labelledby="editEmailModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <form method="POST" action="admin.php?tab=correos_autorizados">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editEmailModalLabel">Editar Correo Autorizado</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="edit_email_id" id="edit_email_id">
-                        <div class="mb-3">
-                            <label for="edit_email_value" class="form-label">Correo Electrónico:</label>
-                            <input type="email" class="form-control bg-dark text-white" id="edit_email_value" name="edit_email_value" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" name="edit_authorized_email" class="btn btn-primary">Guardar Cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- NUEVOS Modales para Plataformas y Asuntos -->
-
-    <!-- Modal para AÑADIR Plataforma -->
-    <div class="modal fade" id="addPlatformModal" tabindex="-1" aria-labelledby="addPlatformModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <form id="addPlatformForm" method="POST" action="/admin/procesar_plataforma.php"> 
-                    <input type="hidden" name="action" value="add_platform">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addPlatformModalLabel">Añadir Nueva Plataforma</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="add_platform_name" class="form-label">Nombre de la Plataforma:</label>
-                            <input type="text" class="form-control bg-dark text-white" id="add_platform_name" name="platform_name" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Añadir Plataforma</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para EDITAR Plataforma y GESTIONAR Asuntos -->
-    <div class="modal fade" id="editPlatformModal" tabindex="-1" aria-labelledby="editPlatformModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg"> <!-- modal-lg para más espacio -->
-            <div class="modal-content bg-dark text-white">
-                <form id="editPlatformForm" method="POST" action="/admin/procesar_plataforma.php">
-                    <input type="hidden" name="action" value="edit_platform">
-                    <input type="hidden" name="platform_id" id="edit_platform_id">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editPlatformModalLabel">Editar Plataforma</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Sección para editar nombre de plataforma -->
-                        <div class="mb-3">
-                            <label for="edit_platform_name" class="form-label">Nombre de la Plataforma:</label>
-                            <input type="text" class="form-control bg-dark text-white" id="edit_platform_name" name="platform_name" required>
-                        </div>
-                        <hr>
-                        <!-- Sección para gestionar asuntos -->
-                        <h5>Asuntos Asociados</h5>
-                        <div id="platformSubjectsContainer" class="mb-3">
-                            <!-- Aquí se cargarán los asuntos dinámicamente -->
-                            <p>Cargando asuntos...</p>
-                        </div>
-                        <!-- Formulario para añadir nuevo asunto -->
-                        <h6>Añadir Nuevo Asunto</h6>
-                        <div class="d-flex mb-3">
-                            <input type="text" class="form-control bg-dark text-white" placeholder="Escribe el asunto exacto" id="new_subject_text">
-                            <button type="button" class="btn btn-success ms-2" onclick="addSubject(event)"><i class="fas fa-plus"></i> Añadir Asunto</button>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Nombre Plataforma</button> <!-- Guarda solo el nombre -->
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Modal para ELIMINAR Plataforma -->
-    <div class="modal fade" id="deletePlatformModal" tabindex="-1" aria-labelledby="deletePlatformModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <form id="deletePlatformForm" method="POST" action="/admin/procesar_plataforma.php">
-                    <input type="hidden" name="action" value="delete_platform">
-                    <input type="hidden" name="platform_id" id="delete_platform_id">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deletePlatformModalLabel">Eliminar Plataforma</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>¿Estás seguro de que quieres eliminar la plataforma "<strong id="delete_platform_name"></strong>"?</p>
-                        <p class="text-danger"><strong>¡Atención!</strong> Se eliminarán también todos los asuntos asociados a esta plataforma.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger">Eliminar Plataforma</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para EDITAR Asuntos -->
-    <div class="modal fade" id="editSubjectModal" tabindex="-1" aria-labelledby="editSubjectModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editSubjectModalLabel">Editar Asunto</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="edit_subject_id">
-                    <input type="hidden" id="edit_subject_platform_id">
-                    <div class="mb-3">
-                        <label for="edit_subject_text" class="form-label">Texto del asunto:</label>
-                        <input type="text" class="form-control bg-dark text-white" id="edit_subject_text" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="updateSubject(event)">Guardar Cambios</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- FIN NUEVOS Modales -->
-
-
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Incluir SortableJS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-
-    <script>
-        function toggleServerView(server) {
-            var settingsDiv = document.getElementById('server_' + server + '_settings');
-            var checkbox = document.getElementById('srv_enabled_' + server);
-            settingsDiv.style.display = checkbox.checked ? 'block' : 'none';
-        }
-
-        function refreshPage() {
-            // No es necesario recargar automáticamente, ya que el servidor redirigirá correctamente
-            return true;
-        }
-
-        function editUser(id, username, email, status) {
-            document.getElementById('edit_user_id').value = id;
-            document.getElementById('edit_username').value = username;
-            document.getElementById('edit_email').value = email;
-            document.getElementById('edit_status').checked = status == 1;
-            
-            var editModalElement = document.getElementById('editUserModal');
-            if (editModalElement) {
-                var editModal = new bootstrap.Modal(editModalElement);
-                editModal.show();
-            } else {
-                console.error('Edit User Modal element not found');
-            }
-        }
-
-        function deleteUser(id, username) {
-            document.getElementById('delete_user_id').value = id;
-            document.getElementById('delete_username').textContent = username;
-            
-            var deleteModalElement = document.getElementById('deleteUserModal');
-            if (deleteModalElement) {
-                var deleteModal = new bootstrap.Modal(deleteModalElement);
-                deleteModal.show();
-            } else {
-                 console.error('Delete User Modal element not found');
-            }
-        }
-
-        function verResultado(resultado) {
-            document.getElementById('resultado_contenido').textContent = resultado; 
-
-            var resultModalElement = document.getElementById('viewResultModal');
-            if(resultModalElement) {
-                var resultModal = new bootstrap.Modal(resultModalElement);
-                resultModal.show();
-            } else {
-                 console.error('View Result Modal element not found');
-            }
-        }
-
-        function validarArchivo() {
-            const archivoInput = document.getElementById('logo');
-            const archivoRuta = archivoInput.value;
-            const extensionesPermitidas = /(\.png)$/i;
-
-            if (!extensionesPermitidas.exec(archivoRuta)) {
-                alert('Por favor, sube un archivo con extensión .png');
-                archivoInput.value = '';
-                return false;
-            }
-
-            const archivo = archivoInput.files[0];
-            const lector = new FileReader();
-
-            lector.onload = function(evento) {
-                const imagen = new Image();
-                imagen.onload = function() {
-                    const ancho = imagen.width;
-                    const alto = imagen.height;
-                    if (ancho !== 512 || alto !== 315) {
-                        alert('La imagen debe tener un tamaño de 512px x 315px');
-                        archivoInput.value = '';
-                        return false;
-                    }
-                };
-                imagen.src = evento.target.result;
-            };
-
-            lector.readAsDataURL(archivo);
-        }
-
-        // *** NUEVAS FUNCIONES JS para Plataformas/Asuntos ***
-
-        // Abrir Modal Editar Plataforma y Cargar Asuntos
-        function openEditPlatformModal(platformId, platformName) {
-            document.getElementById('edit_platform_id').value = platformId;
-            document.getElementById('edit_platform_name').value = platformName;
-            loadPlatformSubjects(platformId); // Cargar asuntos al abrir
-            var editModal = new bootstrap.Modal(document.getElementById('editPlatformModal'));
-            editModal.show();
-        }
-
-        // Abrir Modal Eliminar Plataforma
-        function openDeletePlatformModal(platformId, platformName) {
-            document.getElementById('delete_platform_id').value = platformId;
-            document.getElementById('delete_platform_name').textContent = platformName;
-            var deleteModal = new bootstrap.Modal(document.getElementById('deletePlatformModal'));
-            deleteModal.show();
-        }
-
-        // Cargar Asuntos de una Plataforma (AJAX)
-        function loadPlatformSubjects(platformId) {
-            const container = document.getElementById('platformSubjectsContainer');
-            container.innerHTML = '<p>Cargando asuntos...</p>'; // Feedback visual
-
-            fetch('/admin/procesar_plataforma.php?action=get_subjects&platform_id=' + platformId)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.subjects) {
-                        let tableHtml = '<table class="table table-sm table-dark table-striped w-100"><thead><tr><th>Asunto</th><th class="text-end" style="width: 150px;">Acciones</th></tr></thead><tbody>';
-                        if (data.subjects.length > 0) {
-                            data.subjects.forEach(subject => {
-                                tableHtml += `<tr>
-                                                <td>${escapeHtml(subject.subject)}</td>
-                                                <td class="text-end">
-                                                    <div class="d-flex justify-content-end">
-                                                        <button type="button" class="btn btn-sm btn-primary me-2" onclick="openEditSubjectModal(${subject.id}, '${escapeHtml(subject.subject)}', ${platformId}, event)"><i class="fas fa-edit"></i></button>
-                                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteSubject(${subject.id}, ${platformId}, event)"><i class="fas fa-trash"></i></button>
-                                                    </div>
-                                                </td>
-                                             </tr>`;
-                            });
-                        } else {
-                             tableHtml += '<tr><td colspan="2" class="text-center">No hay asuntos asociados.</td></tr>';
-                        }
-                        tableHtml += '</tbody></table>';
-                        container.innerHTML = tableHtml;
-                    } else {
-                        container.innerHTML = `<p class="text-danger">Error al cargar asuntos: ${data.error || 'Error desconocido'}</p>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch Error:', error);
-                    container.innerHTML = '<p class="text-danger">Error de red al cargar asuntos.</p>';
-                });
-        }
-
-        // Añadir un Nuevo Asunto (AJAX)
-        function addSubject(event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            const platformId = document.getElementById('edit_platform_id').value;
-            const subjectText = document.getElementById('new_subject_text').value.trim();
-
-            if (!subjectText) {
-                alert('Por favor, escribe un asunto.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('action', 'add_subject');
-            formData.append('platform_id', platformId);
-            formData.append('subject', subjectText);
-
-            fetch('/admin/procesar_plataforma.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadPlatformSubjects(platformId); // Recargar lista de asuntos
-                    document.getElementById('new_subject_text').value = ''; // Limpiar campo
-                } else {
-                    alert('Error al añadir asunto: ' + (data.error || 'Error desconocido'));
-                }
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                alert('Error de red al añadir asunto.');
-            });
-        }
-
-        // Eliminar un Asunto (AJAX)
-        function deleteSubject(subjectId, platformId, event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            if (!confirm('¿Estás seguro de que quieres eliminar este asunto?')) {
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('action', 'delete_subject');
-            formData.append('subject_id', subjectId);
-
-            fetch('/admin/procesar_plataforma.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    loadPlatformSubjects(platformId); // Recargar lista de asuntos
-                } else {
-                    alert('Error al eliminar asunto: ' + (data.error || 'Error desconocido'));
-                }
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                alert('Error de red al eliminar asunto.');
-            });
-        }
-        
-        // Función auxiliar para escapar HTML y prevenir XSS en JS
-        function escapeHtml(unsafe) {
-            if (!unsafe) return '';
-            return unsafe
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-         }
-
-        // *** FIN NUEVAS FUNCIONES JS ***
-
-
-        // Activar la pestaña correcta basada en URL hash o parámetro GET (opcional pero útil)
-        document.addEventListener('DOMContentLoaded', function() {
-            let hash = window.location.hash;
-            if (hash) {
-                let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="' + hash + '"]');
-                if (tabTrigger) {
-                    let tab = new bootstrap.Tab(tabTrigger);
-                    tab.show();
-                }
-            } else {
-                 // Opcional: Leer un parámetro GET como ?tab=users
-                 const urlParams = new URLSearchParams(window.location.search);
-                 const tabParam = urlParams.get('tab');
-                 const logPageParam = urlParams.get('log_page'); // Capturar también página de log
-                 
-                 if (tabParam) { // Priorizar parámetro tab
-                    let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="#' + tabParam + '"]');
-                    if (tabTrigger) {
-                        let tab = new bootstrap.Tab(tabTrigger);
-                        tab.show();
-                        
-                        // Si la pestaña es logs y hay página, asegurar que se mantenga
-                        if(tabParam === 'logs' && logPageParam) {
-                           // La paginación se maneja con links que ya incluyen ?tab=logs&log_page=X
-                           // así que no necesitamos hacer nada extra aquí para la página.
-                        }
-                    }
-                 } else if (logPageParam) { // Si no hay tab pero sí página de log, activar tab de logs
-                      let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="#logs"]');
-                      if (tabTrigger) {
-                        let tab = new bootstrap.Tab(tabTrigger);
-                        tab.show();
-                    }
-                 }
-            }
-            
-            // Guardar la pestaña actual en el formulario de config para la redirección
-            const configForm = document.getElementById('formulario');
-            if(configForm) {
-                 const hiddenTabInput = document.createElement('input');
-                 hiddenTabInput.type = 'hidden';
-                 hiddenTabInput.name = 'current_tab';
-                 configForm.appendChild(hiddenTabInput);
-                 
-                 document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(button => {
-                    button.addEventListener('shown.bs.tab', event => {
-                       hiddenTabInput.value = event.target.getAttribute('data-bs-target').substring(1); // Remove #
-                    });
-                 });
-                 // Set initial value
-                 let activeTab = document.querySelector('.nav-tabs button.active');
-                 if(activeTab) {
-                    hiddenTabInput.value = activeTab.getAttribute('data-bs-target').substring(1);
-                 }
-            }
-        });
-
-        // *** INICIO: Funcionalidad Drag and Drop para Plataformas ***
-        const platformsTableBody = document.getElementById('platformsTableBody');
-        if (platformsTableBody) {
-            Sortable.create(platformsTableBody, {
-                animation: 150, // ms, animación al mover
-                handle: 'td:first-child', // Permitir arrastrar desde la primera celda (donde está el icono)
-                onEnd: function (evt) {
-                    // Se llama cuando se suelta el elemento
-                    savePlatformOrder();
-                }
-            });
-        }
-
-        function savePlatformOrder() {
-            const rows = platformsTableBody.querySelectorAll('tr');
-            const orderedIds = Array.from(rows).map(row => row.getAttribute('data-id'));
-
-            const formData = new FormData();
-            formData.append('action', 'update_platform_order');
-            // Enviar el array como JSON para facilitar el procesamiento en PHP
-            formData.append('ordered_ids', JSON.stringify(orderedIds)); 
-
-            fetch('/admin/procesar_plataforma.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Opcional: Mostrar mensaje de éxito temporal
-                    console.log('Orden de plataformas guardado.'); 
-                    // Podríamos usar una alerta Bootstrap temporal aquí
-                } else {
-                    alert('Error al guardar el orden: ' + (data.error || 'Error desconocido'));
-                    // Opcional: Recargar la página para restaurar el orden anterior si falla
-                    // window.location.reload(); 
-                }
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                alert('Error de red al guardar el orden.');
-                 // window.location.reload();
-            });
-        }
-        // *** FIN: Funcionalidad Drag and Drop ***
-
-        // Función para abrir el modal de edición de asunto
-        function openEditSubjectModal(subjectId, subjectText, platformId, event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            document.getElementById('edit_subject_id').value = subjectId;
-            document.getElementById('edit_subject_platform_id').value = platformId;
-            document.getElementById('edit_subject_text').value = subjectText;
-            var editSubjectModal = new bootstrap.Modal(document.getElementById('editSubjectModal'));
-            editSubjectModal.show();
-        }
-
-        // Función para actualizar un asunto (AJAX)
-        function updateSubject(event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            
-            const subjectId = document.getElementById('edit_subject_id').value;
-            const platformId = document.getElementById('edit_subject_platform_id').value;
-            const subjectText = document.getElementById('edit_subject_text').value.trim();
-
-            if (!subjectText) {
-                alert('Por favor, ingrese un texto para el asunto.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('action', 'edit_subject');
-            formData.append('subject_id', subjectId);
-            formData.append('platform_id', platformId);
-            formData.append('subject_text', subjectText);
-
-            fetch('/admin/procesar_plataforma.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Cerrar el modal y recargar la lista de asuntos
-                    bootstrap.Modal.getInstance(document.getElementById('editSubjectModal')).hide();
-                    loadPlatformSubjects(platformId);
-                } else {
-                    alert('Error al actualizar asunto: ' + (data.error || 'Error desconocido'));
-                }
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error);
-                alert('Error de red al actualizar asunto.');
-            });
-        }
-
-// *** FUNCIONES DE GESTIÓN DE CACHE ***
-        
-        function showCacheStats() {
-            // Crear modal dinámico para mostrar estadísticas
-            const modalHtml = `
-                <div class="modal fade" id="cacheStatsModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content bg-dark text-white">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Estadísticas de Cache</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <!-- Mensajes de feedback -->
+                <div class="row d-flex justify-content-center">
+                    <div class="col-md-10 col-lg-8">
+                        <?php if (isset($_SESSION['assignment_message'])): ?>
+                            <div class="alert alert-success text-center" role="alert">
+                                <?= htmlspecialchars($_SESSION['assignment_message']); unset($_SESSION['assignment_message']); ?>
                             </div>
-                            <div class="modal-body" id="cacheStatsContent">
-                                <p>Cargando estadísticas...</p>
+                        <?php endif; ?>
+                        <?php if (isset($_SESSION['assignment_error'])): ?>
+                            <div class="alert alert-danger text-center" role="alert">
+                                <?= htmlspecialchars($_SESSION['assignment_error']); unset($_SESSION['assignment_error']); ?>
                             </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
-            `;
-            
-            // Eliminar modal anterior si existe
-            const existingModal = document.getElementById('cacheStatsModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-            
-            // Añadir nuevo modal
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
-            // Mostrar modal
-            const modal = new bootstrap.Modal(document.getElementById('cacheStatsModal'));
-            modal.show();
-            
-            // Cargar estadísticas (aquí puedes hacer una llamada AJAX real)
-            setTimeout(() => {
-                document.getElementById('cacheStatsContent').innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Estado del Cache:</strong><br>
-                            <span class="text-success">✓ Activo</span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Tiempo de vida:</strong><br>
-                            ${document.getElementById('CACHE_TIME_MINUTES').value} minutos
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="text-center">
-                        <p class="text-info">
-                            <i class="fas fa-info-circle"></i> 
-                            El cache mejora la velocidad del sistema al evitar consultas repetitivas a la base de datos.
-                        </p>
-                    </div>
-                `;
-            }, 500);
-        }
-        
-        function clearCache() {
-            if (confirm('¿Estás seguro de que quieres limpiar todo el cache?\n\nEsto puede ralentizar temporalmente el sistema hasta que se regenere.')) {
-                // Aquí puedes hacer una llamada AJAX para limpiar el cache
-                alert('Cache limpiado correctamente.\n\nEl sistema regenerará el cache automáticamente en las próximas consultas.');
-            }
-        }
 
-        // *** FUNCIONES DE DIAGNÓSTICO DE FILTRADO DE TIEMPO ***
-        
-        function showTimeFilteringStats() {
-            const modalHtml = `
-                <div class="modal fade" id="timeFilterStatsModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content bg-dark text-white">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Diagnóstico de Filtrado de Tiempo</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <!-- Configuración Global -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card bg-dark border-secondary">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0 text-white">Configuración de Restricciones</h5>
                             </div>
-                            <div class="modal-body" id="timeFilterStatsContent">
-                                <div class="text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Analizando...</span>
+                            <div class="card-body bg-dark text-white">
+                                <form method="POST" action="admin.php">
+                                    <input type="hidden" name="current_tab" value="asignaciones">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="USER_EMAIL_RESTRICTIONS_ENABLED" 
+                                               name="USER_EMAIL_RESTRICTIONS_ENABLED" value="1" 
+                                               <?= ($settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1' ? 'checked' : '' ?>>
+                                        <label class="form-check-label text-white" for="USER_EMAIL_RESTRICTIONS_ENABLED">
+                                            <strong class="text-white">Activar restricciones por usuario</strong>
+                                        </label>
                                     </div>
-                                    <p class="mt-2">Analizando configuraciones de filtrado...</p>
-                                </div>
+                                    <small class="form-text text-light">
+                                        <span class="text-light">Si está activado: cada usuario solo puede consultar los correos que se le asignen específicamente.</span><br>
+                                        <span class="text-light">Si está desactivado: todos los usuarios pueden consultar cualquier correo autorizado.</span>
+                                    </small>
+                                    <button type="submit" name="update" class="btn btn-sm btn-primary mt-2">Guardar Configuración</button>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
-            `;
-            
-            // Eliminar modal anterior
-            const existingModal = document.getElementById('timeFilterStatsModal');
-            if (existingModal) existingModal.remove();
-            
-            // Añadir y mostrar modal
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modal = new bootstrap.Modal(document.getElementById('timeFilterStatsModal'));
-            modal.show();
-            
-            // Simular análisis (en implementación real sería una llamada AJAX)
-            setTimeout(() => {
-                const trustImap = document.getElementById('TRUST_IMAP_DATE_FILTER').checked;
-                const preciseMsearch = document.getElementById('USE_PRECISE_IMAP_SEARCH').checked;
-                const maxEmails = parseInt(document.getElementById('MAX_EMAILS_TO_CHECK').value);
-                const searchTimeout = parseInt(document.getElementById('IMAP_SEARCH_TIMEOUT').value);
-                
-                let score = 0;
-                let level = 'Necesita mejoras';
-                let color = 'danger';
-                
-                if (trustImap) score += 40;
-                if (preciseMsearch) score += 20;
-                if (maxEmails <= 50) score += 20;
-                if (searchTimeout <= 30) score += 20;
-                
-                if (score >= 80) { level = 'Óptimo'; color = 'success'; }
-                else if (score >= 60) { level = 'Bueno'; color = 'warning'; }
-                else if (score >= 40) { level = 'Regular'; color = 'info'; }
-                
-                const recommendations = [];
-                if (!trustImap) recommendations.push('✓ Activar "Confiar en filtrado IMAP"');
-                if (maxEmails > 100) recommendations.push('✓ Reducir "Máximo emails a verificar"');
-                if (searchTimeout > 45) recommendations.push('✓ Reducir timeout de búsqueda');
-                
-                document.getElementById('timeFilterStatsContent').innerHTML = `
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6>🎯 Puntuación de Eficiencia</h6>
-                            <div class="progress mb-2">
-                                <div class="progress-bar bg-${color}" style="width: ${score}%">${score}/100</div>
-                            </div>
-                            <span class="badge bg-${color} fs-6">${level}</span>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>⚙️ Configuraciones Actuales</h6>
-                            <small>
-                                <strong>Confiar IMAP:</strong> ${trustImap ? '✅ Sí' : '❌ No'}<br>
-                                <strong>Búsqueda precisa:</strong> ${preciseMsearch ? '✅ Sí' : '❌ No'}<br>
-                                <strong>Máx. emails:</strong> ${maxEmails}<br>
-                                <strong>Timeout:</strong> ${searchTimeout}s
-                            </small>
-                        </div>
-                    </div>
-                    ${recommendations.length > 0 ? `
-                        <div class="alert alert-info">
-                            <h6>💡 Recomendaciones de Mejora:</h6>
-                            ${recommendations.map(r => `<div>${r}</div>`).join('')}
-                        </div>
-                    ` : `
-                        <div class="alert alert-success">
-                            <h6>🎉 ¡Configuración Óptima!</h6>
-                            Tu sistema está configurado para máximo rendimiento.
-                        </div>
-                    `}
-                    <div class="text-center mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i> 
-                            Estas optimizaciones eliminan el doble filtrado de fechas para mejor performance.
-                        </small>
-                    </div>
-                `;
-            }, 1500);
-        }
-        
-        function testSearchSpeed() {
-            const modalHtml = `
-                <div class="modal fade" id="speedTestModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content bg-dark text-white">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Test de Velocidad de Búsqueda</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body" id="speedTestContent">
-                                <div class="text-center">
-                                    <div class="spinner-border text-success" role="status">
-                                        <span class="visually-hidden">Probando velocidad...</span>
-                                    </div>
-                                    <p class="mt-2">Ejecutando test de velocidad en servidores IMAP...</p>
-                                    <small class="text-muted">Esto puede tardar unos segundos</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Eliminar modal anterior
-            const existingModal = document.getElementById('speedTestModal');
-            if (existingModal) existingModal.remove();
-            
-            // Añadir y mostrar modal
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modal = new bootstrap.Modal(document.getElementById('speedTestModal'));
-            modal.show();
-            
-            // Simular test de velocidad
-            setTimeout(() => {
-                // En implementación real, esto sería una llamada AJAX al servidor
-                const mockResults = [
-                    { server: 'SERVIDOR_1', time: Math.random() * 500 + 100, status: 'success' },
-                    { server: 'SERVIDOR_2', time: Math.random() * 500 + 100, status: 'success' },
-                    { server: 'SERVIDOR_3', time: Math.random() * 1000 + 200, status: 'timeout' }
-                ];
-                
-                const totalTime = mockResults.reduce((sum, r) => sum + (r.status === 'success' ? r.time : 0), 0);
-                const avgTime = Math.round(totalTime / mockResults.filter(r => r.status === 'success').length);
-                
-                document.getElementById('speedTestContent').innerHTML = `
-                    <div class="row mb-3">
-                        <div class="col-md-4 text-center">
-                            <h5 class="text-success">${avgTime}ms</h5>
-                            <small>Tiempo Promedio</small>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <h5 class="text-info">${mockResults.filter(r => r.status === 'success').length}</h5>
-                            <small>Servidores OK</small>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <h5 class="text-warning">${mockResults.filter(r => r.status !== 'success').length}</h5>
-                            <small>Con Problemas</small>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-dark">
-                            <thead>
-                                <tr>
-                                    <th>Servidor</th>
-                                    <th>Tiempo (ms)</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${mockResults.map(r => `
+
+                <!-- Lista de Usuarios y sus Asignaciones -->
+                <?php
+                // Obtener usuarios (excepto admin)
+                $users_query = "SELECT id, username, email, status FROM users WHERE id NOT IN (SELECT id FROM admin) ORDER BY username ASC";
+                $users_result = $conn->query($users_query);
+                $users_list = [];
+                if ($users_result) {
+                    while ($user_row = $users_result->fetch_assoc()) {
+                        $users_list[] = $user_row;
+                    }
+                }
+
+                // Obtener correos autorizados
+                $emails_query = "SELECT id, email FROM authorized_emails ORDER BY email ASC";
+                $emails_result = $conn->query($emails_query);
+                $emails_list = [];
+                if ($emails_result) {
+                    while ($email_row = $emails_result->fetch_assoc()) {
+                        $emails_list[] = $email_row;
+                    }
+                }
+                ?>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped">
+                        <thead>
+                            <tr>
+                                <th class="text-white">Usuario</th>
+                                <th class="text-white">Email del Usuario</th>
+                                <th class="text-white">Correos Asignados</th>
+                                <th class="text-white">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($users_list)): ?>
+                                <?php foreach ($users_list as $user): ?>
                                     <tr>
-                                        <td>${r.server}</td>
-                                        <td>${r.status === 'success' ? Math.round(r.time) + 'ms' : 'N/A'}</td>
+                                        <td class="text-white">
+                                            <?= htmlspecialchars($user['username']) ?>
+                                            <?php if ($user['status'] == 0): ?>
+                                                <span class="badge bg-danger ms-2">Inactivo</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-white"><?= htmlspecialchars($user['email'] ?? 'Sin email') ?></td>
+                                        <td class="text-white">
+                                            <div id="assigned-emails-<?= $user['id'] ?>" class="assigned-emails-list">
+                                                <small class="text-muted">Cargando...</small>
+                                            </div>
+                                        </td>
                                         <td>
-                                            <span class="badge bg-${r.status === 'success' ? 'success' : 'danger'}">
-                                                ${r.status === 'success' ? '✅ OK' : '❌ Error'}
-                                            </span>
+                                            <button class="btn btn-sm btn-primary" 
+                                                    onclick="openAssignEmailsModal(<?= $user['id'] ?>, '<?= htmlspecialchars(addslashes($user['username'])) ?>')">
+                                                <i class="fas fa-edit"></i> Gestionar Correos
+                                            </button>
                                         </td>
                                     </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" class="text-center text-white">No hay usuarios creados todavía.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal para Asignar Correos a Usuario -->
+            <div class="modal fade" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content bg-dark text-white">
+                        <form id="assignEmailsForm" method="POST" action="/admin/procesar_asignaciones.php">
+                            <input type="hidden" name="action" value="assign_emails_to_user">
+                            <input type="hidden" name="user_id" id="assign_user_id">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="assignEmailsModalLabel">Gestionar Correos para Usuario</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Selecciona los correos que <strong id="assign_username"></strong> puede consultar:</p>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="select_all_emails">
+                                        <label class="form-check-label" for="select_all_emails">
+                                            <strong>Seleccionar/Deseleccionar Todos</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <?php foreach ($emails_list as $email): ?>
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input email-checkbox" type="checkbox" 
+                                                       name="email_ids[]" value="<?= $email['id'] ?>" 
+                                                       id="email_<?= $email['id'] ?>">
+                                                <label class="form-check-label" for="email_<?= $email['id'] ?>">
+                                                    <?= htmlspecialchars($email['email']) ?>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Guardar Asignaciones</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="alert alert-info mt-3">
-                        <small>
-                            <i class="fas fa-lightbulb"></i> 
-                            <strong>Interpretación:</strong> Tiempos menores a 300ms son excelentes. 
-                            Entre 300-800ms son buenos. Más de 800ms pueden necesitar optimización.
-                        </small>
+                </div>
+            </div>
+    </div>
+</div>
+
+<!-- MODALES MODERNOS -->
+
+<!-- Modal para añadir usuario -->
+<div class="modal fade modal-admin" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Añadir Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm" method="POST" action="procesar_usuario.php">
+                    <input type="hidden" name="action" value="create">
+                    <div class="form-group-admin">
+                        <label for="add_username" class="form-label-admin">
+                            <i class="fas fa-user me-2"></i>Usuario
+                        </label>
+                        <input type="text" class="form-control-admin" id="add_username" name="username" required>
                     </div>
-                `;
-            }, 3000);
+                    <div class="form-group-admin">
+                        <label for="add_email" class="form-label-admin">
+                            <i class="fas fa-envelope me-2"></i>Correo Electrónico
+                        </label>
+                        <input type="email" class="form-control-admin" id="add_email" name="email">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="add_password" class="form-label-admin">
+                            <i class="fas fa-lock me-2"></i>Contraseña
+                        </label>
+                        <input type="password" class="form-control-admin" id="add_password" name="password" required>
+                    </div>
+                    <div class="form-check-admin">
+                        <input type="checkbox" class="form-check-input-admin" id="add_status" name="status" value="1" checked>
+                        <label class="form-check-label-admin" for="add_status">Usuario Activo</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn-admin btn-primary-admin" onclick="document.getElementById('addUserForm').submit()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar usuario -->
+<div class="modal fade modal-admin" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>
+                    Editar Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm" method="POST" action="procesar_usuario.php">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="user_id" id="edit_user_id">
+                    <div class="form-group-admin">
+                        <label for="edit_username" class="form-label-admin">
+                            <i class="fas fa-user me-2"></i>Usuario
+                        </label>
+                        <input type="text" class="form-control-admin" id="edit_username" name="username" required>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="edit_email" class="form-label-admin">
+                            <i class="fas fa-envelope me-2"></i>Correo Electrónico
+                        </label>
+                        <input type="email" class="form-control-admin" id="edit_email" name="email">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="edit_password" class="form-label-admin">
+                            <i class="fas fa-lock me-2"></i>Contraseña (dejar en blanco para mantener la actual)
+                        </label>
+                        <input type="password" class="form-control-admin" id="edit_password" name="password">
+                    </div>
+                    <div class="form-check-admin">
+                        <input type="checkbox" class="form-check-input-admin" id="edit_status" name="status" value="1">
+                        <label class="form-check-label-admin" for="edit_status">Usuario Activo</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn-admin btn-primary-admin" onclick="document.getElementById('editUserForm').submit()">
+                    <i class="fas fa-save"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para eliminar usuario -->
+<div class="modal fade modal-admin" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-times me-2"></i>
+                    Eliminar Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <p>¿Está seguro que desea eliminar al usuario <strong id="delete_username"></strong>?</p>
+                    <p class="text-muted small">Esta acción no se puede deshacer.</p>
+                </div>
+                <form id="deleteUserForm" method="POST" action="procesar_usuario.php">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="user_id" id="delete_user_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn-admin btn-danger-admin" onclick="document.getElementById('deleteUserForm').submit()">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver resultado de log -->
+<div class="modal fade modal-admin" id="viewResultModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>
+                    Resultado de la Consulta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="resultado_contenido" class="p-3" style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid var(--border-color); max-height: 400px; overflow-y: auto;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para añadir correo autorizado -->
+<div class="modal fade modal-admin" id="addAuthEmailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-envelope-plus me-2"></i>
+                    Añadir Correo Autorizado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAuthEmailForm" method="POST" action="admin.php?tab=correos_autorizados">
+                    <input type="hidden" name="add_authorized_email" value="1">
+                    <div class="form-group-admin">
+                        <label for="add_auth_email_value" class="form-label-admin">
+                            <i class="fas fa-envelope me-2"></i>
+                            Correo Electrónico
+                        </label>
+                        <input type="email" class="form-control-admin" id="add_auth_email_value" name="new_email" placeholder="nuevo.correo@ejemplo.com" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn-admin btn-primary-admin" onclick="document.getElementById('addAuthEmailForm').submit()">
+                    <i class="fas fa-save"></i> Añadir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar correo autorizado -->
+<div class="modal fade modal-admin" id="editEmailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="admin.php?tab=correos_autorizados">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-envelope-open me-2"></i>
+                        Editar Correo Autorizado
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="edit_email_id" id="edit_email_id">
+                    <div class="form-group-admin">
+                        <label for="edit_email_value" class="form-label-admin">
+                            <i class="fas fa-envelope me-2"></i>
+                            Correo Electrónico
+                        </label>
+                        <input type="email" class="form-control-admin" id="edit_email_value" name="edit_email_value" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" name="edit_authorized_email" class="btn-admin btn-primary-admin">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para añadir plataforma -->
+<div class="modal fade modal-admin" id="addPlatformModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addPlatformForm" method="POST" action="procesar_plataforma.php"> 
+                <input type="hidden" name="action" value="add_platform">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        Añadir Nueva Plataforma
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group-admin">
+                        <label for="add_platform_name" class="form-label-admin">
+                            <i class="fas fa-th-large me-2"></i>
+                            Nombre de la Plataforma
+                        </label>
+                        <input type="text" class="form-control-admin" id="add_platform_name" name="platform_name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-admin btn-primary-admin">
+                        <i class="fas fa-save"></i> Añadir Plataforma
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar plataforma y gestionar asuntos -->
+<div class="modal fade modal-admin" id="editPlatformModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="editPlatformForm" method="POST" action="procesar_plataforma.php">
+                <input type="hidden" name="action" value="edit_platform">
+                <input type="hidden" name="platform_id" id="edit_platform_id">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Plataforma
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group-admin">
+                        <label for="edit_platform_name" class="form-label-admin">
+                            <i class="fas fa-th-large me-2"></i>
+                            Nombre de la Plataforma
+                        </label>
+                        <input type="text" class="form-control-admin" id="edit_platform_name" name="platform_name" required>
+                    </div>
+                    <hr>
+                    <h6><i class="fas fa-list me-2"></i>Asuntos Asociados</h6>
+                    <div id="platformSubjectsContainer" class="mb-3">
+                        <p class="text-muted">Cargando asuntos...</p>
+                    </div>
+                    <h6><i class="fas fa-plus me-2"></i>Añadir Nuevo Asunto</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="text" class="form-control-admin flex-grow-1" placeholder="Escribe el asunto exacto" id="new_subject_text">
+                        <button type="button" class="btn-admin btn-success-admin" onclick="addSubject(event)">
+                            <i class="fas fa-plus"></i> Añadir
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn-admin btn-primary-admin">
+                        <i class="fas fa-save"></i> Guardar Nombre Plataforma
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para eliminar plataforma -->
+<div class="modal fade modal-admin" id="deletePlatformModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deletePlatformForm" method="POST" action="procesar_plataforma.php">
+                <input type="hidden" name="action" value="delete_platform">
+                <input type="hidden" name="platform_id" id="delete_platform_id">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-trash me-2"></i>
+                        Eliminar Plataforma
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <p>¿Estás seguro de que quieres eliminar la plataforma "<strong id="delete_platform_name"></strong>"?</p>
+                        <div class="alert-admin alert-danger-admin">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span><strong>¡Atención!</strong> Se eliminarán también todos los asuntos asociados a esta plataforma.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn-admin btn-danger-admin">
+                        <i class="fas fa-trash"></i> Eliminar Plataforma
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar asuntos -->
+<div class="modal fade modal-admin" id="editSubjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    Editar Asunto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit_subject_id">
+                <input type="hidden" id="edit_subject_platform_id">
+                <div class="form-group-admin">
+                    <label for="edit_subject_text" class="form-label-admin">
+                        <i class="fas fa-list me-2"></i>
+                        Texto del asunto
+                    </label>
+                    <input type="text" class="form-control-admin" id="edit_subject_text" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn-admin btn-primary-admin" onclick="updateSubject(event)">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Incluir SortableJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Activar la pestaña correcta basada en URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const logPageParam = urlParams.get('log_page');
+    
+    if (tabParam) {
+        let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="#' + tabParam + '"]');
+        if (tabTrigger) {
+            let tab = new bootstrap.Tab(tabTrigger);
+            tab.show();
+        }
+    } else if (logPageParam) {
+        let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="#logs"]');
+        if (tabTrigger) {
+            let tab = new bootstrap.Tab(tabTrigger);
+            tab.show();
+        }
+    }
+    
+    // Animar entrada de elementos
+    const cards = document.querySelectorAll('.admin-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+
+    // Configurar tab activo en formularios
+    const configForm = document.getElementById('config');
+    if(configForm) {
+         document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(button => {
+            button.addEventListener('shown.bs.tab', event => {
+               const hiddenInput = document.querySelector('input[name="current_tab"]');
+               if (hiddenInput) {
+                   hiddenInput.value = event.target.getAttribute('data-bs-target').substring(1);
+               }
+            });
+         });
+    }
+    
+    // Configurar modal de edición de correos autorizados
+    const editEmailModal = document.getElementById('editEmailModal');
+    if (editEmailModal) {
+        editEmailModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const emailId = button.getAttribute('data-bs-id');
+            const emailValue = button.getAttribute('data-bs-email');
+            
+            document.getElementById('edit_email_id').value = emailId;
+            document.getElementById('edit_email_value').value = emailValue;
+        });
+    }
+
+    // Inicializar drag and drop para plataformas
+    const platformsTableBody = document.getElementById('platformsTableBody');
+    if (platformsTableBody) {
+        Sortable.create(platformsTableBody, {
+            animation: 150,
+            handle: 'td:first-child',
+            onEnd: function (evt) {
+                savePlatformOrder();
+            }
+        });
+    }
+});
+
+function toggleServerView(serverId) {
+    const settingsDiv = document.getElementById('server_' + serverId + '_settings');
+    const checkbox = document.getElementById('srv_enabled_' + serverId);
+    
+    if (checkbox.checked) {
+        settingsDiv.style.display = 'block';
+        settingsDiv.style.animation = 'tabFadeIn 0.4s ease';
+    } else {
+        settingsDiv.style.display = 'none';
+    }
+}
+
+function editUser(id, username, email, status) {
+    document.getElementById('edit_user_id').value = id;
+    document.getElementById('edit_username').value = username;
+    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_status').checked = status == 1;
+    
+    const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    editModal.show();
+}
+
+function deleteUser(id, username) {
+    document.getElementById('delete_user_id').value = id;
+    document.getElementById('delete_username').textContent = username;
+    
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    deleteModal.show();
+}
+
+function verResultado(resultado) {
+    document.getElementById('resultado_contenido').textContent = resultado; 
+    const resultModal = new bootstrap.Modal(document.getElementById('viewResultModal'));
+    resultModal.show();
+}
+
+function validarArchivo() {
+    const archivoInput = document.getElementById('logo');
+    const archivo = archivoInput.files[0];
+    
+    if (archivo) {
+        const extensionesPermitidas = /(\.png)$/i;
+        if (!extensionesPermitidas.exec(archivo.name)) {
+            alert('Por favor, sube un archivo con extensión .png');
+            archivoInput.value = '';
+            return false;
         }
 
-    </script>
+        const lector = new FileReader();
+        lector.onload = function(evento) {
+            const imagen = new Image();
+            imagen.onload = function() {
+                if (imagen.width !== 512 || imagen.height !== 315) {
+                    alert('La imagen debe tener un tamaño de 512px x 315px');
+                    archivoInput.value = '';
+                }
+            };
+            imagen.src = evento.target.result;
+        };
+        lector.readAsDataURL(archivo);
+    }
+}
+
+// *** FUNCIONES DE GESTIÓN DE CACHE ***
+function showCacheStats() {
+    const modalHtml = `
+        <div class="modal fade modal-admin" id="cacheStatsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Estadísticas de Cache
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="cacheStatsContent">
+                        <div class="text-center">
+                            <div class="loading-spinner-admin"></div>
+                            <p class="mt-2">Cargando estadísticas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal anterior si existe
+    const existingModal = document.getElementById('cacheStatsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Añadir nuevo modal
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('cacheStatsModal'));
+    modal.show();
+    
+    // Cargar estadísticas
+    setTimeout(() => {
+        document.getElementById('cacheStatsContent').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-number">✓</div>
+                        <div class="stat-label">Estado del Cache</div>
+                        <small class="text-success">Activo</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-number">${document.getElementById('CACHE_TIME_MINUTES').value}</div>
+                        <div class="stat-label">Tiempo de vida (min)</div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <div class="alert-admin alert-info-admin">
+                    <i class="fas fa-info-circle"></i>
+                    <span>El cache mejora la velocidad del sistema al evitar consultas repetitivas a la base de datos.</span>
+                </div>
+            </div>
+        `;
+    }, 500);
+}
+
+function clearCache() {
+    if (confirm('¿Estás seguro de que quieres limpiar todo el cache?\n\nEsto puede ralentizar temporalmente el sistema hasta que se regenere.')) {
+        // Mostrar mensaje de éxito
+        const alertHtml = `
+            <div class="alert-admin alert-success-admin" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                <i class="fas fa-check-circle"></i>
+                <span>Cache limpiado correctamente. El sistema regenerará el cache automáticamente.</span>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', alertHtml);
+        
+        // Remover alerta después de 3 segundos
+        setTimeout(() => {
+            const alert = document.querySelector('.alert-admin[style*="position: fixed"]');
+            if (alert) alert.remove();
+        }, 3000);
+    }
+}
+
+function testSearchSpeed() {
+    const modalHtml = `
+        <div class="modal fade modal-admin" id="speedTestModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Test de Velocidad de Búsqueda
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="speedTestContent">
+                        <div class="text-center">
+                            <div class="loading-spinner-admin"></div>
+                            <p class="mt-2">Ejecutando test de velocidad en servidores IMAP...</p>
+                            <small class="text-muted">Esto puede tardar unos segundos</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Eliminar modal anterior
+    const existingModal = document.getElementById('speedTestModal');
+    if (existingModal) existingModal.remove();
+    
+    // Añadir y mostrar modal
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('speedTestModal'));
+    modal.show();
+    
+    // Simular test de velocidad
+    setTimeout(() => {
+        const mockResults = [
+            { server: 'SERVIDOR_1', time: Math.random() * 500 + 100, status: 'success' },
+            { server: 'SERVIDOR_2', time: Math.random() * 500 + 100, status: 'success' },
+            { server: 'SERVIDOR_3', time: Math.random() * 1000 + 200, status: 'timeout' }
+        ];
+        
+        const totalTime = mockResults.reduce((sum, r) => sum + (r.status === 'success' ? r.time : 0), 0);
+        const avgTime = Math.round(totalTime / mockResults.filter(r => r.status === 'success').length);
+        
+        document.getElementById('speedTestContent').innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">${avgTime}ms</div>
+                    <div class="stat-label">Tiempo Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${mockResults.filter(r => r.status === 'success').length}</div>
+                    <div class="stat-label">Servidores OK</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${mockResults.filter(r => r.status !== 'success').length}</div>
+                    <div class="stat-label">Con Problemas</div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table-admin">
+                    <thead>
+                        <tr>
+                            <th>Servidor</th>
+                            <th>Tiempo (ms)</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${mockResults.map(r => `
+                            <tr>
+                                <td><i class="fas fa-server me-2"></i>${r.server}</td>
+                                <td>${r.status === 'success' ? Math.round(r.time) + 'ms' : 'N/A'}</td>
+                                <td>
+                                    <span class="badge-admin badge-${r.status === 'success' ? 'success' : 'danger'}-admin">
+                                        ${r.status === 'success' ? '✅ OK' : '❌ Error'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert-admin alert-info-admin mt-3">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                    <strong>Interpretación:</strong> Tiempos menores a 300ms son excelentes. 
+                    Entre 300-800ms son buenos. Más de 800ms pueden necesitar optimización.
+                </div>
+            </div>
+        `;
+    }, 3000);
+}
+
+// *** FUNCIONES PARA PLATAFORMAS Y ASUNTOS ***
+
+function openEditPlatformModal(platformId, platformName) {
+    document.getElementById('edit_platform_id').value = platformId;
+    document.getElementById('edit_platform_name').value = platformName;
+    loadPlatformSubjects(platformId);
+    const editModal = new bootstrap.Modal(document.getElementById('editPlatformModal'));
+    editModal.show();
+}
+
+function openDeletePlatformModal(platformId, platformName) {
+    document.getElementById('delete_platform_id').value = platformId;
+    document.getElementById('delete_platform_name').textContent = platformName;
+    const deleteModal = new bootstrap.Modal(document.getElementById('deletePlatformModal'));
+    deleteModal.show();
+}
+
+function loadPlatformSubjects(platformId) {
+    const container = document.getElementById('platformSubjectsContainer');
+    container.innerHTML = '<p class="text-muted">Cargando asuntos...</p>';
+
+    fetch('/admin/procesar_plataforma.php?action=get_subjects&platform_id=' + platformId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.subjects) {
+                let tableHtml = '<div class="table-responsive"><table class="table-admin"><thead><tr><th>Asunto</th><th style="width: 150px;">Acciones</th></tr></thead><tbody>';
+                if (data.subjects.length > 0) {
+                    data.subjects.forEach(subject => {
+                        tableHtml += `<tr>
+                                        <td><i class="fas fa-list me-2 text-primary"></i>${escapeHtml(subject.subject)}</td>
+                                        <td>
+                                            <div class="d-flex gap-sm">
+                                                <button type="button" class="btn-admin btn-primary-admin btn-sm-admin" onclick="openEditSubjectModal(${subject.id}, '${escapeHtml(subject.subject)}', ${platformId}, event)">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn-admin btn-danger-admin btn-sm-admin" onclick="deleteSubject(${subject.id}, ${platformId}, event)">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                     </tr>`;
+                    });
+                } else {
+                     tableHtml += '<tr><td colspan="2" class="text-center py-4"><i class="fas fa-list fa-2x text-muted mb-2"></i><p class="text-muted mb-0">No hay asuntos asociados</p></td></tr>';
+                }
+                tableHtml += '</tbody></table></div>';
+                container.innerHTML = tableHtml;
+            } else {
+                container.innerHTML = `
+                    <div class="alert-admin alert-danger-admin">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>Error al cargar asuntos: ${data.error || 'Error desconocido'}</span>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            container.innerHTML = `
+                <div class="alert-admin alert-danger-admin">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Error de red al cargar asuntos.</span>
+                </div>
+            `;
+        });
+}
+
+function addSubject(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const platformId = document.getElementById('edit_platform_id').value;
+    const subjectText = document.getElementById('new_subject_text').value.trim();
+
+    if (!subjectText) {
+        alert('Por favor, escribe un asunto.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'add_subject');
+    formData.append('platform_id', platformId);
+    formData.append('subject', subjectText);
+
+    fetch('/admin/procesar_plataforma.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadPlatformSubjects(platformId);
+            document.getElementById('new_subject_text').value = '';
+        } else {
+            alert('Error al añadir asunto: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        alert('Error de red al añadir asunto.');
+    });
+}
+
+function deleteSubject(subjectId, platformId, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    if (!confirm('¿Estás seguro de que quieres eliminar este asunto?')) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'delete_subject');
+    formData.append('subject_id', subjectId);
+
+    fetch('/admin/procesar_plataforma.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadPlatformSubjects(platformId);
+        } else {
+            alert('Error al eliminar asunto: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        alert('Error de red al eliminar asunto.');
+    });
+}
+
+function openEditSubjectModal(subjectId, subjectText, platformId, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    document.getElementById('edit_subject_id').value = subjectId;
+    document.getElementById('edit_subject_platform_id').value = platformId;
+    document.getElementById('edit_subject_text').value = subjectText;
+    const editSubjectModal = new bootstrap.Modal(document.getElementById('editSubjectModal'));
+    editSubjectModal.show();
+}
+
+function updateSubject(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const subjectId = document.getElementById('edit_subject_id').value;
+    const platformId = document.getElementById('edit_subject_platform_id').value;
+    const subjectText = document.getElementById('edit_subject_text').value.trim();
+
+    if (!subjectText) {
+        alert('Por favor, ingrese un texto para el asunto.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'edit_subject');
+    formData.append('subject_id', subjectId);
+    formData.append('platform_id', platformId);
+    formData.append('subject_text', subjectText);
+
+    fetch('/admin/procesar_plataforma.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editSubjectModal')).hide();
+            loadPlatformSubjects(platformId);
+        } else {
+            alert('Error al actualizar asunto: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        alert('Error de red al actualizar asunto.');
+    });
+}
+
+function savePlatformOrder() {
+    const rows = document.getElementById('platformsTableBody').querySelectorAll('tr');
+    const orderedIds = Array.from(rows).map(row => row.getAttribute('data-id')).filter(id => id);
+
+    const formData = new FormData();
+    formData.append('action', 'update_platform_order');
+    formData.append('ordered_ids', JSON.stringify(orderedIds)); 
+
+    fetch('/admin/procesar_plataforma.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Orden de plataformas guardado.'); 
+        } else {
+            alert('Error al guardar el orden: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        alert('Error de red al guardar el orden.');
+    });
+}
+
+// Función auxiliar para escapar HTML
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Cargar correos asignados para cada usuario
+    <?php foreach ($users_list as $user): ?>
+        loadUserEmails(<?= $user['id'] ?>);
+    <?php endforeach; ?>
+    
+    // Manejar select all
+    const selectAllCheckbox = document.getElementById('select_all_emails');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
+            emailCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+});
+
+function loadUserEmails(userId) {
+    console.log('🔄 Cargando emails para usuario:', userId);
+    const container = document.getElementById('assigned-emails-' + userId);
+    
+    fetch('/admin/procesar_asignaciones.php?action=get_user_emails&user_id=' + userId, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('📡 Respuesta recibida. Status:', response.status, 'Content-Type:', response.headers.get('content-type'));
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('La respuesta no es JSON válido. Content-Type: ' + contentType);
+        }
+        
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+        
+        return response.text();
+    })
+    .then(text => {
+        console.log('📝 Respuesta como texto:', text);
+        
+        try {
+            const data = JSON.parse(text);
+            console.log('✅ JSON parseado correctamente:', data);
+            
+            if (data.success && data.emails) {
+                if (data.emails.length > 0) {
+                    const emailsList = data.emails.map(email => 
+                        '<span class="badge bg-info me-1 mb-1">' + escapeHtml(email.email) + '</span>'
+                    ).join('');
+                    container.innerHTML = emailsList;
+                    console.log('✅ Se mostraron', data.emails.length, 'emails');
+                } else {
+                    container.innerHTML = '<small class="text-warning">Sin correos asignados</small>';
+                    console.log('ℹ️ Usuario sin correos asignados');
+                }
+            } else {
+                console.error('❌ Error en datos:', data.error || 'Error desconocido');
+                container.innerHTML = '<small class="text-danger">Error: ' + (data.error || 'Error desconocido') + '</small>';
+            }
+        } catch (jsonError) {
+            console.error('❌ Error parseando JSON:', jsonError);
+            container.innerHTML = '<small class="text-danger">Error de formato en respuesta del servidor</small>';
+        }
+    })
+    .catch(error => {
+        console.error('💥 Error en fetch:', error);
+        const container = document.getElementById('assigned-emails-' + userId);
+        container.innerHTML = '<small class="text-danger">Error: ' + error.message + '</small>';
+    });
+}
+
+function openAssignEmailsModal(userId, username) {
+    document.getElementById('assign_user_id').value = userId;
+    document.getElementById('assign_username').textContent = username;
+    
+    // Limpiar selecciones anteriores
+    document.querySelectorAll('.email-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('select_all_emails').checked = false;
+    
+    // Cargar emails actualmente asignados y marcarlos
+    fetch('/admin/procesar_asignaciones.php?action=get_user_emails&user_id=' + userId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.emails) {
+                data.emails.forEach(emailObj => {
+                    const checkbox = document.getElementById('email_' + emailObj.id);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+        });
+    
+    // Mostrar modal
+    var modal = new bootstrap.Modal(document.getElementById('assignEmailsModal'));
+    modal.show();
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+</script>
+
 </body>
 </html>
 <?php 
-}
-
 // Cerrar la conexión al final del script
 if ($conn) {
     $conn->close();

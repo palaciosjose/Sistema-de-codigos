@@ -122,6 +122,19 @@ define('DB_PASSWORD', '{$db_password}');
                     email VARCHAR(255) NOT NULL UNIQUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;",
+
+                // Tabla user_authorized_emails (Para asignar correos específicos a usuarios)
+                "CREATE TABLE IF NOT EXISTS `user_authorized_emails` (
+                  `id` INT AUTO_INCREMENT PRIMARY KEY,
+                  `user_id` INT NOT NULL COMMENT 'ID del usuario',
+                  `authorized_email_id` INT NOT NULL COMMENT 'ID del correo autorizado',
+                  `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha de asignación',
+                  `assigned_by` INT DEFAULT NULL COMMENT 'ID del admin que asignó',
+                  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+                  FOREIGN KEY (`authorized_email_id`) REFERENCES `authorized_emails`(`id`) ON DELETE CASCADE,
+                  FOREIGN KEY (`assigned_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+                  UNIQUE KEY `unique_user_email` (`user_id`, `authorized_email_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Relación entre usuarios y correos que pueden consultar';",
                 
                 // Tabla logs
                 "CREATE TABLE IF NOT EXISTS logs (
@@ -197,21 +210,32 @@ define('DB_PASSWORD', '{$db_password}');
                 ['ID_VENDEDOR', '9', 'ID del vendedor para enlaces de afiliados'],
                 ['LOGO','logo.png', 'Nombre del archivo de logo'],
                 ['INSTALLED', '0', 'Indica si el sistema ha sido instalado completamente'],
+                ['USER_EMAIL_RESTRICTIONS_ENABLED', '0', 'Activar restricciones de correos por usuario (0=todos pueden consultar cualquier correo, 1=solo correos asignados)'],
+    
+                // Configuraciones de Performance
                 ['EMAIL_QUERY_TIME_LIMIT_MINUTES', '100', 'Tiempo máximo (en minutos) para buscar correos. Correos más antiguos que este límite no serán procesados.'],
                 ['IMAP_CONNECTION_TIMEOUT', '10', 'Tiempo límite para conexiones IMAP (segundos)'],
                 ['IMAP_SEARCH_OPTIMIZATION', '1', 'Activar optimizaciones de búsqueda IMAP (1=activado, 0=desactivado)'],
                 ['PERFORMANCE_LOGGING', '0', 'Activar logs de rendimiento (1=activado, 0=desactivado)'],
                 ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado (1=activado, 0=desactivado)'],
-                [['CACHE_ENABLED', '1', 'Activar sistema de cache para mejorar performance (1=activado, 0=desactivado)'],
+    
+                // Configuraciones de Cache
+                ['CACHE_ENABLED', '1', 'Activar sistema de cache para mejorar performance (1=activado, 0=desactivado)'],
                 ['CACHE_TIME_MINUTES', '5', 'Tiempo de vida del cache en minutos (recomendado: 5-15 minutos)'],
                 ['CACHE_MEMORY_ENABLED', '1', 'Activar cache en memoria para consultas repetidas en la misma sesión (1=activado, 0=desactivado)'],
+    
+                // Configuraciones de Filtrado de Tiempo
                 ['TRUST_IMAP_DATE_FILTER', '1', 'Confiar en el filtrado de fechas IMAP sin verificación adicional (1=activado, 0=desactivado, mejora velocidad)'],
                 ['USE_PRECISE_IMAP_SEARCH', '1', 'Usar búsquedas IMAP más precisas con fecha y hora específica (1=activado, 0=desactivado)'],
                 ['MAX_EMAILS_TO_CHECK', '50', 'Número máximo de emails a verificar por consulta (recomendado: 20-100)'],
                 ['IMAP_SEARCH_TIMEOUT', '30', 'Tiempo límite para búsquedas IMAP en segundos (recomendado: 15-60)'],
-                ['EMAIL_PROCESSING_MODE', 'selective', 'Modo de procesamiento de emails (selective=solo headers, full=contenido completo)'],
-                ['HEADER_ONLY_SEARCH', '1', 'Buscar solo en headers para mayor velocidad (1=activado, 0=desactivado)'],
-                ['CONCURRENT_SERVER_SEARCH', '0', 'Buscar en múltiples servidores simultáneamente (1=activado, 0=desactivado, experimental)']
+    
+                // Configuraciones de Procesamiento de Emails (NUEVAS)
+                ['EMAIL_PROCESSING_LEVEL', 'smart', 'Nivel de procesamiento de emails (basic=solo texto, smart=optimizado, full=completo)'],
+                ['EMAIL_BODY_SIZE_LIMIT', '1048576', 'Límite de tamaño del cuerpo del email en bytes (1MB por defecto)'],
+                ['EMAIL_FETCH_HEADERS_ONLY', '0', 'Solo obtener headers sin cuerpo para búsquedas (1=activado, 0=desactivado)'],
+                ['EMAIL_LAZY_LOADING', '1', 'Carga perezosa de contenido (1=activado, 0=desactivado)'],
+                ['EMAIL_CONTENT_OPTIMIZATION', '1', 'Optimizar contenido de emails (1=activado, 0=desactivado)']
             ];
             $stmt_settings = $pdo->prepare("INSERT IGNORE INTO settings (name, value, description) VALUES (?, ?, ?)");
             foreach ($settingsData as $setting) {
