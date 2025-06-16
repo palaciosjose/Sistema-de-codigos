@@ -201,7 +201,10 @@ define('DB_PASSWORD', '{$db_password}');
                 ['IMAP_CONNECTION_TIMEOUT', '10', 'Tiempo límite para conexiones IMAP (segundos)'],
                 ['IMAP_SEARCH_OPTIMIZATION', '1', 'Activar optimizaciones de búsqueda IMAP (1=activado, 0=desactivado)'],
                 ['PERFORMANCE_LOGGING', '0', 'Activar logs de rendimiento (1=activado, 0=desactivado)'],
-                ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado (1=activado, 0=desactivado)']
+                ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado (1=activado, 0=desactivado)'],
+                ['CACHE_ENABLED', '1', 'Activar sistema de cache para mejorar performance (1=activado, 0=desactivado)'],
+                ['CACHE_TIME_MINUTES', '5', 'Tiempo de vida del cache en minutos (recomendado: 5-15 minutos)'],
+                ['CACHE_MEMORY_ENABLED', '1', 'Activar cache en memoria para consultas repetidas en la misma sesión (1=activado, 0=desactivado)']
             ];
             $stmt_settings = $pdo->prepare("INSERT IGNORE INTO settings (name, value, description) VALUES (?, ?, ?)");
             foreach ($settingsData as $setting) {

@@ -78,8 +78,8 @@ function mostrarPaginaInstalacion($mensaje = 'Instalación NO Detectada') {
     exit();
 }
 
-// Obtener todas las configuraciones de una sola vez
-$settings = get_all_settings($conn);
+// Obtener todas las configuraciones desde cache (OPTIMIZADO)
+$settings = SimpleCache::get_settings($conn);
 $page_title = $settings['PAGE_TITLE'] ?? 'Sistema de Consulta';
 $require_login = ($settings['REQUIRE_LOGIN'] ?? '1') === '1';
 

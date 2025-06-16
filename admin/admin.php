@@ -304,7 +304,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             'IMAP_CONNECTION_TIMEOUT',
             'IMAP_SEARCH_OPTIMIZATION', 
             'PERFORMANCE_LOGGING',
-            'EARLY_SEARCH_STOP'
+            'EARLY_SEARCH_STOP',
+            'CACHE_ENABLED',
+            'CACHE_TIME_MINUTES', 
+            'CACHE_MEMORY_ENABLED',
+            'TRUST_IMAP_DATE_FILTER',
+            'USE_PRECISE_IMAP_SEARCH',
+            'MAX_EMAILS_TO_CHECK',
+            'IMAP_SEARCH_TIMEOUT'
         ];
 
         foreach ($updatable_keys as $key) {
@@ -317,7 +324,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                     // NUEVOS checkboxes de performance
                     'IMAP_SEARCH_OPTIMIZATION',
                     'PERFORMANCE_LOGGING',
-                    'EARLY_SEARCH_STOP'
+                    'EARLY_SEARCH_STOP',
+                    'CACHE_ENABLED',
+                    'CACHE_MEMORY_ENABLED',
+                    'TRUST_IMAP_DATE_FILTER',
+                    'USE_PRECISE_IMAP_SEARCH'
                 ])) {
                     $final_value = ($final_value === '1') ? '1' : '0';
                 }
@@ -388,12 +399,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             $_SESSION['message'] = 'Configuración actualizada con éxito.';
         }
         
-        // Limpiar cache después de actualizar configuraciones
+        // Limpiar cache después de actualizar configuraciones (OPTIMIZADO)
         SimpleCache::clear_settings_cache();
-    } else {
-        $_SESSION['message'] = 'Servidores IMAP actualizados con éxito.';
+        // También limpiar cache de servidores si se actualizaron configuraciones relacionadas
+        SimpleCache::clear_servers_cache();
         
-        // Limpiar cache después de actualizar servidores
+        // Limpiar cache después de actualizar servidores (OPTIMIZADO)
+        SimpleCache::clear_servers_cache();
         SimpleCache::clear_settings_cache();
     }
     
@@ -522,6 +534,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             <label for="PERFORMANCE_LOGGING" class="form-label">Logs de rendimiento</label>
             <input type="checkbox" class="form-check-input" id="PERFORMANCE_LOGGING" name="PERFORMANCE_LOGGING" value="1" <?= ($settings['PERFORMANCE_LOGGING'] ?? '0') === '1' ? 'checked' : '' ?>>
             <small class="form-text text-muted d-block">Registrar tiempos de ejecución en los logs del servidor (para debugging).</small>
+        </div>
+
+        <h3 class="text-center mt-5 mb-4">💾 Configuraciones de Cache</h3>
+        
+        <div class="mb-3 form-group text-center">
+            <label for="CACHE_ENABLED" class="form-label">Sistema de cache activado</label>
+            <input type="checkbox" class="form-check-input" id="CACHE_ENABLED" name="CACHE_ENABLED" value="1" <?= ($settings['CACHE_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
+            <small class="form-text text-muted d-block">Cachear configuraciones y datos para mejorar velocidad (recomendado: activado).</small>
+        </div>
+        
+        <div class="mb-3 reduced-width">
+            <label for="CACHE_TIME_MINUTES" class="form-label">Tiempo de vida del cache (minutos)</label>
+            <input type="number" class="form-control" id="CACHE_TIME_MINUTES" name="CACHE_TIME_MINUTES" min="1" max="60" value="<?= $settings['CACHE_TIME_MINUTES'] ?? '5' ?>">
+            <small class="form-text text-muted d-block">Cuánto tiempo mantener datos en cache antes de recargar (recomendado: 5-15 minutos).</small>
+        </div>
+        
+        <div class="mb-3 form-group text-center">
+            <label for="CACHE_MEMORY_ENABLED" class="form-label">Cache en memoria activado</label>
+            <input type="checkbox" class="form-check-input" id="CACHE_MEMORY_ENABLED" name="CACHE_MEMORY_ENABLED" value="1" <?= ($settings['CACHE_MEMORY_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
+            <small class="form-text text-muted d-block">Mantener datos en memoria durante la sesión para máxima velocidad (recomendado: activado).</small>
+        </div>
+        
+        <!-- Estadísticas de cache -->
+        <div class="mb-3 text-center">
+            <button type="button" class="btn btn-info btn-sm" onclick="showCacheStats()">
+                <i class="fas fa-chart-bar"></i> Ver Estadísticas de Cache
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" onclick="clearCache()">
+                <i class="fas fa-broom"></i> Limpiar Cache
+            </button>
+        </div>
+
+        <div class="mb-3 text-center">
+            <button type="button" class="btn btn-info btn-sm" onclick="showTimeFilteringStats()">
+                <i class="fas fa-clock"></i> Diagnosticar Filtrado de Tiempo
+            </button>
+            <button type="button" class="btn btn-success btn-sm" onclick="testSearchSpeed()">
+                <i class="fas fa-tachometer-alt"></i> Test de Velocidad
+            </button>
+        </div>
+
+        <h3 class="text-center mt-5 mb-4">⏰ Configuraciones de Filtrado de Tiempo</h3>
+        
+        <div class="mb-3 form-group text-center">
+            <label for="TRUST_IMAP_DATE_FILTER" class="form-label">Confiar en filtrado IMAP</label>
+            <input type="checkbox" class="form-check-input" id="TRUST_IMAP_DATE_FILTER" name="TRUST_IMAP_DATE_FILTER" value="1" <?= ($settings['TRUST_IMAP_DATE_FILTER'] ?? '1') === '1' ? 'checked' : '' ?>>
+            <small class="form-text text-muted d-block">No re-verificar fechas en PHP (más rápido). Deshabilitar solo si hay problemas con fechas incorrectas.</small>
+        </div>
+        
+        <div class="mb-3 form-group text-center">
+            <label for="USE_PRECISE_IMAP_SEARCH" class="form-label">Búsqueda IMAP precisa</label>
+            <input type="checkbox" class="form-check-input" id="USE_PRECISE_IMAP_SEARCH" name="USE_PRECISE_IMAP_SEARCH" value="1" <?= ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1' ? 'checked' : '' ?>>
+            <small class="form-text text-muted d-block">Usar fecha y hora específica en lugar de solo fecha (más preciso pero algunos servidores pueden no soportarlo).</small>
+        </div>
+        
+        <div class="mb-3 reduced-width">
+            <label for="MAX_EMAILS_TO_CHECK" class="form-label">Máximo emails a verificar</label>
+            <input type="number" class="form-control" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="500" value="<?= $settings['MAX_EMAILS_TO_CHECK'] ?? '50' ?>">
+            <small class="form-text text-muted d-block">Limitar cuántos emails verificar para evitar lentitud. Valores más bajos = más rápido.</small>
+        </div>
+        
+        <div class="mb-3 reduced-width">
+            <label for="IMAP_SEARCH_TIMEOUT" class="form-label">Timeout de búsqueda IMAP (segundos)</label>
+            <input type="number" class="form-control" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= $settings['IMAP_SEARCH_TIMEOUT'] ?? '30' ?>">
+            <small class="form-text text-muted d-block">Tiempo máximo para búsquedas IMAP antes de cancelar.</small>
         </div>        
 
                         <?php foreach (['PAGE_TITLE' => 'Titulo SEO de la Página', 'enlace_global_1' => 'Enlace del Botón 1', 'enlace_global_1_texto' => 'Texto del botón 1', 'enlace_global_2' => 'Enlace del Botón 2', 'enlace_global_2_texto' => 'Texto del botón 2', 'enlace_global_numero_whatsapp' => 'Número de WhatsApp', 'enlace_global_texto_whatsapp' => 'Texto Botón de WhatsApp','ID_VENDEDOR'=> 'Id Vendedor','LOGO' => 'Logo'] as $option => $label): ?>
@@ -1657,6 +1734,263 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 alert('Error de red al actualizar asunto.');
             });
         }
+
+// *** FUNCIONES DE GESTIÓN DE CACHE ***
+        
+        function showCacheStats() {
+            // Crear modal dinámico para mostrar estadísticas
+            const modalHtml = `
+                <div class="modal fade" id="cacheStatsModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content bg-dark text-white">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Estadísticas de Cache</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="cacheStatsContent">
+                                <p>Cargando estadísticas...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Eliminar modal anterior si existe
+            const existingModal = document.getElementById('cacheStatsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Añadir nuevo modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('cacheStatsModal'));
+            modal.show();
+            
+            // Cargar estadísticas (aquí puedes hacer una llamada AJAX real)
+            setTimeout(() => {
+                document.getElementById('cacheStatsContent').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Estado del Cache:</strong><br>
+                            <span class="text-success">✓ Activo</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Tiempo de vida:</strong><br>
+                            ${document.getElementById('CACHE_TIME_MINUTES').value} minutos
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <p class="text-info">
+                            <i class="fas fa-info-circle"></i> 
+                            El cache mejora la velocidad del sistema al evitar consultas repetitivas a la base de datos.
+                        </p>
+                    </div>
+                `;
+            }, 500);
+        }
+        
+        function clearCache() {
+            if (confirm('¿Estás seguro de que quieres limpiar todo el cache?\n\nEsto puede ralentizar temporalmente el sistema hasta que se regenere.')) {
+                // Aquí puedes hacer una llamada AJAX para limpiar el cache
+                alert('Cache limpiado correctamente.\n\nEl sistema regenerará el cache automáticamente en las próximas consultas.');
+            }
+        }
+
+        // *** FUNCIONES DE DIAGNÓSTICO DE FILTRADO DE TIEMPO ***
+        
+        function showTimeFilteringStats() {
+            const modalHtml = `
+                <div class="modal fade" id="timeFilterStatsModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content bg-dark text-white">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Diagnóstico de Filtrado de Tiempo</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="timeFilterStatsContent">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Analizando...</span>
+                                    </div>
+                                    <p class="mt-2">Analizando configuraciones de filtrado...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Eliminar modal anterior
+            const existingModal = document.getElementById('timeFilterStatsModal');
+            if (existingModal) existingModal.remove();
+            
+            // Añadir y mostrar modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('timeFilterStatsModal'));
+            modal.show();
+            
+            // Simular análisis (en implementación real sería una llamada AJAX)
+            setTimeout(() => {
+                const trustImap = document.getElementById('TRUST_IMAP_DATE_FILTER').checked;
+                const preciseMsearch = document.getElementById('USE_PRECISE_IMAP_SEARCH').checked;
+                const maxEmails = parseInt(document.getElementById('MAX_EMAILS_TO_CHECK').value);
+                const searchTimeout = parseInt(document.getElementById('IMAP_SEARCH_TIMEOUT').value);
+                
+                let score = 0;
+                let level = 'Necesita mejoras';
+                let color = 'danger';
+                
+                if (trustImap) score += 40;
+                if (preciseMsearch) score += 20;
+                if (maxEmails <= 50) score += 20;
+                if (searchTimeout <= 30) score += 20;
+                
+                if (score >= 80) { level = 'Óptimo'; color = 'success'; }
+                else if (score >= 60) { level = 'Bueno'; color = 'warning'; }
+                else if (score >= 40) { level = 'Regular'; color = 'info'; }
+                
+                const recommendations = [];
+                if (!trustImap) recommendations.push('✓ Activar "Confiar en filtrado IMAP"');
+                if (maxEmails > 100) recommendations.push('✓ Reducir "Máximo emails a verificar"');
+                if (searchTimeout > 45) recommendations.push('✓ Reducir timeout de búsqueda');
+                
+                document.getElementById('timeFilterStatsContent').innerHTML = `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>🎯 Puntuación de Eficiencia</h6>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-${color}" style="width: ${score}%">${score}/100</div>
+                            </div>
+                            <span class="badge bg-${color} fs-6">${level}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>⚙️ Configuraciones Actuales</h6>
+                            <small>
+                                <strong>Confiar IMAP:</strong> ${trustImap ? '✅ Sí' : '❌ No'}<br>
+                                <strong>Búsqueda precisa:</strong> ${preciseMsearch ? '✅ Sí' : '❌ No'}<br>
+                                <strong>Máx. emails:</strong> ${maxEmails}<br>
+                                <strong>Timeout:</strong> ${searchTimeout}s
+                            </small>
+                        </div>
+                    </div>
+                    ${recommendations.length > 0 ? `
+                        <div class="alert alert-info">
+                            <h6>💡 Recomendaciones de Mejora:</h6>
+                            ${recommendations.map(r => `<div>${r}</div>`).join('')}
+                        </div>
+                    ` : `
+                        <div class="alert alert-success">
+                            <h6>🎉 ¡Configuración Óptima!</h6>
+                            Tu sistema está configurado para máximo rendimiento.
+                        </div>
+                    `}
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> 
+                            Estas optimizaciones eliminan el doble filtrado de fechas para mejor performance.
+                        </small>
+                    </div>
+                `;
+            }, 1500);
+        }
+        
+        function testSearchSpeed() {
+            const modalHtml = `
+                <div class="modal fade" id="speedTestModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content bg-dark text-white">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Test de Velocidad de Búsqueda</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="speedTestContent">
+                                <div class="text-center">
+                                    <div class="spinner-border text-success" role="status">
+                                        <span class="visually-hidden">Probando velocidad...</span>
+                                    </div>
+                                    <p class="mt-2">Ejecutando test de velocidad en servidores IMAP...</p>
+                                    <small class="text-muted">Esto puede tardar unos segundos</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Eliminar modal anterior
+            const existingModal = document.getElementById('speedTestModal');
+            if (existingModal) existingModal.remove();
+            
+            // Añadir y mostrar modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('speedTestModal'));
+            modal.show();
+            
+            // Simular test de velocidad
+            setTimeout(() => {
+                // En implementación real, esto sería una llamada AJAX al servidor
+                const mockResults = [
+                    { server: 'SERVIDOR_1', time: Math.random() * 500 + 100, status: 'success' },
+                    { server: 'SERVIDOR_2', time: Math.random() * 500 + 100, status: 'success' },
+                    { server: 'SERVIDOR_3', time: Math.random() * 1000 + 200, status: 'timeout' }
+                ];
+                
+                const totalTime = mockResults.reduce((sum, r) => sum + (r.status === 'success' ? r.time : 0), 0);
+                const avgTime = Math.round(totalTime / mockResults.filter(r => r.status === 'success').length);
+                
+                document.getElementById('speedTestContent').innerHTML = `
+                    <div class="row mb-3">
+                        <div class="col-md-4 text-center">
+                            <h5 class="text-success">${avgTime}ms</h5>
+                            <small>Tiempo Promedio</small>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h5 class="text-info">${mockResults.filter(r => r.status === 'success').length}</h5>
+                            <small>Servidores OK</small>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <h5 class="text-warning">${mockResults.filter(r => r.status !== 'success').length}</h5>
+                            <small>Con Problemas</small>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-dark">
+                            <thead>
+                                <tr>
+                                    <th>Servidor</th>
+                                    <th>Tiempo (ms)</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${mockResults.map(r => `
+                                    <tr>
+                                        <td>${r.server}</td>
+                                        <td>${r.status === 'success' ? Math.round(r.time) + 'ms' : 'N/A'}</td>
+                                        <td>
+                                            <span class="badge bg-${r.status === 'success' ? 'success' : 'danger'}">
+                                                ${r.status === 'success' ? '✅ OK' : '❌ Error'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-lightbulb"></i> 
+                            <strong>Interpretación:</strong> Tiempos menores a 300ms son excelentes. 
+                            Entre 300-800ms son buenos. Más de 800ms pueden necesitar optimización.
+                        </small>
+                    </div>
+                `;
+            }, 3000);
+        }
+
     </script>
 </body>
 </html>

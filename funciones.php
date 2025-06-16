@@ -30,64 +30,71 @@ function validate_email($email) {
     return ''; // Retorna vacío si el correo es válido
 }
 
-// Función para verificar si el correo está autorizado
+// Función optimizada para verificar si el correo está autorizado (USA CACHE)
 function is_authorized_email($email, $conn) {
-    // Obtener el estado del filtro desde la base de datos
-    $stmt_check = $conn->prepare("SELECT value FROM settings WHERE name = 'EMAIL_AUTH_ENABLED'");
-    if (!$stmt_check) {
-        error_log("Error al preparar consulta para EMAIL_AUTH_ENABLED: " . $conn->error);
-        return false; // Por seguridad, denegar si no se puede verificar
-    }
-    
-    $email_auth_enabled = '0'; // Valor por defecto si no existe en la BD
-    
-    $stmt_check->execute();
-    $stmt_check->bind_result($email_auth_enabled);
-    $stmt_check->fetch();
-    $stmt_check->close();
+    // Usar función optimizada que usa cache
+    $email_auth_enabled = is_setting_enabled('EMAIL_AUTH_ENABLED', $conn, false);
 
-    // Si el filtro está desactivado ('0' o no existe la configuración), permitir el correo
-    if ($email_auth_enabled !== '1') {
+    // Si el filtro está desactivado, permitir el correo
+    if (!$email_auth_enabled) {
         return true;
     }
 
     // Si el filtro está activado, consultar la tabla authorized_emails
+    // NOTA: Esta consulta SÍ necesita ser en tiempo real por seguridad
     $stmt = $conn->prepare("SELECT COUNT(*) FROM authorized_emails WHERE email = ?");
     if (!$stmt) {
         error_log("Error al preparar consulta para authorized_emails: " . $conn->error);
         return false; // Por seguridad, denegar si hay error
     }
     
-    $count = 0; // Valor por defecto
-    
+    $count = 0;
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $stmt->bind_result($count);
     $stmt->fetch();
     $stmt->close();
 
-    // Retorna verdadero si el correo existe en la tabla (count > 0)
     return $count > 0;
 }
 
-// Función optimizada para buscar correos con múltiples asuntos en una sola consulta
-function search_emails_optimized($inbox, $email, $asuntos_array, $time_limit_minutes = 100) {
+// Función optimizada para buscar correos SIN doble filtrado de tiempo
+function search_emails_optimized($inbox, $email, $asuntos_array, $time_limit_minutes = 100, $settings = null) {
     if (empty($asuntos_array)) {
         return false;
     }
     
-    // Calcular fecha límite más eficientemente
-    $time_limit_seconds = $time_limit_minutes * 60;
-    $search_date = date("d-M-Y", time() - $time_limit_seconds);
+    // Obtener configuraciones de filtrado
+    $trust_imap_date = ($settings['TRUST_IMAP_DATE_FILTER'] ?? '1') === '1';
+    $use_precise_search = ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1';
+    $max_emails_check = (int)($settings['MAX_EMAILS_TO_CHECK'] ?? 50);
     
-    // Construir búsqueda IMAP combinada para todos los asuntos
-    $search_criteria = 'TO "' . $email . '" SINCE "' . $search_date . '" (';
+    // Calcular fecha límite de forma más precisa
+    $time_limit_seconds = $time_limit_minutes * 60;
+    $current_time = time();
+    $cutoff_time = $current_time - $time_limit_seconds;
+    
+    // Formato de fecha para IMAP (más preciso)
+    if ($use_precise_search) {
+        // Usar fecha y hora específica para mayor precisión
+        $search_date = date("d-M-Y H:i:s", $cutoff_time);
+        $since_criteria = 'SINCE "' . date("d-M-Y", $cutoff_time) . '"';
+    } else {
+        // Usar solo fecha (método original, más compatible)
+        $search_date = date("d-M-Y", $cutoff_time);
+        $since_criteria = 'SINCE "' . $search_date . '"';
+    }
+    
+    // Construir búsqueda IMAP optimizada
+    $search_criteria = 'TO "' . $email . '" ' . $since_criteria . ' (';
     
     // Añadir todos los asuntos con OR
     $subject_criteria = [];
     foreach ($asuntos_array as $asunto) {
         if (!empty(trim($asunto))) {
-            $subject_criteria[] = 'SUBJECT "' . trim($asunto) . '"';
+            // Escapar caracteres especiales en asuntos para IMAP
+            $escaped_subject = str_replace('"', '\"', trim($asunto));
+            $subject_criteria[] = 'SUBJECT "' . $escaped_subject . '"';
         }
     }
     
@@ -98,39 +105,45 @@ function search_emails_optimized($inbox, $email, $asuntos_array, $time_limit_min
     // Combinar con OR para buscar cualquier asunto
     $search_criteria .= implode(' OR ', $subject_criteria) . ')';
     
-    // Ejecutar búsqueda única y optimizada
-    $emails = imap_search($inbox, $search_criteria);
+    // Log de performance si está habilitado
+    $start_time = microtime(true);
+    log_performance("Iniciando búsqueda IMAP optimizada: " . $search_criteria, null, $settings);
     
-    if ($emails === false || empty($emails)) {
-        return false;
-    }
+    // Configurar timeout para la búsqueda IMAP
+    $search_timeout = (int)($settings['IMAP_SEARCH_TIMEOUT'] ?? 30);
+    $old_timeout = ini_get('default_socket_timeout');
+    ini_set('default_socket_timeout', $search_timeout);
     
-    // Filtrado optimizado - solo verificar los más recientes
-    $filtered_emails = [];
-    $current_time = time();
+    // Ejecutar búsqueda IMAP con manejo de errores mejorado
+    $emails = false;
+    $search_error = '';
     
-    // Procesar emails en orden inverso (más recientes primero)
-    $emails = array_reverse($emails);
-    
-    foreach ($emails as $msg_num) {
-        // Obtener solo fecha del header (más rápido que headerinfo completo)
-        $header = imap_fetchheader($inbox, $msg_num);
+    try {
+        // Deshabilitar reportes de error temporalmente
+        $old_error_reporting = error_reporting(0);
         
-        // Extraer fecha del header más eficientemente
-        if (preg_match('/^Date:\s*(.+)$/mi', $header, $matches)) {
-            $email_time = strtotime($matches[1]);
-            
-            if ($email_time && ($current_time - $email_time) <= $time_limit_seconds) {
-                $filtered_emails[] = $msg_num;
-                
-                // OPTIMIZACIÓN: Si encontramos uno reciente, no necesitamos más
-                break;
-            }
+        $emails = imap_search($inbox, $search_criteria);
+        
+        // Restaurar reporte de errores
+        error_reporting($old_error_reporting);
+        
+        // Verificar errores IMAP
+        $imap_errors = imap_errors();
+        if ($imap_errors) {
+            $search_error = 'Errores IMAP: ' . implode('; ', $imap_errors);
+            error_log("Errores en búsqueda IMAP optimizada: " . $search_error);
         }
+        
+    } catch (Exception $e) {
+        error_reporting($old_error_reporting);
+        $search_error = 'Excepción en búsqueda IMAP: ' . $e->getMessage();
+        error_log($search_error);
+        $emails = false;
+    } finally {
+        // Restaurar timeout original
+        ini_set('default_socket_timeout', $old_timeout);
     }
-    
-    return !empty($filtered_emails) ? $filtered_emails : false;
-}
+
 
 // Función optimizada para abrir conexión IMAP con timeouts configurables
 function open_imap_connection_optimized($server_config, $settings = null) {
@@ -162,18 +175,25 @@ function open_imap_connection_optimized($server_config, $settings = null) {
         // Construir cadena de conexión optimizada
         $mailbox = '{' . $server_config['imap_server'] . ':' . $server_config['imap_port'] . '/imap/ssl/novalidate-cert}INBOX';
         
-        // Intentar conexión con opciones optimizadas
-        $inbox = imap_open(
+        // Intentar conexión con opciones optimizadas y mejor manejo de fechas
+        $connection_options = array(
+            'DISABLE_AUTHENTICATOR' => 'GSSAPI',
+            'timeout' => $connection_timeout
+        );
+
+        // Añadir opciones específicas para mejor búsqueda de fechas
+        if ($settings && ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1') {
+            $connection_options['IMAP.ENABLE-QRESYNC'] = 1;
+        }
+
+            $inbox = imap_open(
             $mailbox,
             $server_config['imap_user'],
             $server_config['imap_password'],
             OP_READONLY | CL_EXPUNGE, // Flags optimizados
             1, // Máximo 1 reintento
-            array(
-                'DISABLE_AUTHENTICATOR' => 'GSSAPI',
-                'timeout' => $connection_timeout // Timeout configurable
-            )
-        );
+            $connection_options
+    );
         
         // Restaurar configuraciones
         error_reporting($old_error_reporting);
@@ -206,19 +226,28 @@ function close_imap_connection() {
     }
 }
 
-// Función para obtener todas las configuraciones de una sola vez y cachearlas
+// Función optimizada que usa cache para obtener configuraciones
 function get_all_settings($conn) {
-    $settings = [];
-    $stmt = $conn->prepare("SELECT name, value FROM settings");
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    while ($row = $result->fetch_assoc()) {
-        $settings[$row['name']] = $row['value'];
-    }
-    
-    $stmt->close();
-    return $settings;
+    // Usar el sistema de cache en lugar de consulta directa
+    return SimpleCache::get_settings($conn);
+}
+
+// NUEVA: Función para obtener plataformas y asuntos con cache
+function get_platform_subjects_cached($conn) {
+    return SimpleCache::get_platform_subjects($conn);
+}
+
+// NUEVA: Función para verificar si una configuración específica está habilitada (con cache)
+function is_setting_enabled($setting_name, $conn, $default = false) {
+    $settings = SimpleCache::get_settings($conn);
+    $value = $settings[$setting_name] ?? ($default ? '1' : '0');
+    return $value === '1';
+}
+
+// NUEVA: Función para obtener una configuración específica (con cache)
+function get_setting_value($setting_name, $conn, $default = '') {
+    $settings = SimpleCache::get_settings($conn);
+    return $settings[$setting_name] ?? $default;
 }
 
 // Busca correos en TODOS los servidores IMAP habilitados
@@ -278,15 +307,15 @@ if (isset($_POST['email']) && isset($_POST['plataforma'])) {
     }
 
     // 3. Si el formato es válido y está autorizado (o el filtro desactivado), proceder con la búsqueda
-    $query = "SELECT * FROM email_servers WHERE enabled = 1 ORDER BY id ASC";
-    $servers = $conn->query($query);
+    $servers_array = SimpleCache::get_enabled_servers($conn);
+    $servers_found = !empty($servers_array);
     
     // Variables para manejo de errores y estado de búsqueda
     $error_messages = []; 
     $config_error_only = true; 
     $real_connection_error_occurred = false; 
 
-    if ($servers && $servers->num_rows > 0) {
+    if ($servers_found) {
         // OPTIMIZADO: Obtener asuntos UNA SOLA VEZ antes del bucle
         $platform_name_from_user = $plataforma;
         $asuntos = [];
@@ -316,7 +345,7 @@ if (isset($_POST['email']) && isset($_POST['plataforma'])) {
         $search_start_time = microtime(true);
         log_performance("Iniciando búsqueda optimizada para: $email en $platform_name_from_user", null, $settings);
         
-        while ($srv = $servers->fetch_assoc()) {
+        foreach ($servers_array as $srv) {
             unset($_SESSION['error_message']); 
             
             // OPTIMIZADO: Usar nueva función de conexión con configuraciones
@@ -327,14 +356,15 @@ if (isset($_POST['email']) && isset($_POST['plataforma'])) {
                 
                 // OPTIMIZADO: Buscar según configuración
                 if ($optimization_enabled) {
-                    // Usar búsqueda optimizada (TODOS los asuntos en UNA consulta)
-                    $emails_found = search_emails_optimized($inbox, $email, $asuntos, $time_limit_minutes);
+                    // Usar búsqueda con fallback automático (OPTIMIZADO v2)
+                    $emails_found = search_emails_with_fallback($inbox, $email, $asuntos, $time_limit_minutes, $settings);
                 } else {
                     // Usar búsqueda tradicional (compatibilidad)
                     $emails_found = false;
                     foreach ($asuntos as $asunto) {
                         if (empty(trim($asunto))) continue;
-                        $emails_found = search_email($inbox, $email, $asunto);
+                        // Usar búsqueda con fallback para modo compatibilidad
+                        $emails_found = search_emails_with_fallback($inbox, $email, [$asunto], $time_limit_minutes, $settings);
                         if ($emails_found && !empty($emails_found)) {
                             break; // Parar en el primer asunto encontrado
                         }
@@ -504,6 +534,109 @@ function log_performance($message, $start_time = null, $settings = null) {
     } else {
         error_log("PERFORMANCE: $message");
     }
+}
+
+// Función para diagnosticar performance del filtrado de tiempo
+function diagnose_time_filtering_performance($conn) {
+    $settings = SimpleCache::get_settings($conn);
+    $diagnostics = [];
+    
+    // Verificar configuraciones de performance
+    $diagnostics['trust_imap_date'] = ($settings['TRUST_IMAP_DATE_FILTER'] ?? '1') === '1';
+    $diagnostics['use_precise_search'] = ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1';
+    $diagnostics['max_emails_check'] = (int)($settings['MAX_EMAILS_TO_CHECK'] ?? 50);
+    $diagnostics['search_timeout'] = (int)($settings['IMAP_SEARCH_TIMEOUT'] ?? 30);
+    
+    // Calcular eficiencia estimada
+    $efficiency_score = 0;
+    if ($diagnostics['trust_imap_date']) $efficiency_score += 40; // Mayor impacto
+    if ($diagnostics['use_precise_search']) $efficiency_score += 20;
+    if ($diagnostics['max_emails_check'] <= 50) $efficiency_score += 20;
+    if ($diagnostics['search_timeout'] <= 30) $efficiency_score += 20;
+    
+    $diagnostics['efficiency_score'] = $efficiency_score;
+    $diagnostics['efficiency_level'] = $efficiency_score >= 80 ? 'Óptimo' : 
+                                     ($efficiency_score >= 60 ? 'Bueno' : 
+                                     ($efficiency_score >= 40 ? 'Regular' : 'Necesita mejoras'));
+    
+    // Recomendaciones
+    $recommendations = [];
+    if (!$diagnostics['trust_imap_date']) {
+        $recommendations[] = 'Activar "Confiar en filtrado IMAP" para mayor velocidad';
+    }
+    if ($diagnostics['max_emails_check'] > 100) {
+        $recommendations[] = 'Reducir "Máximo emails a verificar" a 50 o menos';
+    }
+    if ($diagnostics['search_timeout'] > 45) {
+        $recommendations[] = 'Reducir timeout de búsqueda a 30 segundos o menos';
+    }
+    
+    $diagnostics['recommendations'] = $recommendations;
+    
+    return $diagnostics;
+}
+
+// Función para test de velocidad del filtrado
+function test_time_filtering_speed($conn, $test_email = 'test@test.com', $test_platform = 'Netflix') {
+    $settings = SimpleCache::get_settings($conn);
+    $platforms_cache = SimpleCache::get_platform_subjects($conn);
+    
+    if (!isset($platforms_cache[$test_platform])) {
+        return ['error' => 'Plataforma de prueba no encontrada'];
+    }
+    
+    $asuntos = $platforms_cache[$test_platform];
+    $servers_array = SimpleCache::get_enabled_servers($conn);
+    
+    if (empty($servers_array)) {
+        return ['error' => 'No hay servidores IMAP habilitados'];
+    }
+    
+    $test_results = [];
+    $total_start_time = microtime(true);
+    
+    foreach ($servers_array as $srv) {
+        $server_start_time = microtime(true);
+        
+        // Probar conexión
+        $inbox = open_imap_connection_optimized($srv, $settings);
+        if ($inbox !== false) {
+            // Probar búsqueda (pero no procesar resultados reales)
+            try {
+                $search_start_time = microtime(true);
+                $emails_found = search_emails_with_fallback($inbox, $test_email, $asuntos, 100, $settings);
+                $search_time = microtime(true) - $search_start_time;
+                
+                $test_results[$srv['server_name']] = [
+                    'connection_time' => round((microtime(true) - $server_start_time) * 1000, 2),
+                    'search_time' => round($search_time * 1000, 2),
+                    'total_time' => round((microtime(true) - $server_start_time) * 1000, 2),
+                    'emails_found' => is_array($emails_found) ? count($emails_found) : 0,
+                    'status' => 'success'
+                ];
+                
+                imap_close($inbox);
+            } catch (Exception $e) {
+                $test_results[$srv['server_name']] = [
+                    'error' => $e->getMessage(),
+                    'status' => 'error'
+                ];
+            }
+        } else {
+            $test_results[$srv['server_name']] = [
+                'error' => 'No se pudo conectar',
+                'status' => 'connection_failed'
+            ];
+        }
+    }
+    
+    $total_time = microtime(true) - $total_start_time;
+    
+    return [
+        'total_time_ms' => round($total_time * 1000, 2),
+        'server_results' => $test_results,
+        'efficiency_data' => diagnose_time_filtering_performance($conn)
+    ];
 }
 
 ?>
