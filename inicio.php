@@ -159,60 +159,33 @@ $user_logged_in = isset($_SESSION['user_id']);
   <!-- Font Awesome (CDN) -->
   <link 
     rel="stylesheet" 
-    href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
   />
 
-  <!-- Bloque de estilos para la animación y ajustes visuales -->
-  <link rel="stylesheet" href="styles/global_design.css">
+  <!-- Estilos modernos -->
+  <link rel="stylesheet" href="styles/modern_global.css">
+  <link rel="stylesheet" href="styles/modern_inicio.css">
+  
   <!-- Script de seguridad (opcional) -->
   <script src="security/autorizados.js"></script>
-  <style>
-    /* Estilos para el modal de login */
-    .login-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .login-box {
-      background-color: #212529;
-      border-radius: 8px;
-      padding: 30px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    }
-    
-    .login-box .form-control {
-      background-color: #343a40;
-      border-color: #495057;
-      color: white;
-    }
-    
-    .login-box .form-control:focus {
-      background-color: #454d55;
-      color: white;
-      border-color: #80bdff;
-      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-  </style>
 </head>
 <body>
 
-<!-- Barra de navegación -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<!-- Partículas flotantes -->
+<div class="floating-particles">
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+</div>
+
+<!-- Barra de navegación moderna -->
+<nav class="navbar navbar-expand-lg navbar-dark navbar-modern fixed-top">
   <div class="container">
     <!-- Link o Logo de Inicio -->
     <a class="navbar-brand" href="javascript:location.reload();">
-      <i class="fas fa-home"></i> Inicio
+      <i class="fas fa-code"></i> <?= htmlspecialchars($page_title) ?>
     </a>
 
     <!-- Botón para colapsar en pantallas pequeñas -->
@@ -228,49 +201,45 @@ $user_logged_in = isset($_SESSION['user_id']);
       <span class="navbar-toggler-icon"></span>
     </button>
 
-<!-- Contenedor de enlaces colapsables -->
-<!-- Contenedor de enlaces colapsables -->
-<!-- Contenedor de enlaces colapsables -->
-<div class="collapse navbar-collapse" id="navbarOpciones">
-  <ul class="navbar-nav ms-auto">
-    <?php if (is_installed()): // Verificar primero si está instalado ?>
-      <?php if (is_admin()): ?>
-      <!-- Opción de Configurar Sistema (solo para administradores) -->
-      <li class="nav-item">
-        <a 
-          class="nav-link btn btn-sm btn-outline-primary me-2" 
-          href="admin/admin.php"
-        >
-          <i class="fas fa-cogs"></i> Configurar Sistema
-        </a>
-      </li>
-      <?php elseif (!is_authenticated() && !is_login_required($conn)): ?>
-      <!-- Opción de Login Admin (solo cuando seguridad está deshabilitada, usuario no está autenticado, y el sistema está instalado) -->
-      <li class="nav-item">
-        <a 
-          class="nav-link btn btn-sm btn-outline-secondary me-2" 
-          href="index.php?action=admin_login"
-        >
-          <i class="fas fa-user-shield"></i> Login Admin
-        </a>
-      </li>
-      <?php endif; ?>
-    <?php endif; ?>
-    
-    <!-- Link 1: Sitio Web (siempre visible) -->
-    <li class="nav-item">
-      <a 
-        class="nav-link" 
-        href="<?php echo htmlspecialchars($settings['enlace_global_1'] ?? '#'); ?>" 
-        target="_blank"
-      >
-        <i class="fas fa-bookmark"></i> <?php echo htmlspecialchars($settings['enlace_global_1_texto'] ?? 'Sitio Web'); ?>
-      </a>
-    </li>
-    
-    <!-- Resto de los enlaces -->
-    <!-- ... -->
-      <!-- Link 2: Telegram -->
+    <!-- Contenedor de enlaces colapsables -->
+    <div class="collapse navbar-collapse" id="navbarOpciones">
+      <ul class="navbar-nav ms-auto">
+        <?php if (is_installed()): // Verificar primero si está instalado ?>
+          <?php if (is_admin()): ?>
+          <!-- Opción de Configurar Sistema (solo para administradores) -->
+          <li class="nav-item">
+            <a 
+              class="nav-link btn btn-sm btn-outline-primary me-2" 
+              href="admin/admin.php"
+            >
+              <i class="fas fa-cogs"></i> Configurar Sistema
+            </a>
+          </li>
+          <?php elseif (!is_authenticated() && !is_login_required($conn)): ?>
+          <!-- Opción de Login Admin (solo cuando seguridad está deshabilitada, usuario no está autenticado, y el sistema está instalado) -->
+          <li class="nav-item">
+            <a 
+              class="nav-link btn btn-sm btn-outline-secondary me-2" 
+              href="index.php?action=admin_login"
+            >
+              <i class="fas fa-user-shield"></i> Login Admin
+            </a>
+          </li>
+          <?php endif; ?>
+        <?php endif; ?>
+        
+        <!-- Link 1: Sitio Web (siempre visible) -->
+        <li class="nav-item">
+          <a 
+            class="nav-link" 
+            href="<?php echo htmlspecialchars($settings['enlace_global_1'] ?? '#'); ?>" 
+            target="_blank"
+          >
+            <i class="fas fa-bookmark"></i> <?php echo htmlspecialchars($settings['enlace_global_1_texto'] ?? 'Sitio Web'); ?>
+          </a>
+        </li>
+        
+        <!-- Link 2: Telegram -->
         <li class="nav-item">
           <a 
             class="nav-link" 
@@ -318,80 +287,78 @@ $user_logged_in = isset($_SESSION['user_id']);
 <!-- Modal de login cuando se requiere autenticación y el usuario no está logueado -->
 <div class="login-overlay">
   <div class="login-box">
-    <h3 class="text-center text-white mb-4">Iniciar Sesión</h3>
+    <div class="text-center mb-4">
+      <div class="login-logo">
+        <i class="fas fa-lock"></i>
+      </div>
+      <h3 class="text-gradient">Iniciar Sesión</h3>
+      <p class="text-muted">Accede para consultar códigos</p>
+    </div>
     
     <?php if (!empty($login_error)): ?>
-      <div class="alert alert-danger">
-        <?= htmlspecialchars($login_error) ?>
+      <div class="alert-modern alert-danger-modern mb-3">
+        <i class="fas fa-exclamation-circle me-2"></i><?= htmlspecialchars($login_error) ?>
       </div>
     <?php endif; ?>
     
-    <form method="POST" action="inicio.php">
-      <div class="mb-3">
-        <label for="username" class="form-label text-white">Usuario</label>
-        <input type="text" name="username" id="username" class="form-control" required>
+    <form method="POST" action="inicio.php" class="search-form">
+      <div class="form-group-modern">
+        <input type="text" name="username" class="form-input-modern" placeholder="Usuario" required autofocus>
+        <i class="fas fa-user form-icon"></i>
       </div>
       
-      <div class="mb-3">
-        <label for="password" class="form-label text-white">Contraseña</label>
-        <input type="password" name="password" id="password" class="form-control" required>
+      <div class="form-group-modern">
+        <input type="password" name="password" class="form-input-modern" placeholder="Contraseña" required>
+        <i class="fas fa-lock form-icon"></i>
       </div>
       
-      <div class="d-grid gap-2">
-        <button type="submit" name="login_user" class="btn btn-primary">Ingresar</button>
-      </div>
+      <button type="submit" name="login_user" class="btn-search-modern">
+        <i class="fas fa-sign-in-alt"></i>
+        <span class="btn-text">Ingresar</span>
+      </button>
     </form>
   </div>
 </div>
 <?php endif; ?>
 
 <!-- Contenedor principal (centrado con flex; min-vh-100 para ocupar pantalla completa) -->
-<div 
-  class="d-flex align-items-center justify-content-center min-vh-100" 
-  style="margin-top: -56px;"
->
-  <div class="parpadeo p-4 text-white text-center" style="max-width: 615px; width: 95%; margin: auto;">
+<div class="main-container">
+  <div class="main-card fade-in">
     <!-- Logo -->
-    <img 
-      src="/images/logo/<?php echo htmlspecialchars($settings['LOGO'] ?? 'logo.png'); ?>" 
-      alt="Logo" 
-      class="logo"
-      style="max-width: 150px;"
-    />
+    <div class="logo-container">
+      <img 
+        src="/images/logo/<?php echo htmlspecialchars($settings['LOGO'] ?? 'logo.png'); ?>" 
+        alt="Logo" 
+        class="logo"
+      />
+    </div>
 
     <!-- Título -->
-    <h1 class="h4 text-center mb-3">Consulta tu Codigo Aqui</h1>
+    <h1 class="main-title typing-effect">Consulta tu Código Aquí</h1>
 
     <!-- Formulario -->
-    <form action="funciones.php" method="POST" class="mb-3">
-      <div class="mb-3">
-        <label for="email" class="form-label">
-          <i class="fas fa-envelope"></i> Correo a consultar
-        </label>
+    <form action="funciones.php" method="POST" class="search-form" id="searchForm">
+      <div class="form-group-modern">
         <input 
           type="email" 
           id="email" 
           name="email" 
-          class="form-control bg-dark text-white" 
+          class="form-input-modern" 
           placeholder="Ingrese el correo a consultar" 
           required 
           maxlength="50"
-          style="border: 1px solid #333;"
         />
+        <i class="fas fa-envelope form-icon"></i>
       </div>
       
-      <div class="mb-3">
-        <label for="plataforma" class="form-label">
-          <i class="fas fa-list"></i> Elija una plataforma
-        </label>
+      <div class="form-group-modern">
         <select
-        name="plataforma"
-        id="plataforma"
-        class="form-select bg-dark text-white"
-        style="border: 1px solid #333; max-height: 120px; overflow-y: auto;"
-        required
+          name="plataforma"
+          id="plataforma"
+          class="form-select-modern"
+          required
         >
-          <option value="" disabled selected>Seleccione...</option>
+          <option value="" disabled selected>Seleccione una plataforma...</option>
         
           <?php
             // Obtener plataformas desde la base de datos, ordenadas por sort_order
@@ -408,6 +375,7 @@ $user_logged_in = isset($_SESSION['user_id']);
             }
           ?>
         </select>
+        <i class="fas fa list form-icon"></i>
       </div>
 
       <!-- Agregar campo oculto con el ID de usuario para el registro de logs -->
@@ -415,46 +383,123 @@ $user_logged_in = isset($_SESSION['user_id']);
         <input type="hidden" name="user_id" value="<?= htmlspecialchars($_SESSION['user_id']) ?>">
       <?php endif; ?>
 
-      <button type="submit" class="btn btn-danger w-100">
-        <i class="fas fa-search"></i> Buscar Mensajes
+      <button type="submit" class="btn-search-modern" id="searchBtn">
+        <span class="loading-spinner" id="loadingSpinner" style="display: none;"></span>
+        <i class="fas fa-search"></i>
+        <span class="btn-text">Buscar Códigos</span>
       </button>
     </form>
 
-    <!-- Contenedor de resultado (con scroll si es muy grande) -->
-    <?php if (!empty($resultado)): ?>
-      <?php if (strpos($resultado, '<div class="alert') === 0): ?>
-        <!-- Es un mensaje de alerta -->
-        <?= $resultado; ?>
-      <?php else: ?>
-        <!-- Es un código HTML (email) - usar un iframe para mostrar correctamente -->
-        <div class="mt-4" style="max-height: 400px; overflow: auto; border: 1px solid #dee2e6; border-radius: 6px; background-color: #fff;">
-          <div class="email-content" style="padding: 15px; overflow-x: auto;">
-            <?= $resultado; ?>
+    <!-- Contenedor de resultado -->
+    <div class="results-container">
+      <?php if (!empty($resultado)): ?>
+        <?php if (strpos($resultado, '<div class="alert') === 0): ?>
+          <!-- Es un mensaje de alerta - convertir a diseño moderno -->
+          <div class="alert-modern alert-success-modern">
+            <i class="fas fa-check-circle"></i>
+            <?= strip_tags($resultado, '<strong><b><i><em>') ?>
           </div>
+        <?php else: ?>
+          <!-- Es un código HTML (email) -->
+          <div class="alert-modern alert-info-modern">
+            <i class="fas fa-envelope-open"></i>
+            <strong>Código encontrado:</strong> Se ha encontrado tu código de verificación.
+          </div>
+          <div class="email-content">
+            <?= $resultado ?>
+          </div>
+        <?php endif; ?>
+      <?php endif; ?>
+
+      <!-- Contenedor de error -->
+      <?php if (!empty($error_message)): ?>
+        <div class="alert-modern alert-danger-modern">
+          <i class="fas fa-exclamation-triangle"></i>
+          <?= strip_tags($error_message, '<strong><b><i><em>') ?>
         </div>
       <?php endif; ?>
-    <?php endif; ?>
-
-    <!-- Contenedor de error -->
-    <?php if (!empty($error_message)): ?>
-      <div class="alert alert-danger text-center" role="alert">
-        <i class="fas fa-exclamation-triangle"></i> <?= $error_message; ?>
-      </div>
-    <?php endif; ?>
+    </div>
   </div>
 </div>
 
-<!-- Bootstrap JS (CDN) -->
-<script 
-  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-></script>
-
-<footer class="bg-dark text-white text-center py-3 mt-4">
-  <p class="mb-0">
-        ¿Estás interesado en una página web y en un bot de códigos?<br>
-        <a href="https://clientes.hostsbl.com/aff.php?aff=<?php echo htmlspecialchars($settings['ID_VENDEDOR'] ?? ''); ?>" class="text-white" target="_blank" style="text-decoration:none;">Click aquí</a>
-  </p>
+<!-- Footer moderno -->
+<footer class="footer-modern">
+  <div class="container">
+    <p class="mb-0">
+      ¿Estás interesado en una página web y en un bot de códigos?<br>
+      <a href="https://clientes.hostsbl.com/aff.php?aff=<?php echo htmlspecialchars($settings['ID_VENDEDOR'] ?? ''); ?>" target="_blank">
+        Click aquí para más información
+      </a>
+    </p>
+  </div>
 </footer>
+
+<!-- Bootstrap JS (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('searchForm');
+  const searchBtn = document.getElementById('searchBtn');
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  const btnText = searchBtn.querySelector('.btn-text');
+  const navbar = document.querySelector('.navbar-modern');
+  
+  // Efecto de scroll en navbar
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 50) {
+      navbar.classList.add('scrolled');
+    } else {
+      navbar.classList.remove('scrolled');
+    }
+  });
+  
+  // Animación del formulario al enviar
+  form.addEventListener('submit', function() {
+    // Mostrar estado de carga
+    searchBtn.classList.add('loading');
+    loadingSpinner.style.display = 'inline-block';
+    btnText.textContent = 'Buscando...';
+    searchBtn.disabled = true;
+  });
+  
+  // Efectos de hover en inputs
+  const inputs = document.querySelectorAll('.form-input-modern, .form-select-modern');
+  inputs.forEach(input => {
+    input.addEventListener('focus', function() {
+      this.parentElement.style.transform = 'translateY(-2px)';
+    });
+    
+    input.addEventListener('blur', function() {
+      this.parentElement.style.transform = 'translateY(0)';
+    });
+  });
+  
+  // Efecto de escritura en el título (si no tiene la clase typing-effect ya aplicada)
+  const title = document.querySelector('.main-title');
+  if (title && title.classList.contains('typing-effect')) {
+    const titleText = title.textContent;
+    title.textContent = '';
+    title.style.borderRight = '2px solid var(--primary-color)';
+    
+    let i = 0;
+    const typeWriter = () => {
+      if (i < titleText.length) {
+        title.textContent += titleText.charAt(i);
+        i++;
+        setTimeout(typeWriter, 100);
+      } else {
+        // Remover cursor después de completar
+        setTimeout(() => {
+          title.style.borderRight = 'none';
+        }, 1000);
+      }
+    };
+    
+    setTimeout(typeWriter, 500);
+  }
+});
+</script>
 
 </body>
 </html>
