@@ -144,13 +144,12 @@ if (isset($_GET['delete_auth_email']) && is_numeric($_GET['delete_auth_email']))
     exit();
 }
 
-// Manejar adición de correo autorizado (AHORA VÍA AJAX)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_authorized_email'])) {
-    // Establecer la cabecera para indicar que la respuesta es JSON
+// Manejar adición de correo autorizado (VÍA AJAX)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_email'])) {
     header('Content-Type: application/json');
 
     $new_email = filter_var(trim($_POST['new_email']), FILTER_SANITIZE_EMAIL);
-    $response = ['success' => false, 'error' => '', 'message' => '']; // Inicializar la respuesta
+    $response = ['success' => false, 'error' => '', 'message' => ''];
 
     if (filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
         $stmt_check = $conn->prepare("SELECT id FROM authorized_emails WHERE email = ?");
@@ -183,15 +182,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_authorized_email'
         $response['error'] = 'Por favor, introduce una dirección de correo electrónico válida.';
     }
 
-    echo json_encode($response); // Devolver la respuesta JSON
-    exit(); // Terminar el script aquí
+    echo json_encode($response);
+    exit();
 }
 
-// Manejar edición de correo autorizado (AHORA VÍA AJAX)
+// Manejar edición de correo autorizado (VÍA AJAX)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_authorized_email'])) {
-    // Establecer la cabecera para indicar que la respuesta es JSON
     header('Content-Type: application/json');
-    $response = ['success' => false, 'error' => '', 'message' => '']; // Inicializar la respuesta
+    $response = ['success' => false, 'error' => '', 'message' => ''];
 
     $edit_email_id = filter_var(trim($_POST['edit_email_id']), FILTER_SANITIZE_NUMBER_INT);
     $edit_email_value = filter_var(trim($_POST['edit_email_value']), FILTER_SANITIZE_EMAIL);
@@ -227,8 +225,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_authorized_email
         $response['error'] = 'Por favor, introduce una dirección de correo electrónico válida para editar.';
     }
 
-    echo json_encode($response); // Devolver la respuesta JSON
-    exit(); // Terminar el script aquí
+    echo json_encode($response);
+    exit();
 }
 
 // Recuperar mensajes de sesión y limpiarlos
@@ -411,9 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     <title>Panel de Administración - <?= htmlspecialchars($settings['PAGE_TITLE'] ?? 'Sistema de Códigos') ?></title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link rel="stylesheet" href="../styles/modern_global.css">
     <link rel="stylesheet" href="../styles/modern_admin.css">
 </head>
@@ -484,17 +480,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 <i class="fas fa-th-large me-2"></i>Plataformas
             </button>
         </li>
-
         <li class="nav-item" role="presentation">
-                <button class="nav-link" id="asignaciones-tab" data-bs-toggle="tab" data-bs-target="#asignaciones" type="button" role="tab" aria-controls="asignaciones" aria-selected="false">Asignar Correos</button>
+            <button class="nav-link" id="asignaciones-tab" data-bs-toggle="tab" data-bs-target="#asignaciones" type="button" role="tab" aria-controls="asignaciones" aria-selected="false">Asignar Correos</button>
         </li>
-
     </ul>
 
     <div class="tab-content" id="adminTabContent">
+        <!-- TAB CONFIGURACIÓN -->
         <div class="tab-pane fade show active" id="config" role="tabpanel">
             <form method="POST" action="admin.php" enctype="multipart/form-data" class="needs-validation" novalidate>
-                <input type="hidden" name="current_tab" value="config">
+                <input type="hidden" name="current_tab" value="config" class="current-tab-input">
                 
                 <div class="admin-card">
                     <div class="admin-card-header">
@@ -533,164 +528,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         </label>
                         <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '15' ?>">
                         <small class="text-muted">Tiempo máximo para buscar correos. Correos más antiguos no serán procesados.</small>
-                    </div>
-                </div>
-
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-tachometer-alt me-2 text-warning"></i>
-                            Configuraciones de Performance
-                        </h3>
-                    </div>
-                    
-                    <div class="form-group-admin">
-                        <label for="IMAP_CONNECTION_TIMEOUT" class="form-label-admin">
-                            <i class="fas fa-plug me-2"></i>
-                            Timeout de conexión IMAP (segundos)
-                        </label>
-                        <input type="number" class="form-control-admin" id="IMAP_CONNECTION_TIMEOUT" name="IMAP_CONNECTION_TIMEOUT" min="5" max="60" value="<?= $settings['IMAP_CONNECTION_TIMEOUT'] ?? '10' ?>">
-                        <small class="text-muted">Tiempo máximo para conectar a servidores IMAP.</small>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="IMAP_SEARCH_OPTIMIZATION" name="IMAP_SEARCH_OPTIMIZATION" value="1" <?= ($settings['IMAP_SEARCH_OPTIMIZATION'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="IMAP_SEARCH_OPTIMIZATION" class="form-check-label-admin">
-                                    <i class="fas fa-search me-2"></i>
-                                    Optimizaciones de búsqueda IMAP
-                                </label>
-                            </div>
-                            <small class="text-muted d-block">Buscar todos los asuntos en una sola consulta.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="EARLY_SEARCH_STOP" name="EARLY_SEARCH_STOP" value="1" <?= ($settings['EARLY_SEARCH_STOP'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="EARLY_SEARCH_STOP" class="form-check-label-admin">
-                                    <i class="fas fa-stop me-2"></i>
-                                    Parada temprana de búsqueda
-                                </label>
-                            </div>
-                            <small class="text-muted d-block">Parar al encontrar el primer resultado.</small>
-                        </div>
-                    </div>
-                    
-                    <div class="form-check-admin">
-                        <input type="checkbox" class="form-check-input-admin" id="PERFORMANCE_LOGGING" name="PERFORMANCE_LOGGING" value="1" <?= ($settings['PERFORMANCE_LOGGING'] ?? '0') === '1' ? 'checked' : '' ?>>
-                        <label for="PERFORMANCE_LOGGING" class="form-check-label-admin">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Logs de rendimiento
-                        </label>
-                    </div>
-                    <small class="text-muted d-block">Registrar tiempos de ejecución en los logs del servidor.</small>
-                </div>
-
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-database me-2 text-info"></i>
-                            Configuraciones de Cache
-                        </h3>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="CACHE_ENABLED" name="CACHE_ENABLED" value="1" <?= ($settings['CACHE_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="CACHE_ENABLED" class="form-check-label-admin">
-                                    <i class="fas fa-rocket me-2"></i>
-                                    Sistema de cache activado
-                                </label>
-                            </div>
-                            <small class="text-muted d-block">Cachear configuraciones y datos para mejorar velocidad.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="CACHE_MEMORY_ENABLED" name="CACHE_MEMORY_ENABLED" value="1" <?= ($settings['CACHE_MEMORY_ENABLED'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="CACHE_MEMORY_ENABLED" class="form-check-label-admin">
-                                    <i class="fas fa-memory me-2"></i>
-                                    Cache en memoria activado
-                                </label>
-                            </div>
-                            <small class="text-muted d-block">Mantener datos en memoria durante la sesión.</small>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group-admin">
-                        <label for="CACHE_TIME_MINUTES" class="form-label-admin">
-                            <i class="fas fa-hourglass-half me-2"></i>
-                            Tiempo de vida del cache (minutos)
-                        </label>
-                        <input type="number" class="form-control-admin" id="CACHE_TIME_MINUTES" name="CACHE_TIME_MINUTES" min="1" max="60" value="<?= $settings['CACHE_TIME_MINUTES'] ?? '5' ?>">
-                        <small class="text-muted">Cuánto tiempo mantener datos en cache antes de recargar.</small>
-                    </div>
-                    
-                    <div class="text-center mt-4">
-                        <button type="button" class="btn-admin btn-info-admin btn-sm-admin" onclick="showCacheStats()">
-                            <i class="fas fa-chart-bar"></i> Ver Estadísticas
-                        </button>
-                        <button type="button" class="btn-admin btn-warning-admin btn-sm-admin" onclick="clearCache()">
-                            <i class="fas fa-broom"></i> Limpiar Cache
-                        </button>
-                        <button type="button" class="btn-admin btn-success-admin btn-sm-admin" onclick="testSearchSpeed()">
-                            <i class="fas fa-tachometer-alt"></i> Test de Velocidad
-                        </button>
-                    </div>
-                </div>
-
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-clock me-2 text-success"></i>
-                            Configuraciones de Filtrado de Tiempo
-                        </h3>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="TRUST_IMAP_DATE_FILTER" name="TRUST_IMAP_DATE_FILTER" value="1" <?= ($settings['TRUST_IMAP_DATE_FILTER'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="TRUST_IMAP_DATE_FILTER" class="form-check-label-admin">
-                                    <i class="fas fa-shield-alt me-2"></i>
-                                    Confiar en filtrado IMAP
-                                </label>
-                            </div>
-                            <small class="text-muted d-block">No re-verificar fechas en PHP (más rápido).</small>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="USE_PRECISE_IMAP_SEARCH" name="USE_PRECISE_IMAP_SEARCH" value="1" <?= ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="USE_PRECISE_IMAP_SEARCH" class="form-check-label-admin">
-                                    <i class="fas fa-crosshairs me-2"></i>
-                                    Búsqueda IMAP precisa
-                                </label>
-                            </div>
-                            <small class="text-muted d-block">Usar fecha y hora específica en lugar de solo fecha.</small>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group-admin">
-                                <label for="MAX_EMAILS_TO_CHECK" class="form-label-admin">
-                                    <i class="fas fa-list-ol me-2"></i>
-                                    Máximo emails a verificar
-                                </label>
-                                <input type="number" class="form-control-admin" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="500" value="<?= $settings['MAX_EMAILS_TO_CHECK'] ?? '50' ?>">
-                                <small class="text-muted">Limitar cuántos emails verificar para evitar lentitud.</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group-admin">
-                                <label for="IMAP_SEARCH_TIMEOUT" class="form-label-admin">
-                                    <i class="fas fa-stopwatch me-2"></i>
-                                    Timeout de búsqueda IMAP (segundos)
-                                </label>
-                                <input type="number" class="form-control-admin" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= $settings['IMAP_SEARCH_TIMEOUT'] ?? '30' ?>">
-                                <small class="text-muted">Tiempo máximo para búsquedas IMAP antes de cancelar.</small>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -753,6 +590,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </form>
         </div>
 
+        <!-- TAB SERVIDORES -->
         <div class="tab-pane fade" id="servidores" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -770,86 +608,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                     </div>
                 </div>
                 
-                <?php 
-                $email_servers_query = $conn->query("SELECT * FROM email_servers ORDER BY id ASC");
-                $email_servers_data = [];
-                $servers_found = false;
-                
-                if ($email_servers_query) {
-                    while ($row = $email_servers_query->fetch_assoc()) {
-                        $email_servers_data[] = $row;
-                        $servers_found = true;
-                    }
-                }
-                ?>
-                
                 <form method="POST" action="admin.php" enctype="multipart/form-data">
-                    <input type="hidden" name="current_tab" value="servidores">
+                    <input type="hidden" name="current_tab" value="servidores" class="current-tab-input">
                     <input type="hidden" name="update_servers_only" value="1">
                     
-                    <?php if (!$servers_found): ?>
-                        <div class="alert-admin alert-warning-admin">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            No hay servidores IMAP configurados en el sistema.
-                        </div>
-                    <?php else: ?>
-                        <div class="row">
-                            <?php foreach ($email_servers_data as $server): ?>
-                                <div class="col-lg-6 mb-4">
-                                    <div class="admin-card">
-                                        <div class="admin-card-header">
-                                            <div class="d-flex justify-content-between align-items-center w-100">
-                                                <h5 class="mb-0">
-                                                    <i class="fas fa-server me-2"></i>
-                                                    <?= str_replace("SERVIDOR_", "Servidor ", $server['server_name']) ?>
-                                                </h5>
-                                                <div class="form-check-admin">
-                                                    <input type="checkbox" class="form-check-input-admin" id="srv_enabled_<?= $server['id'] ?>" name="enabled_<?= $server['id'] ?>" value="1" <?= $server['enabled'] ? 'checked' : '' ?> onchange="toggleServerView('<?= $server['id'] ?>')">
-                                                    <label for="srv_enabled_<?= $server['id'] ?>" class="form-check-label-admin">Habilitado</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="server-settings" id="server_<?= $server['id'] ?>_settings" style="display: <?= $server['enabled'] ? 'block' : 'none' ?>;">
-                                            <div class="form-group-admin">
-                                                <label for="srv_imap_server_<?= $server['id'] ?>" class="form-label-admin">
-                                                    <i class="fas fa-globe me-2"></i>
-                                                    Servidor IMAP
-                                                </label>
-                                                <input type="text" class="form-control-admin" id="srv_imap_server_<?= $server['id'] ?>" name="imap_server_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_server']) ?>" placeholder="imap.gmail.com">
-                                            </div>
-                                            
-                                            <div class="form-group-admin">
-                                                <label for="srv_imap_port_<?= $server['id'] ?>" class="form-label-admin">
-                                                    <i class="fas fa-plug me-2"></i>
-                                                    Puerto IMAP
-                                                </label>
-                                                <input type="number" class="form-control-admin" id="srv_imap_port_<?= $server['id'] ?>" name="imap_port_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_port']) ?>" placeholder="993">
-                                                <small class="text-muted">Puerto estándar: 993 (SSL)</small>
-                                            </div>
-                                            
-                                            <div class="form-group-admin">
-                                                <label for="srv_imap_user_<?= $server['id'] ?>" class="form-label-admin">
-                                                    <i class="fas fa-user me-2"></i>
-                                                    Usuario IMAP
-                                                </label>
-                                                <input type="text" class="form-control-admin" id="srv_imap_user_<?= $server['id'] ?>" name="imap_user_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_user']) ?>" placeholder="usuario@gmail.com">
-                                            </div>
-                                            
-                                            <div class="form-group-admin">
-                                                <label for="srv_imap_password_<?= $server['id'] ?>" class="form-label-admin">
-                                                    <i class="fas fa-key me-2"></i>
-                                                    Contraseña IMAP
-                                                </label>
-                                                <input type="password" class="form-control-admin" id="srv_imap_password_<?= $server['id'] ?>" name="imap_password_<?= $server['id'] ?>" value="<?= empty($server['imap_password']) ? '' : '**********' ?>" placeholder="Contraseña o App Password">
-                                                <small class="text-muted">Deja en blanco para no cambiar. Para Gmail/Outlook usa App Password.</small>
+                    <div class="row">
+                        <?php foreach ($email_servers_data as $server): ?>
+                            <div class="col-lg-6 mb-4">
+                                <div class="admin-card">
+                                    <div class="admin-card-header">
+                                        <div class="d-flex justify-content-between align-items-center w-100">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-server me-2"></i>
+                                                <?= str_replace("SERVIDOR_", "Servidor ", $server['server_name']) ?>
+                                            </h5>
+                                            <div class="form-check-admin">
+                                                <input type="checkbox" class="form-check-input-admin" id="srv_enabled_<?= $server['id'] ?>" name="enabled_<?= $server['id'] ?>" value="1" <?= $server['enabled'] ? 'checked' : '' ?> onchange="toggleServerView('<?= $server['id'] ?>')">
+                                                <label for="srv_enabled_<?= $server['id'] ?>" class="form-check-label-admin">Habilitado</label>
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <div class="server-settings" id="server_<?= $server['id'] ?>_settings" style="display: <?= $server['enabled'] ? 'block' : 'none' ?>;">
+                                        <div class="form-group-admin">
+                                            <label for="srv_imap_server_<?= $server['id'] ?>" class="form-label-admin">
+                                                <i class="fas fa-globe me-2"></i>
+                                                Servidor IMAP
+                                            </label>
+                                            <input type="text" class="form-control-admin" id="srv_imap_server_<?= $server['id'] ?>" name="imap_server_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_server']) ?>" placeholder="imap.gmail.com">
+                                        </div>
+                                        
+                                        <div class="form-group-admin">
+                                            <label for="srv_imap_port_<?= $server['id'] ?>" class="form-label-admin">
+                                                <i class="fas fa-plug me-2"></i>
+                                                Puerto IMAP
+                                            </label>
+                                            <input type="number" class="form-control-admin" id="srv_imap_port_<?= $server['id'] ?>" name="imap_port_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_port']) ?>" placeholder="993">
+                                            <small class="text-muted">Puerto estándar: 993 (SSL)</small>
+                                        </div>
+                                        
+                                        <div class="form-group-admin">
+                                            <label for="srv_imap_user_<?= $server['id'] ?>" class="form-label-admin">
+                                                <i class="fas fa-user me-2"></i>
+                                                Usuario IMAP
+                                            </label>
+                                            <input type="text" class="form-control-admin" id="srv_imap_user_<?= $server['id'] ?>" name="imap_user_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_user']) ?>" placeholder="usuario@gmail.com">
+                                        </div>
+                                        
+                                        <div class="form-group-admin">
+                                            <label for="srv_imap_password_<?= $server['id'] ?>" class="form-label-admin">
+                                                <i class="fas fa-key me-2"></i>
+                                                Contraseña IMAP
+                                            </label>
+                                            <input type="password" class="form-control-admin" id="srv_imap_password_<?= $server['id'] ?>" name="imap_password_<?= $server['id'] ?>" value="<?= empty($server['imap_password']) ? '' : '**********' ?>" placeholder="Contraseña o App Password">
+                                            <small class="text-muted">Deja en blanco para no cambiar. Para Gmail/Outlook usa App Password.</small>
+                                        </div>
+                                    </div>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                     
                     <div class="text-center mt-4">
                         <button type="submit" name="update" class="btn-admin btn-primary-admin btn-lg-admin">
@@ -861,7 +679,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-<div class="tab-pane fade" id="users" role="tabpanel">
+        <!-- TAB USUARIOS -->
+        <div class="tab-pane fade" id="users" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h3 class="admin-card-title mb-0">
@@ -872,24 +691,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addUserModal">
                             <i class="fas fa-plus"></i> Nuevo Usuario
                         </button>
-                        <div class="search-box-admin">
-                            <i class="fas fa-search search-icon-admin"></i>
-                            <input type="text"
-                                class="search-input-admin"
-                                id="searchUsers"
-                                placeholder="Buscar usuarios por nombre o email..."
-                                autocomplete="off">
-                            <button type="button" class="search-clear-admin" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
                     </div>
-                </div>
-                <div class="search-results-info" id="usersSearchInfo" style="display: none;">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Mostrando <span id="usersCount">0</span> usuario(s) de un total
-                    </small>
                 </div>
 
                 <?php
@@ -949,12 +751,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                     </td>
                                     <td>
                                         <div class="d-flex gap-sm">
-                                            <button class="btn-admin btn-primary-admin btn-sm-admin" 
-                                                    onclick="editUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['email']) ?>', <?= $user['status'] ?>)">
+                                            <button class="btn-admin btn-primary-admin btn-sm-admin" onclick="editUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['email']) ?>', <?= $user['status'] ?>)">
                                                 <i class="fas fa-edit"></i> Editar
                                             </button>
-                                            <button class="btn-admin btn-danger-admin btn-sm-admin" 
-                                                    onclick="deleteUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
+                                            <button class="btn-admin btn-danger-admin btn-sm-admin" onclick="deleteUser(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>')">
                                                 <i class="fas fa-trash"></i> Eliminar
                                             </button>
                                         </div>
@@ -968,6 +768,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
+        <!-- TAB LOGS -->
         <div class="tab-pane fade" id="logs" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -975,7 +776,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <i class="fas fa-list-alt me-2"></i>
                         Registro de Consultas
                     </h3>
-                    </div>
+                </div>
+                
                 <?php
                 $logs_per_page = 20;
                 $total_logs_query = $conn->query("SELECT COUNT(*) as total FROM logs");
@@ -1056,61 +858,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         </tbody>
                     </table>
                 </div>
-
-                <?php if ($total_pages > 1): ?>
-                <nav class="pagination-admin">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item <?= ($current_page <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?tab=logs&log_page=<?= $current_page - 1 ?>">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-
-                        <?php 
-                        $max_visible_pages = 5;
-                        $start_page = max(1, $current_page - floor($max_visible_pages / 2));
-                        $end_page = min($total_pages, $current_page + floor($max_visible_pages / 2));
-
-                        if ($end_page - $start_page + 1 < $max_visible_pages) {
-                            if ($start_page == 1) {
-                                $end_page = min($total_pages, $start_page + $max_visible_pages - 1);
-                            } else {
-                                $start_page = max(1, $end_page - $max_visible_pages + 1);
-                            }
-                        }
-                        
-                        if ($start_page > 1) {
-                            echo '<li class="page-item"><a class="page-link" href="?tab=logs&log_page=1">1</a></li>';
-                            if ($start_page > 2) {
-                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                            }
-                        }
-
-                        for ($i = $start_page; $i <= $end_page; $i++):
-                        ?>
-                        <li class="page-item <?= ($i == $current_page) ? 'active' : '' ?>">
-                            <a class="page-link" href="?tab=logs&log_page=<?= $i ?>"><?= $i ?></a>
-                        </li>
-                        <?php endfor; ?>
-
-                        <?php if ($end_page < $total_pages): ?>
-                            <?php if ($end_page < $total_pages - 1): ?>
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
-                            <?php endif; ?>
-                            <li class="page-item"><a class="page-link" href="?tab=logs&log_page=<?= $total_pages ?>"><?= $total_pages ?></a></li>
-                        <?php endif; ?>
-
-                        <li class="page-item <?= ($current_page >= $total_pages) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?tab=logs&log_page=<?= $current_page + 1 ?>">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <?php endif; ?>
             </div>
         </div>
 
+        <!-- TAB CORREOS AUTORIZADOS -->
         <div class="tab-pane fade" id="correos-autorizados" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -1122,25 +873,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addAuthEmailModal">
                             <i class="fas fa-plus"></i> Nuevo Correo
                         </button>
-                        <div class="search-box-admin">
-                            <i class="fas fa-search search-icon-admin"></i>
-                            <input type="text"
-                                class="search-input-admin"
-                                id="searchEmails"
-                                placeholder="Buscar correos electrónicos..."
-                                autocomplete="off">
-                            <button type="button" class="search-clear-admin" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
-                <div class="search-results-info" id="emailsSearchInfo" style="display: none;">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Mostrando <span id="emailsCount">0</span> correo(s) autorizado(s)
-                    </small>
-                </div>
+                
                 <?php if ($auth_email_message): ?>
                     <div class="alert-admin alert-success-admin">
                         <i class="fas fa-check-circle"></i>
@@ -1202,6 +937,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
+        <!-- TAB PLATAFORMAS -->
         <div class="tab-pane fade" id="platforms" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -1213,24 +949,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
                             <i class="fas fa-plus"></i> Nueva Plataforma
                         </button>
-                        <div class="search-box-admin">
-                            <i class="fas fa-search search-icon-admin"></i>
-                            <input type="text"
-                                class="search-input-admin"
-                                id="searchPlatforms"
-                                placeholder="Buscar plataformas..."
-                                autocomplete="off">
-                            <button type="button" class="search-clear-admin" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
                     </div>
-                </div>
-                <div class="search-results-info" id="platformsSearchInfo" style="display: none;">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Mostrando <span id="platformsCount">0</span> plataforma(s)
-                    </small>
                 </div>
 
                 <?php if (isset($_SESSION['platform_message'])): ?>
@@ -1282,12 +1001,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                         </td>
                                         <td>
                                             <div class="d-flex gap-sm">
-                                                <button class="btn-admin btn-primary-admin btn-sm-admin" 
-                                                        onclick="openEditPlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
+                                                <button class="btn-admin btn-primary-admin btn-sm-admin" onclick="openEditPlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
                                                     <i class="fas fa-edit"></i> Editar / Ver Asuntos
                                                 </button>
-                                                <button class="btn-admin btn-danger-admin btn-sm-admin" 
-                                                        onclick="openDeletePlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
+                                                <button class="btn-admin btn-danger-admin btn-sm-admin" onclick="openDeletePlatformModal(<?= $platform['id'] ?>, '<?= htmlspecialchars(addslashes($platform['name'])) ?>')">
                                                     <i class="fas fa-trash"></i> Eliminar
                                                 </button>
                                             </div>
@@ -1308,8 +1025,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-<div class="tab-pane fade" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
-            
+        <!-- TAB ASIGNACIONES -->
+        <div class="tab-pane fade" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h3 class="admin-card-title">
@@ -1333,11 +1050,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 <?php endif; ?>
 
                 <form method="POST" action="admin.php">
-                    <input type="hidden" name="current_tab" value="asignaciones">
+                    <input type="hidden" name="current_tab" value="asignaciones" class="current-tab-input">
                     <div class="form-check-admin">
-                        <input class="form-check-input-admin" type="checkbox" id="USER_EMAIL_RESTRICTIONS_ENABLED" 
-                               name="USER_EMAIL_RESTRICTIONS_ENABLED" value="1" 
-                               <?= ($settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <input class="form-check-input-admin" type="checkbox" id="USER_EMAIL_RESTRICTIONS_ENABLED" name="USER_EMAIL_RESTRICTIONS_ENABLED" value="1" <?= ($settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1' ? 'checked' : '' ?>>
                         <label class="form-check-label-admin" for="USER_EMAIL_RESTRICTIONS_ENABLED">
                             <i class="fas fa-lock me-2"></i>
                             <strong>Activar restricciones por usuario</strong>
@@ -1362,36 +1077,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h3 class="admin-card-title mb-0">
-                    <i class="fas fa-users-cog me-2"></i>
+                        <i class="fas fa-users-cog me-2"></i>
                         Gestión de Permisos por Usuario
                     </h3>
-                    <div class="action-buttons-group">
-                        <div class="search-box-admin">
-                            <i class="fas fa-search search-icon-admin"></i>
-                            <input type="text"
-                                class="search-input-admin"
-                                id="searchAssignments"
-                                placeholder="Buscar usuarios..."
-                                autocomplete="off">
-                            <button type="button" class="search-clear-admin" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
                 </div>
-                <div class="search-results-info" id="assignmentsSearchInfo" style="display: none;">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Mostrando <span id="assignmentsCount">0</span> usuario(s)
-                    </small>
-                </div>
-               <div class="text-muted mt-2">
+                <div class="text-muted mt-2">
                     <small>
-                    <i class="fas fa-info me-1"></i>
+                        <i class="fas fa-info me-1"></i>
                         Configura qué correos puede consultar cada usuario del sistema
                     </small>
                 </div>
-            </div>
 
                 <?php
                 // Obtener usuarios (excepto admin)
@@ -1455,8 +1150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                             </div>
                                         </td>
                                         <td>
-                                            <button class="btn-admin btn-primary-admin btn-sm-admin" 
-                                                    onclick="openAssignEmailsModal(<?= $user['id'] ?>, '<?= htmlspecialchars(addslashes($user['username'])) ?>')">
+                                            <button class="btn-admin btn-primary-admin btn-sm-admin" onclick="openAssignEmailsModal(<?= $user['id'] ?>, '<?= htmlspecialchars(addslashes($user['username'])) ?>')">
                                                 <i class="fas fa-edit"></i> Gestionar Correos
                                             </button>
                                         </td>
@@ -1478,89 +1172,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 </div>
             </div>
         </div>
-
-<div class="modal fade modal-admin" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form id="assignEmailsForm" method="POST" action="/admin/procesar_asignaciones.php">
-                <input type="hidden" name="action" value="assign_emails_to_user">
-                <input type="hidden" name="user_id" id="assign_user_id">
-                
-                <div class="modal-header">
-                    <h5 class="modal-title" id="assignEmailsModalLabel">
-                        <i class="fas fa-user-cog me-2"></i>
-                        Gestionar Correos para Usuario
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                
-                <div class="modal-body">
-                    <div class="alert-admin alert-info-admin mb-3">
-                        <i class="fas fa-info-circle"></i>
-                        <div>
-                            Selecciona los correos que <strong id="assign_username"></strong> puede consultar en el sistema.
-                            <br><small>Los cambios se aplicarán inmediatamente después de guardar.</small>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group-admin">
-                        <div class="form-check-admin">
-                            <input class="form-check-input-admin" type="checkbox" id="select_all_emails">
-                            <label class="form-check-label-admin" for="select_all_emails">
-                                <i class="fas fa-check-double me-2"></i>
-                                <strong>Seleccionar/Deseleccionar Todos</strong>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <hr class="my-3">
-                    
-                    <h6 class="mb-3">
-                        <i class="fas fa-envelope-open me-2"></i>
-                        Correos Disponibles:
-                    </h6>
-                    
-                    <?php if (!empty($emails_list)): ?>
-                        <div class="row">
-                            <?php foreach ($emails_list as $email): ?>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check-admin">
-                                        <input class="form-check-input-admin email-checkbox" type="checkbox" 
-                                               name="email_ids[]" value="<?= $email['id'] ?>" 
-                                               id="email_<?= $email['id'] ?>">
-                                        <label class="form-check-label-admin" for="email_<?= $email['id'] ?>">
-                                            <i class="fas fa-envelope me-2 text-muted"></i>
-                                            <?= htmlspecialchars($email['email']) ?>
-                                        </label>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="alert-admin alert-warning-admin">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <div>
-                                <strong>No hay correos autorizados configurados.</strong>
-                                <br>Primero debes añadir correos en la pestaña <strong>Correos Autorizados</strong>.
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    <button type="submit" class="btn-admin btn-primary-admin">
-                        <i class="fas fa-save"></i> Guardar Asignaciones
-                    </button>
-                </div>
-            </form>
-        </div>
     </div>
 </div>
 
-            
+<!-- TODOS LOS MODALES -->
+
+<!-- Modal para añadir usuario -->
 <div class="modal fade modal-admin" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1608,6 +1225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para editar usuario -->
 <div class="modal fade modal-admin" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1656,6 +1274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para eliminar usuario -->
 <div class="modal fade modal-admin" id="deleteUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1687,6 +1306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para ver resultado de logs -->
 <div class="modal fade modal-admin" id="viewResultModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1705,6 +1325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para añadir correo autorizado -->
 <div class="modal fade modal-admin" id="addAuthEmailModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1737,6 +1358,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para editar correo autorizado -->
 <div class="modal fade modal-admin" id="editEmailModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1769,6 +1391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para añadir plataforma -->
 <div class="modal fade modal-admin" id="addPlatformModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1801,6 +1424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para editar plataforma -->
 <div class="modal fade modal-admin" id="editPlatformModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1846,6 +1470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para eliminar plataforma -->
 <div class="modal fade modal-admin" id="deletePlatformModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1880,6 +1505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para editar asunto -->
 <div class="modal fade modal-admin" id="editSubjectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1911,401 +1537,212 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
+<!-- Modal para asignar correos -->
+<div class="modal fade modal-admin" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="assignEmailsForm" method="POST" action="procesar_asignaciones.php">
+                <input type="hidden" name="action" value="assign_emails_to_user">
+                <input type="hidden" name="user_id" id="assign_user_id">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignEmailsModalLabel">
+                        <i class="fas fa-user-cog me-2"></i>
+                        Gestionar Correos para Usuario
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="alert-admin alert-info-admin mb-3">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            Selecciona los correos que <strong id="assign_username"></strong> puede consultar en el sistema.
+                            <br><small>Los cambios se aplicarán inmediatamente después de guardar.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-admin">
+                        <div class="form-check-admin">
+                            <input class="form-check-input-admin" type="checkbox" id="select_all_emails">
+                            <label class="form-check-label-admin" for="select_all_emails">
+                                <i class="fas fa-check-double me-2"></i>
+                                <strong>Seleccionar/Deseleccionar Todos</strong>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <h6 class="mb-3">
+                        <i class="fas fa-envelope-open me-2"></i>
+                        Correos Disponibles:
+                    </h6>
+                    
+                    <?php if (!empty($emails_list)): ?>
+                        <div class="row">
+                            <?php foreach ($emails_list as $email): ?>
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check-admin">
+                                        <input class="form-check-input-admin email-checkbox" type="checkbox" name="email_ids[]" value="<?= $email['id'] ?>" id="email_<?= $email['id'] ?>">
+                                        <label class="form-check-label-admin" for="email_<?= $email['id'] ?>">
+                                            <i class="fas fa-envelope me-2 text-muted"></i>
+                                            <?= htmlspecialchars($email['email']) ?>
+                                        </label>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert-admin alert-warning-admin">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>No hay correos autorizados configurados.</strong>
+                                <br>Primero debes añadir correos en la pestaña <strong>Correos Autorizados</strong>.
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-admin btn-primary-admin">
+                        <i class="fas fa-save"></i> Guardar Asignaciones
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
 <script>
-// ===============================
-// 🔧 INICIALIZACIÓN PRINCIPAL
-// ===============================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Inicializando panel de administración...');
-    
-    // Activar la pestaña correcta basada en URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-    const logPageParam = urlParams.get('log_page');
-    
-    if (tabParam) {
-        let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="#' + tabParam + '"]');
-        if (tabTrigger) {
-            let tab = new bootstrap.Tab(tabTrigger);
-            tab.show();
-        }
-    } else if (logPageParam) {
-        let tabTrigger = document.querySelector('.nav-tabs button[data-bs-target="#logs"]');
-        if (tabTrigger) {
-            let tab = new bootstrap.Tab(tabTrigger);
-            tab.show();
-        }
-    }
-    
-    // Animar entrada de elementos
-    const cards = document.querySelectorAll('.admin-card');
-    cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            card.style.transition = 'all 0.5s ease';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, index * 100);
-    });
+// ===== DEFINIR TODAS LAS FUNCIONES DE FORMA SIMPLE =====
 
-    // Configurar tab activo en formularios
-    document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(button => {
-        button.addEventListener('shown.bs.tab', event => {
-           const hiddenInput = document.querySelector('input[name="current_tab"]');
-           if (hiddenInput) {
-               hiddenInput.value = event.target.getAttribute('data-bs-target').substring(1);
-           }
-        });
-    });
-    
-    // Configurar modal de edición de correos autorizados
-    const editEmailModal = document.getElementById('editEmailModal');
-    if (editEmailModal) {
-        editEmailModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const emailId = button.getAttribute('data-bs-id');
-            const emailValue = button.getAttribute('data-bs-email');
-            
-            document.getElementById('edit_email_id').value = emailId;
-            document.getElementById('edit_email_value').value = emailValue;
-        });
-    }
-
-    // Inicializar drag and drop para plataformas
-    const platformsTableBody = document.getElementById('platformsTableBody');
-    if (platformsTableBody) {
-        Sortable.create(platformsTableBody, {
-            animation: 150,
-            handle: 'td:first-child',
-            onEnd: function (evt) {
-                savePlatformOrder();
-            }
-        });
-    }
-
-    // Configurar "Seleccionar todos" para asignaciones
-    const selectAllCheckbox = document.getElementById('select_all_emails');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
-            emailCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-            console.log('🔄 Seleccionar todos:', this.checked);
-        });
-    }
-
-    // Cargar emails para todos los usuarios en la pestaña de asignaciones
-    const assignmentsTab = document.getElementById('asignaciones');
-    if (assignmentsTab) {
-        const userContainers = assignmentsTab.querySelectorAll('[id^="assigned-emails-"]');
-        console.log(`🔄 Encontrados ${userContainers.length} contenedores de usuario`);
-        
-        userContainers.forEach(container => {
-            const userId = container.id.replace('assigned-emails-', '');
-            if (userId && !isNaN(userId)) {
-                console.log(`📧 Cargando emails para usuario: ${userId}`);
-                loadUserEmails(parseInt(userId));
-            }
-        });
-    }
-    
-    console.log('✅ Inicialización completada');
-});
-
-// ===============================
-// 🔧 FUNCIONES DE USUARIOS
-// ===============================
+// Función para editar usuario
 function editUser(id, username, email, status) {
+    console.log('Editando usuario:', id, username, email, status);
     document.getElementById('edit_user_id').value = id;
     document.getElementById('edit_username').value = username;
-    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_email').value = email || '';
     document.getElementById('edit_status').checked = status == 1;
     
-    const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
-    editModal.show();
+    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    modal.show();
 }
 
+// Función para eliminar usuario
 function deleteUser(id, username) {
+    console.log('Eliminando usuario:', id, username);
     document.getElementById('delete_user_id').value = id;
     document.getElementById('delete_username').textContent = username;
     
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
-    deleteModal.show();
+    const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    modal.show();
 }
 
-// ===============================
-// 🔧 FUNCIONES DE SERVIDORES
-// ===============================
+// Función para toggle de servidores
 function toggleServerView(serverId) {
+    console.log('Toggle servidor:', serverId);
     const settingsDiv = document.getElementById('server_' + serverId + '_settings');
     const checkbox = document.getElementById('srv_enabled_' + serverId);
     
-    if (checkbox.checked) {
-        settingsDiv.style.display = 'block';
-        settingsDiv.style.animation = 'tabFadeIn 0.4s ease';
-    } else {
-        settingsDiv.style.display = 'none';
+    if (settingsDiv && checkbox) {
+        settingsDiv.style.display = checkbox.checked ? 'block' : 'none';
     }
 }
 
-// ===============================
-// 🔧 FUNCIONES DE LOGS
-// ===============================
+// Función para ver resultado de logs
 function verResultado(resultado) {
-    document.getElementById('resultado_contenido').textContent = resultado; 
-    const resultModal = new bootstrap.Modal(document.getElementById('viewResultModal'));
-    resultModal.show();
+    console.log('Viendo resultado');
+    document.getElementById('resultado_contenido').textContent = resultado;
+    const modal = new bootstrap.Modal(document.getElementById('viewResultModal'));
+    modal.show();
 }
 
-// ===============================
-// 🔧 FUNCIONES DE ARCHIVOS
-// ===============================
+// Función para validar archivo
 function validarArchivo() {
     const archivoInput = document.getElementById('logo');
     const archivo = archivoInput.files[0];
     
-    if (archivo) {
-        const extensionesPermitidas = /(\.png)$/i;
-        if (!extensionesPermitidas.exec(archivo.name)) {
-            alert('Por favor, sube un archivo con extensión .png');
-            archivoInput.value = '';
-            return false;
-        }
+    if (!archivo) return;
+    
+    const extensionesPermitidas = /(\.png)$/i;
+    if (!extensionesPermitidas.exec(archivo.name)) {
+        alert('Por favor, sube un archivo con extensión .png');
+        archivoInput.value = '';
+        return false;
+    }
 
-        const lector = new FileReader();
-        lector.onload = function(evento) {
-            const imagen = new Image();
-            imagen.onload = function() {
-                if (imagen.width !== 512 || imagen.height !== 315) {
-                    alert('La imagen debe tener un tamaño de 512px x 315px');
-                    archivoInput.value = '';
-                }
-            };
-            imagen.src = evento.target.result;
+    const lector = new FileReader();
+    lector.onload = function(evento) {
+        const imagen = new Image();
+        imagen.onload = function() {
+            if (imagen.width !== 512 || imagen.height !== 315) {
+                alert('La imagen debe tener un tamaño de 512px x 315px');
+                archivoInput.value = '';
+            }
         };
-        lector.readAsDataURL(archivo);
-    }
+        imagen.src = evento.target.result;
+    };
+    lector.readAsDataURL(archivo);
+    return true;
 }
 
-// ===============================
-// 🔧 FUNCIONES DE CACHE
-// ===============================
-function showCacheStats() {
-    const modalHtml = `
-        <div class="modal fade modal-admin" id="cacheStatsModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-chart-bar me-2"></i>
-                            Estadísticas de Cache
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="cacheStatsContent">
-                        <div class="text-center">
-                            <div class="loading-spinner-admin"></div>
-                            <p class="mt-2">Cargando estadísticas...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const existingModal = document.getElementById('cacheStatsModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('cacheStatsModal'));
-    modal.show();
-    
-    setTimeout(() => {
-        document.getElementById('cacheStatsContent').innerHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <div class="stat-number">✓</div>
-                        <div class="stat-label">Estado del Cache</div>
-                        <small class="text-success">Activo</small>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <div class="stat-number">${document.getElementById('CACHE_TIME_MINUTES').value}</div>
-                        <div class="stat-label">Tiempo de vida (min)</div>
-                    </div>
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <div class="alert-admin alert-info-admin">
-                    <i class="fas fa-info-circle"></i>
-                    <span>El cache mejora la velocidad del sistema al evitar consultas repetitivas a la base de datos.</span>
-                </div>
-            </div>
-        `;
-    }, 500);
-}
-
-function clearCache() {
-    if (confirm('¿Estás seguro de que quieres limpiar todo el cache?\n\nEsto puede ralentizar temporalmente el sistema hasta que se regenere.')) {
-        const alertHtml = `
-            <div class="alert-admin alert-success-admin" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
-                <i class="fas fa-check-circle"></i>
-                <span>Cache limpiado correctamente. El sistema regenerará el cache automáticamente.</span>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', alertHtml);
-        
-        setTimeout(() => {
-            const alert = document.querySelector('.alert-admin[style*="position: fixed"]');
-            if (alert) alert.remove();
-        }, 3000);
-    }
-}
-
-function testSearchSpeed() {
-    const modalHtml = `
-        <div class="modal fade modal-admin" id="speedTestModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-tachometer-alt me-2"></i>
-                            Test de Velocidad de Búsqueda
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="speedTestContent">
-                        <div class="text-center">
-                            <div class="loading-spinner-admin"></div>
-                            <p class="mt-2">Ejecutando test de velocidad en servidores IMAP...</p>
-                            <small class="text-muted">Esto puede tardar unos segundos</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const existingModal = document.getElementById('speedTestModal');
-    if (existingModal) existingModal.remove();
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('speedTestModal'));
-    modal.show();
-    
-    setTimeout(() => {
-        const mockResults = [
-            { server: 'SERVIDOR_1', time: Math.random() * 500 + 100, status: 'success' },
-            { server: 'SERVIDOR_2', time: Math.random() * 500 + 100, status: 'success' },
-            { server: 'SERVIDOR_3', time: Math.random() * 1000 + 200, status: 'timeout' }
-        ];
-        
-        const totalTime = mockResults.reduce((sum, r) => sum + (r.status === 'success' ? r.time : 0), 0);
-        const avgTime = Math.round(totalTime / mockResults.filter(r => r.status === 'success').length);
-        
-        document.getElementById('speedTestContent').innerHTML = `
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number">${avgTime}ms</div>
-                    <div class="stat-label">Tiempo Promedio</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">${mockResults.filter(r => r.status === 'success').length}</div>
-                    <div class="stat-label">Servidores OK</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">${mockResults.filter(r => r.status !== 'success').length}</div>
-                    <div class="stat-label">Con Problemas</div>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table-admin">
-                    <thead>
-                        <tr>
-                            <th>Servidor</th>
-                            <th>Tiempo (ms)</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${mockResults.map(r => `
-                            <tr>
-                                <td><i class="fas fa-server me-2"></i>${r.server}</td>
-                                <td>${r.status === 'success' ? Math.round(r.time) + 'ms' : 'N/A'}</td>
-                                <td>
-                                    <span class="badge-admin badge-${r.status === 'success' ? 'success' : 'danger'}-admin">
-                                        ${r.status === 'success' ? '✅ OK' : '❌ Error'}
-                                    </span>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-            <div class="alert-admin alert-info-admin mt-3">
-                <i class="fas fa-lightbulb"></i>
-                <div>
-                    <strong>Interpretación:</strong> Tiempos menores a 300ms son excelentes. 
-                    Entre 300-800ms son buenos. Más de 800ms pueden necesitar optimización.
-                </div>
-            </div>
-        `;
-    }, 3000);
-}
-
-// ===============================
-// 🔧 FUNCIONES DE PLATAFORMAS
-// ===============================
+// Función para abrir modal de editar plataforma
 function openEditPlatformModal(platformId, platformName) {
+    console.log('Abriendo modal de plataforma:', platformId, platformName);
     document.getElementById('edit_platform_id').value = platformId;
     document.getElementById('edit_platform_name').value = platformName;
     loadPlatformSubjects(platformId);
-    const editModal = new bootstrap.Modal(document.getElementById('editPlatformModal'));
-    editModal.show();
+    
+    const modal = new bootstrap.Modal(document.getElementById('editPlatformModal'));
+    modal.show();
 }
 
+// Función para abrir modal de eliminar plataforma
 function openDeletePlatformModal(platformId, platformName) {
+    console.log('Abriendo modal de eliminar plataforma:', platformId, platformName);
     document.getElementById('delete_platform_id').value = platformId;
     document.getElementById('delete_platform_name').textContent = platformName;
-    const deleteModal = new bootstrap.Modal(document.getElementById('deletePlatformModal'));
-    deleteModal.show();
+    
+    const modal = new bootstrap.Modal(document.getElementById('deletePlatformModal'));
+    modal.show();
 }
 
+// Función para cargar asuntos de plataforma
 function loadPlatformSubjects(platformId) {
     const container = document.getElementById('platformSubjectsContainer');
+    if (!container) return;
+    
     container.innerHTML = '<p class="text-muted">Cargando asuntos...</p>';
 
-    fetch('/admin/procesar_plataforma.php?action=get_subjects&platform_id=' + platformId)
+    fetch('procesar_plataforma.php?action=get_subjects&platform_id=' + platformId)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.subjects) {
                 let tableHtml = '<div class="table-responsive"><table class="table-admin"><thead><tr><th>Asunto</th><th style="width: 150px;">Acciones</th></tr></thead><tbody>';
+                
                 if (data.subjects.length > 0) {
                     data.subjects.forEach(subject => {
-                        tableHtml += `<tr>
-                                        <td><i class="fas fa-list me-2 text-primary"></i>${escapeHtml(subject.subject)}</td>
-                                        <td>
-                                            <div class="d-flex gap-sm">
-                                                <button type="button" class="btn-admin btn-primary-admin btn-sm-admin" onclick="openEditSubjectModal(${subject.id}, '${escapeHtml(subject.subject)}', ${platformId}, event)">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn-admin btn-danger-admin btn-sm-admin" onclick="deleteSubject(${subject.id}, ${platformId}, event)">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                     </tr>`;
+                        tableHtml += '<tr>' +
+                                        '<td><i class="fas fa-list me-2 text-primary"></i>' + escapeHtml(subject.subject) + '</td>' +
+                                        '<td>' +
+                                            '<div class="d-flex gap-sm">' +
+                                                '<button type="button" class="btn-admin btn-primary-admin btn-sm-admin" onclick="openEditSubjectModal(' + subject.id + ', \'' + escapeHtml(subject.subject).replace(/'/g, "\\'") + '\', ' + platformId + ', event)">' +
+                                                    '<i class="fas fa-edit"></i>' +
+                                                '</button>' +
+                                                '<button type="button" class="btn-admin btn-danger-admin btn-sm-admin" onclick="deleteSubject(' + subject.id + ', ' + platformId + ', event)">' +
+                                                    '<i class="fas fa-trash"></i>' +
+                                                '</button>' +
+                                            '</div>' +
+                                        '</td>' +
+                                     '</tr>';
                     });
                 } else {
                      tableHtml += '<tr><td colspan="2" class="text-center py-4"><i class="fas fa-list fa-2x text-muted mb-2"></i><p class="text-muted mb-0">No hay asuntos asociados</p></td></tr>';
@@ -2313,25 +1750,22 @@ function loadPlatformSubjects(platformId) {
                 tableHtml += '</tbody></table></div>';
                 container.innerHTML = tableHtml;
             } else {
-                container.innerHTML = `
-                    <div class="alert-admin alert-danger-admin">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span>Error al cargar asuntos: ${data.error || 'Error desconocido'}</span>
-                    </div>
-                `;
+                container.innerHTML = '<div class="alert-admin alert-danger-admin">' +
+                    '<i class="fas fa-exclamation-circle"></i>' +
+                    '<span>Error al cargar asuntos: ' + (data.error || 'Error desconocido') + '</span>' +
+                    '</div>';
             }
         })
         .catch(error => {
-            console.error('Fetch Error:', error);
-            container.innerHTML = `
-                <div class="alert-admin alert-danger-admin">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span>Error de red al cargar asuntos.</span>
-                </div>
-            `;
+            console.error('Error cargando asuntos:', error);
+            container.innerHTML = '<div class="alert-admin alert-danger-admin">' +
+                '<i class="fas fa-exclamation-circle"></i>' +
+                '<span>Error de red al cargar asuntos.</span>' +
+                '</div>';
         });
 }
 
+// Función para añadir asunto
 function addSubject(event) {
     if (event) {
         event.preventDefault();
@@ -2351,7 +1785,7 @@ function addSubject(event) {
     formData.append('platform_id', platformId);
     formData.append('subject', subjectText);
 
-    fetch('/admin/procesar_plataforma.php', {
+    fetch('procesar_plataforma.php', {
         method: 'POST',
         body: formData
     })
@@ -2365,11 +1799,12 @@ function addSubject(event) {
         }
     })
     .catch(error => {
-        console.error('Fetch Error:', error);
+        console.error('Error añadiendo asunto:', error);
         alert('Error de red al añadir asunto.');
     });
 }
 
+// Función para eliminar asunto
 function deleteSubject(subjectId, platformId, event) {
     if (event) {
         event.preventDefault();
@@ -2384,7 +1819,7 @@ function deleteSubject(subjectId, platformId, event) {
     formData.append('action', 'delete_subject');
     formData.append('subject_id', subjectId);
 
-    fetch('/admin/procesar_plataforma.php', {
+    fetch('procesar_plataforma.php', {
         method: 'POST',
         body: formData
     })
@@ -2397,11 +1832,12 @@ function deleteSubject(subjectId, platformId, event) {
         }
     })
     .catch(error => {
-        console.error('Fetch Error:', error);
+        console.error('Error eliminando asunto:', error);
         alert('Error de red al eliminar asunto.');
     });
 }
 
+// Función para abrir modal de editar asunto
 function openEditSubjectModal(subjectId, subjectText, platformId, event) {
     if (event) {
         event.preventDefault();
@@ -2411,10 +1847,12 @@ function openEditSubjectModal(subjectId, subjectText, platformId, event) {
     document.getElementById('edit_subject_id').value = subjectId;
     document.getElementById('edit_subject_platform_id').value = platformId;
     document.getElementById('edit_subject_text').value = subjectText;
-    const editSubjectModal = new bootstrap.Modal(document.getElementById('editSubjectModal'));
-    editSubjectModal.show();
+    
+    const modal = new bootstrap.Modal(document.getElementById('editSubjectModal'));
+    modal.show();
 }
 
+// Función para actualizar asunto
 function updateSubject(event) {
     if (event) {
         event.preventDefault();
@@ -2436,7 +1874,7 @@ function updateSubject(event) {
     formData.append('platform_id', platformId);
     formData.append('subject_text', subjectText);
 
-    fetch('/admin/procesar_plataforma.php', {
+    fetch('procesar_plataforma.php', {
         method: 'POST',
         body: formData
     })
@@ -2450,20 +1888,23 @@ function updateSubject(event) {
         }
     })
     .catch(error => {
-        console.error('Fetch Error:', error);
+        console.error('Error actualizando asunto:', error);
         alert('Error de red al actualizar asunto.');
     });
 }
 
+// Función para guardar orden de plataformas
 function savePlatformOrder() {
     const rows = document.getElementById('platformsTableBody').querySelectorAll('tr');
     const orderedIds = Array.from(rows).map(row => row.getAttribute('data-id')).filter(id => id);
+
+    if (orderedIds.length === 0) return;
 
     const formData = new FormData();
     formData.append('action', 'update_platform_order');
     formData.append('ordered_ids', JSON.stringify(orderedIds)); 
 
-    fetch('/admin/procesar_plataforma.php', {
+    fetch('procesar_plataforma.php', {
         method: 'POST',
         body: formData
     })
@@ -2476,64 +1917,46 @@ function savePlatformOrder() {
         }
     })
     .catch(error => {
-        console.error('Fetch Error:', error);
+        console.error('Error guardando orden:', error);
         alert('Error de red al guardar el orden.');
     });
 }
 
-// ===============================
-// 🔧 FUNCIONES DE ASIGNACIONES - CORREGIDAS
-// ===============================
-
-// FUNCIÓN PRINCIPAL: Abrir modal de asignación de correos
+// Función para abrir modal de asignar correos
 function openAssignEmailsModal(userId, username) {
-    console.log('🔄 Abriendo modal para usuario:', userId, username);
+    console.log('Abriendo modal para usuario:', userId, username);
     
-    // Validar parámetros
     if (!userId || !username) {
-        console.error('❌ Parámetros inválidos:', { userId, username });
         alert('Error: Datos de usuario inválidos');
         return;
     }
     
-    // Establecer datos del usuario en el modal
-    try {
-        document.getElementById('assign_user_id').value = userId;
-        document.getElementById('assign_username').textContent = username;
-        
-        // Limpiar selecciones anteriores
-        document.querySelectorAll('.email-checkbox').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        
-        const selectAllCheckbox = document.getElementById('select_all_emails');
-        if (selectAllCheckbox) {
-            selectAllCheckbox.checked = false;
-        }
-        
-        // Cargar emails actualmente asignados
-        loadUserEmailsForAssignModal(userId);
-        
-        // Mostrar modal
-        const modal = new bootstrap.Modal(document.getElementById('assignEmailsModal'), {
-            backdrop: 'static',
-            keyboard: true
-        });
-        modal.show();
-        
-        console.log('✅ Modal mostrado correctamente');
-        
-    } catch (error) {
-        console.error('❌ Error configurando modal:', error);
-        alert('Error: No se pudo configurar el modal');
+    document.getElementById('assign_user_id').value = userId;
+    document.getElementById('assign_username').textContent = username;
+    
+    // Limpiar selecciones anteriores
+    document.querySelectorAll('.email-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    const selectAllCheckbox = document.getElementById('select_all_emails');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
     }
+    
+    // Cargar emails actualmente asignados
+    loadUserEmailsForAssignModal(userId);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('assignEmailsModal'));
+    modal.show();
 }
 
-// FUNCIÓN AUXILIAR: Cargar emails para el modal de asignación
+// Función para cargar emails para modal de asignación
 function loadUserEmailsForAssignModal(userId) {
-    console.log('📧 Cargando emails para modal de usuario:', userId);
+    console.log('Cargando emails para modal de usuario:', userId);
     
-    fetch(`/admin/procesar_asignaciones.php?action=get_user_emails&user_id=${userId}`, {
+    fetch('procesar_asignaciones.php?action=get_user_emails&user_id=' + userId, {
         method: 'GET',
         credentials: 'same-origin',
         headers: {
@@ -2543,7 +1966,7 @@ function loadUserEmailsForAssignModal(userId) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new Error('HTTP ' + response.status + ': ' + response.statusText);
         }
         
         const contentType = response.headers.get('content-type');
@@ -2554,50 +1977,36 @@ function loadUserEmailsForAssignModal(userId) {
         return response.json();
     })
     .then(data => {
-        console.log('✅ Datos recibidos para modal:', data);
+        console.log('Datos recibidos para modal:', data);
         
         if (data.success && data.emails) {
-            // Marcar emails asignados en el modal
             data.emails.forEach(emailObj => {
-                const checkbox = document.getElementById(`email_${emailObj.id}`);
+                const checkbox = document.getElementById('email_' + emailObj.id);
                 if (checkbox) {
                     checkbox.checked = true;
-                    console.log(`✓ Marcado email en modal: ${emailObj.email}`);
-                } else {
-                    console.warn(`⚠️ Checkbox no encontrado para email ID: ${emailObj.id}`);
                 }
             });
-            
-            console.log(`✅ ${data.emails.length} emails marcados en modal`);
-        } else {
-            console.log('ℹ️ No hay emails asignados para modal');
         }
     })
     .catch(error => {
-        console.error('❌ Error cargando emails para modal:', error);
-        alert(`Error cargando datos: ${error.message}`);
+        console.error('Error cargando emails para modal:', error);
+        alert('Error cargando datos: ' + error.message);
     });
 }
 
-// FUNCIÓN MEJORADA: Cargar emails en la tabla principal
+// Función para cargar emails de usuario en tabla
 function loadUserEmails(userId) {
-    console.log('🔄 Cargando emails para usuario en tabla:', userId);
+    console.log('Cargando emails para usuario en tabla:', userId);
     const container = document.getElementById('assigned-emails-' + userId);
     
     if (!container) {
-        console.error('❌ Container no encontrado para usuario:', userId);
+        console.error('Container no encontrado para usuario:', userId);
         return;
     }
     
-    // Mostrar loading
-    container.innerHTML = `
-        <span class="text-muted">
-            <i class="fas fa-spinner fa-spin me-1"></i>
-            Cargando...
-        </span>
-    `;
+    container.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</span>';
     
-    fetch(`/admin/procesar_asignaciones.php?action=get_user_emails&user_id=${userId}`, {
+    fetch('procesar_asignaciones.php?action=get_user_emails&user_id=' + userId, {
         method: 'GET',
         credentials: 'same-origin',
         headers: {
@@ -2607,366 +2016,120 @@ function loadUserEmails(userId) {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new Error('HTTP ' + response.status + ': ' + response.statusText);
         }
         
-        // Verifica si la respuesta es JSON, si no, intenta parsear como texto para depurar
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             return response.json();
         } else {
             return response.text().then(text => {
                 console.error('Respuesta no es JSON. Contenido:', text);
-                throw new Error('Respuesta del servidor no es JSON. Revisa el log de errores del servidor.');
+                throw new Error('Respuesta del servidor no es JSON válido');
             });
         }
     })
     .then(data => {
-        console.log(`✅ Datos para usuario ${userId}:`, data);
+        console.log('Datos para usuario', userId, ':', data);
         
         if (data.success && data.emails) {
             if (data.emails.length > 0) {
                 const emailsList = data.emails.map(email => 
-                    `<span class="badge-admin badge-info-admin me-1 mb-1">
-                        <i class="fas fa-envelope me-1"></i>
-                        ${escapeHtml(email.email)}
-                    </span>`
+                    '<span class="badge-admin badge-info-admin me-1 mb-1">' +
+                    '<i class="fas fa-envelope me-1"></i>' +
+                    escapeHtml(email.email) +
+                    '</span>'
                 ).join('');
                 
                 container.innerHTML = emailsList;
-                console.log(`✅ Mostrados ${data.emails.length} emails para usuario ${userId}`);
             } else {
-                container.innerHTML = `
-                    <span class="text-warning">
-                        <i class="fas fa-exclamation-triangle me-1"></i>
-                        Sin correos asignados
-                    </span>
-                `;
-                console.log(`ℹ️ Usuario ${userId} sin correos asignados`);
+                container.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Sin correos asignados</span>';
             }
         } else {
-            // Manejar errores de la respuesta JSON (si data.success es false)
-            throw new Error(data.error || 'Error desconocido al obtener correos asignados.');
+            throw new Error(data.error || 'Error desconocido al obtener correos asignados');
         }
     })
     .catch(error => {
-        console.error(`❌ Error cargando emails para usuario ${userId}:`, error);
-        
-        container.innerHTML = `
-            <span class="text-danger">
-                <i class="fas fa-times me-1"></i>
-                Error: ${error.message}
-            </span>
-        `;
+        console.error('Error cargando emails para usuario', userId, ':', error);
+        container.innerHTML = '<span class="text-danger"><i class="fas fa-times me-1"></i>Error: ' + error.message + '</span>';
     });
 }
 
-// ===============================
-// 🔍 SISTEMA DE BÚSQUEDA MEJORADO PARA ADMIN
-// ===============================
-
-// Inicializar búsquedas cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔍 Inicializando sistema de búsqueda...');
+// Función para añadir correo autorizado
+function submitAddAuthEmailForm() {
+    const form = document.getElementById('addAuthEmailForm');
+    const emailInput = document.getElementById('add_auth_email_value');
     
-    // Configurar todas las búsquedas
-    initializeSearchSystems();
-    
-    console.log('✅ Sistema de búsqueda inicializado');
-});
-
-// FUNCIÓN PRINCIPAL: Configurar todos los sistemas de búsqueda
-function initializeSearchSystems() {
-    const searchConfigs = [
-        {
-            inputId: 'searchUsers',
-            tableId: 'usersTable',
-            columnsToSearch: [1, 2], // Usuario, Email
-            infoId: 'usersSearchInfo',
-            countId: 'usersCount'
-        },
-        {
-            inputId: 'searchEmails',
-            tableId: 'emailsTable',
-            columnsToSearch: [0], // Correo Electrónico
-            infoId: 'emailsSearchInfo',
-            countId: 'emailsCount'
-        },
-        {
-            inputId: 'searchPlatforms',
-            tableId: 'platformsTable',
-            columnsToSearch: [0], // Nombre Plataforma
-            infoId: 'platformsSearchInfo',
-            countId: 'platformsCount'
-        },
-        {
-            inputId: 'searchAssignments',
-            tableId: 'assignmentsTable',
-            columnsToSearch: [0, 1], // Usuario, Email del Usuario
-            infoId: 'assignmentsSearchInfo',
-            countId: 'assignmentsCount'
-        }
-    ];
-    
-    searchConfigs.forEach(config => {
-        setupSearchForTable(config);
-    });
-}
-
-// FUNCIÓN: Configurar búsqueda para una tabla específica
-function setupSearchForTable(config) {
-    const searchInput = document.getElementById(config.inputId);
-    const table = document.getElementById(config.tableId);
-    
-    if (!searchInput || !table) {
-        console.warn(`⚠️ Elementos no encontrados para: ${config.inputId}`);
+    // Validación del lado del cliente
+    if (!emailInput.value.trim()) {
+        alert('Por favor, introduce un correo electrónico.');
         return;
     }
     
-    // Configurar eventos
-    let searchTimeout;
-    
-    searchInput.addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            performSearch(config);
-        }, 300); // Debounce de 300ms
-    });
-    
-    searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            clearSearchForTable(config);
-        }
-    });
-    
-    // Configurar botón de limpiar
-    const clearButton = searchInput.parentElement.querySelector('.search-clear-admin');
-    if (clearButton) {
-        clearButton.addEventListener('click', () => clearSearchForTable(config));
-    }
-    
-    console.log(`✅ Búsqueda configurada para: ${config.inputId}`);
-}
-
-// FUNCIÓN: Realizar búsqueda en tabla
-function performSearch(config) {
-    const searchInput = document.getElementById(config.inputId);
-    const table = document.getElementById(config.tableId);
-    const clearButton = searchInput.parentElement.querySelector('.search-clear-admin');
-    const searchInfo = document.getElementById(config.infoId);
-    const countSpan = document.getElementById(config.countId);
-    
-    if (!searchInput || !table) {
-        console.error('❌ Elementos de búsqueda no encontrados');
+    // Validación básica de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput.value.trim())) {
+        alert('Por favor, introduce un correo electrónico válido.');
         return;
     }
     
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const tbody = table.querySelector('tbody');
-    const rows = tbody.querySelectorAll('tr');
-    let visibleCount = 0;
-    let totalRows = 0;
+    const formData = new FormData(form);
     
-    // Limpiar mensaje anterior de "sin resultados"
-    const existingNoResults = tbody.querySelector('.no-results-row');
-    if (existingNoResults) {
-        existingNoResults.remove();
+    console.log('Enviando email:', formData.get('new_email'));
+
+    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addAuthEmailModal'));
+    if (modalInstance) {
+        modalInstance.hide();
     }
-    
-    // Mostrar/ocultar elementos de UI
-    if (searchTerm) {
-        if (clearButton) clearButton.style.display = 'flex';
-        if (searchInfo) searchInfo.style.display = 'block';
-    } else {
-        if (clearButton) clearButton.style.display = 'none';
-        if (searchInfo) searchInfo.style.display = 'none';
-    }
-    
-    // Procesar cada fila
-    rows.forEach(row => {
-        // Ignorar filas especiales
-        if (row.classList.contains('no-results-row') || 
-            row.querySelector('td[colspan]')) {
-            return;
-        }
-        
-        totalRows++;
-        
-        let shouldShow = false;
-        const cells = row.querySelectorAll('td');
-        
-        // Limpiar resaltados anteriores
-        cells.forEach(cell => {
-            const html = cell.innerHTML;
-            cell.innerHTML = html.replace(/<span class="search-match">(.*?)<\/span>/gi, '$1');
-        });
-        
-        if (!searchTerm) {
-            shouldShow = true;
-        } else {
-            // Buscar en las columnas especificadas
-            for (let columnIndex of config.columnsToSearch) {
-                if (cells[columnIndex]) {
-                    const cellText = cells[columnIndex].textContent.toLowerCase();
-                    if (cellText.includes(searchTerm)) {
-                        shouldShow = true;
-                        
-                        // Resaltar coincidencia
-                        const originalHTML = cells[columnIndex].innerHTML;
-                        const regex = new RegExp(`(${escapeRegexForSearch(searchTerm)})`, 'gi');
-                        cells[columnIndex].innerHTML = originalHTML.replace(regex, '<span class="search-match">$1</span>');
-                        break;
-                    }
-                }
+
+    fetch('admin.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(text => {
+        console.log('Respuesta del servidor:', text);
+        try {
+            const data = JSON.parse(text);
+            if (data.success) {
+                alert(data.message || 'Correo autorizado añadido correctamente.');
+                setTimeout(() => {
+                    location.reload(); 
+                }, 1000); 
+            } else {
+                alert(data.error || 'Ocurrió un error al añadir el correo.');
+                console.error('Error al añadir correo:', data.error);
+                
+                // Reabrir el modal si hay error
+                setTimeout(() => {
+                    const modal = new bootstrap.Modal(document.getElementById('addAuthEmailModal'));
+                    modal.show();
+                }, 500);
             }
+        } catch (e) {
+            alert('Error en la respuesta del servidor.');
+            console.error('Respuesta del servidor no es JSON válido:', text, e);
+            
+            // Reabrir el modal si hay error
+            setTimeout(() => {
+                const modal = new bootstrap.Modal(document.getElementById('addAuthEmailModal'));
+                modal.show();
+            }, 500);
         }
+    })
+    .catch(error => {
+        alert('Error de red o del sistema al añadir correo.');
+        console.error('Error de fetch:', error);
         
-        // Mostrar/ocultar fila
-        if (shouldShow) {
-            row.style.display = '';
-            row.classList.remove('hidden-by-search');
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-            row.classList.add('hidden-by-search');
-        }
+        // Reabrir el modal si hay error
+        setTimeout(() => {
+            const modal = new bootstrap.Modal(document.getElementById('addAuthEmailModal'));
+            modal.show();
+        }, 500);
     });
-    
-    // Actualizar contador
-    if (countSpan) {
-        countSpan.textContent = visibleCount;
-        if (visibleCount > 0 && searchTerm) {
-            countSpan.style.animation = 'countPulse 0.3s ease';
-        }
-    }
-    
-    // Mostrar mensaje si no hay resultados
-    if (searchTerm && visibleCount === 0 && totalRows > 0) {
-        const noResultsRow = document.createElement('tr');
-        noResultsRow.classList.add('no-results-row');
-        
-        const colCount = table.querySelectorAll('thead th').length;
-        noResultsRow.innerHTML = `
-            <td colspan="${colCount}" class="text-center py-4">
-                <i class="fas fa-search fa-2x text-muted mb-2 d-block"></i>
-                <p class="text-muted mb-0">
-                    No se encontraron resultados para "<strong>${escapeHtmlForSearch(searchTerm)}</strong>"
-                </p>
-                <small class="text-muted">
-                    Intenta con otros términos de búsqueda
-                </small>
-            </td>
-        `;
-        tbody.appendChild(noResultsRow);
-    }
-    
-    console.log(`🔍 Búsqueda en ${config.inputId}: "${searchTerm}" - ${visibleCount}/${totalRows} resultados`);
 }
 
-// FUNCIÓN: Limpiar búsqueda para una tabla específica
-function clearSearchForTable(config) {
-    const searchInput = document.getElementById(config.inputId);
-    const clearButton = searchInput.parentElement.querySelector('.search-clear-admin');
-    const searchInfo = document.getElementById(config.infoId);
-    
-    if (searchInput) {
-        searchInput.value = '';
-        searchInput.focus();
-    }
-    
-    if (clearButton) clearButton.style.display = 'none';
-    if (searchInfo) searchInfo.style.display = 'none';
-    
-    // Realizar búsqueda vacía para mostrar todos los resultados
-    performSearch(config);
-    
-    console.log(`🧹 Búsqueda limpiada para: ${config.inputId}`);
-}
-
-// FUNCIÓN: Escape regex para búsqueda
-function escapeRegexForSearch(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// FUNCIÓN: Escape HTML para búsqueda
-function escapeHtmlForSearch(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
-}
-
-// ===============================
-// 🔧 FUNCIONES GLOBALES PARA COMPATIBILIDAD
-// ===============================
-
-// Función global para búsqueda (mantener compatibilidad)
-function searchInTable(searchInputId, tableId, columnsToSearch) {
-    const config = {
-        inputId: searchInputId,
-        tableId: tableId,
-        columnsToSearch: columnsToSearch,
-        infoId: searchInputId.replace('search', '') + 'SearchInfo',
-        countId: searchInputId.replace('search', '') + 'Count'
-    };
-    
-    performSearch(config);
-}
-
-// Función global para limpiar búsqueda (mantener compatibilidad)
-function clearSearch(searchInputId, tableId) {
-    const config = {
-        inputId: searchInputId,
-        tableId: tableId,
-        columnsToSearch: [0, 1, 2], // Por defecto
-        infoId: searchInputId.replace('search', '') + 'SearchInfo',
-        countId: searchInputId.replace('search', '') + 'Count'
-    };
-    
-    clearSearchForTable(config);
-}
-
-// ===============================
-// 🎨 MEJORAS DE UX ADICIONALES
-// ===============================
-
-// Animación al hacer focus en búsquedas
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInputs = document.querySelectorAll('.search-input-admin');
-    
-    searchInputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.parentElement.style.transform = 'scale(1.02)';
-            this.parentElement.style.transition = 'transform 0.2s ease';
-        });
-        
-        input.addEventListener('blur', function() {
-            this.parentElement.style.transform = 'scale(1)';
-        });
-    });
-});
-
-// Atajos de teclado para búsquedas
-document.addEventListener('keydown', function(e) {
-    // Ctrl/Cmd + F para enfocar primera búsqueda visible
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        const visibleSearchInput = document.querySelector('.tab-pane.active .search-input-admin');
-        if (visibleSearchInput) {
-            e.preventDefault();
-            visibleSearchInput.focus();
-            visibleSearchInput.select();
-        }
-    }
-});
-
-console.log('🔍 Sistema de búsqueda avanzado cargado');
-
-// ===============================
-// 🔧 FUNCIÓN DE UTILIDADES
-// ===============================
+// Función de utilidad para escapar HTML
 function escapeHtml(unsafe) {
     if (!unsafe) return '';
     return unsafe
@@ -2977,17 +2140,98 @@ function escapeHtml(unsafe) {
          .replace(/'/g, "&#039;");
 }
 
-// ===============================
-// 🔧 ASIGNAR FUNCIONES AL SCOPE GLOBAL
-// ===============================
+// ===== INICIALIZACIÓN CUANDO SE CARGA LA PÁGINA =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Iniciando panel de administración...');
+    
+    // Configurar modal de edición de correos autorizados
+    const editEmailModal = document.getElementById('editEmailModal');
+    if (editEmailModal) {
+        editEmailModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const emailId = button.getAttribute('data-bs-id');
+            const emailValue = button.getAttribute('data-bs-email');
+            
+            document.getElementById('edit_email_id').value = emailId;
+            document.getElementById('edit_email_value').value = emailValue;
+        });
+    }
+
+    // Configurar seleccionar todos los emails en modal de asignación
+    const selectAllCheckbox = document.getElementById('select_all_emails');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
+            emailCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+
+    // Inicializar drag and drop para plataformas
+    const platformsTableBody = document.getElementById('platformsTableBody');
+    if (platformsTableBody && typeof Sortable !== 'undefined') {
+        try {
+            Sortable.create(platformsTableBody, {
+                animation: 150,
+                handle: 'td:first-child',
+                onEnd: function (evt) {
+                    savePlatformOrder();
+                }
+            });
+            console.log('Drag and drop configurado para plataformas');
+        } catch (error) {
+            console.warn('No se pudo configurar drag and drop:', error);
+        }
+    }
+
+    // Cargar emails para usuarios en pestaña de asignaciones
+    const assignmentsTab = document.getElementById('asignaciones');
+    if (assignmentsTab) {
+        const userContainers = assignmentsTab.querySelectorAll('[id^="assigned-emails-"]');
+        userContainers.forEach(container => {
+            const userId = container.id.replace('assigned-emails-', '');
+            if (userId && !isNaN(userId)) {
+                loadUserEmails(parseInt(userId));
+            }
+        });
+    }
+
+    // Configurar navegación de pestañas desde URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = urlParams.get('tab');
+    if (tabFromUrl) {
+        const tabButton = document.getElementById(tabFromUrl + '-tab');
+        if (tabButton) {
+            const tab = new bootstrap.Tab(tabButton);
+            tab.show();
+        }
+    }
+
+    // Configurar eventos de pestañas para actualizar campos hidden
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            const newTab = event.target.getAttribute('data-bs-target').replace('#', '');
+            console.log('Cambiando a pestaña:', newTab);
+            
+            // Actualizar campos hidden de current_tab
+            const currentTabInputs = document.querySelectorAll('.current-tab-input');
+            currentTabInputs.forEach(input => {
+                input.value = newTab;
+            });
+        });
+    });
+
+    console.log('Panel de administración inicializado correctamente');
+});
+
+// ===== ASIGNAR FUNCIONES AL SCOPE GLOBAL =====
 window.editUser = editUser;
 window.deleteUser = deleteUser;
 window.toggleServerView = toggleServerView;
 window.verResultado = verResultado;
 window.validarArchivo = validarArchivo;
-window.showCacheStats = showCacheStats;
-window.clearCache = clearCache;
-window.testSearchSpeed = testSearchSpeed;
 window.openEditPlatformModal = openEditPlatformModal;
 window.openDeletePlatformModal = openDeletePlatformModal;
 window.loadPlatformSubjects = loadPlatformSubjects;
@@ -2998,94 +2242,14 @@ window.updateSubject = updateSubject;
 window.savePlatformOrder = savePlatformOrder;
 window.openAssignEmailsModal = openAssignEmailsModal;
 window.loadUserEmails = loadUserEmails;
-window.searchInTable = searchInTable;
-window.clearSearch = clearSearch;
-
-console.log('✅ Todas las funciones asignadas al scope global');
-
-// Función para mostrar un mensaje flotante (similar a los alerts de Bootstrap)
-function showFloatingMessage(message, type = 'success') {
-    const alertClass = type === 'success' ? 'alert-success-admin' : 'alert-danger-admin';
-    const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-
-    const alertHtml = `
-        <div class="alert-admin ${alertClass}" style="position: fixed; top: 20px; right: 20px; z-index: 9999; opacity: 0; transform: translateY(-20px); transition: all 0.5s ease;">
-            <i class="fas ${iconClass} me-2"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    const body = document.querySelector('body');
-    body.insertAdjacentHTML('beforeend', alertHtml);
-
-    const newAlert = body.lastElementChild;
-    // Animar la entrada
-    setTimeout(() => {
-        newAlert.style.opacity = '1';
-        newAlert.style.transform = 'translateY(0)';
-    }, 50);
-
-    // Desaparecer después de 4 segundos
-    setTimeout(() => {
-        newAlert.style.opacity = '0';
-        newAlert.style.transform = 'translateY(-20px)';
-        setTimeout(() => newAlert.remove(), 500); // Remover del DOM después de la transición
-    }, 4000);
-}
-
-// Función para enviar el formulario de añadir correo autorizado vía AJAX
-function submitAddAuthEmailForm() {
-    const form = document.getElementById('addAuthEmailForm');
-    const formData = new FormData(form); // Captura todos los datos del formulario
-
-    // Ocultar el modal inmediatamente
-    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('addAuthEmailModal'));
-    if (modalInstance) {
-        modalInstance.hide();
-    }
-
-    fetch('admin.php?tab=correos_autorizados', { // Usamos admin.php para que el mismo script maneje la petición
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.text()) // Leer como texto primero por si no es JSON válido
-    .then(text => {
-        try {
-            const data = JSON.parse(text); // Intentar parsear como JSON
-            if (data.success) {
-                showFloatingMessage(data.message || 'Operación realizada con éxito.', 'success');
-                // Recargar la tabla de correos autorizados si es necesario
-                // location.reload(); // Opcional, si necesitas recargar toda la página
-                // Si la lista de correos se actualiza con JS, no es necesario recargar
-                // Por ahora, recargaremos la página para ver los cambios
-                setTimeout(() => {
-                    location.reload(); // Recarga la página después de un breve retraso
-                }, 1000); // Retraso de 1 segundo para que el mensaje flotante sea visible
-            } else {
-                showFloatingMessage(data.error || 'Ocurrió un error.', 'danger');
-                console.error('Error al añadir correo:', data.error);
-            }
-        } catch (e) {
-            // Si no es JSON válido, significa que hubo un error PHP que no devolvió JSON
-            showFloatingMessage('Error en la respuesta del servidor. Revisa la consola para más detalles.', 'danger');
-            console.error('Error: Respuesta del servidor no es JSON válido:', text, e);
-        }
-    })
-    .catch(error => {
-        showFloatingMessage('Error de red o del sistema al añadir correo.', 'danger');
-        console.error('Error de fetch:', error);
-    });
-}
-
-// Agrega esta función al scope global si es necesario para el onclick
 window.submitAddAuthEmailForm = submitAddAuthEmailForm;
-window.showFloatingMessage = showFloatingMessage; // Para usarla en otras partes si quieres
 
+console.log('Todas las funciones asignadas al scope global correctamente');
 </script>
 
 </body>
 </html>
 <?php 
-// Cerrar la conexión al final del script
 if ($conn) {
     $conn->close();
 }
