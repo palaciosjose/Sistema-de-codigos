@@ -83,7 +83,36 @@ $require_login = ($settings['REQUIRE_LOGIN'] ?? '1') === '1';
 if (isset($_GET['logout'])) {
     session_unset();
     session_destroy();
-    session_start();
+    
+    // Limpiar todas las cookies de sesión
+    if (isset($_COOKIE[session_name()])) {
+        setcookie(session_name(), '', time()-3600, '/');
+    }
+    
+    // Verificar si el sistema requiere login
+    $conn = new mysqli($db_host, $db_user, $db_password, $db_name);
+    $conn->set_charset("utf8mb4");
+    
+    if (!$conn->connect_error) {
+        // Obtener configuración REQUIRE_LOGIN
+        $stmt = $conn->prepare("SELECT value FROM settings WHERE name = 'REQUIRE_LOGIN'");
+        if ($stmt) {
+            $stmt->execute();
+            $stmt->bind_result($require_login);
+            $stmt->fetch();
+            $stmt->close();
+            
+            // Si se requiere login, redirigir a index.php
+            if ($require_login === '1') {
+                $conn->close();
+                header("Location: index.php");
+                exit();
+            }
+        }
+        $conn->close();
+    }
+    
+    // Si no se requiere login, redirigir a inicio.php
     header("Location: inicio.php");
     exit();
 }

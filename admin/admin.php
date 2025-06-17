@@ -863,18 +863,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-        <!-- Pestaña de Gestión de Usuarios -->
+<!-- Pestaña de Gestión de Usuarios -->
         <div class="tab-pane fade" id="users" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="admin-card-title mb-0">
                             <i class="fas fa-users me-2"></i>
                             Gestión de Usuarios
                         </h3>
-                        <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                            <i class="fas fa-plus"></i> Nuevo Usuario
-                        </button>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <!-- BARRA DE BÚSQUEDA USUARIOS -->
+                            <div class="search-box-admin">
+                                <i class="fas fa-search search-icon-admin"></i>
+                                <input type="text" 
+                                       class="search-input-admin" 
+                                       id="searchUsers" 
+                                       placeholder="Buscar usuarios por nombre o email..."
+                                       autocomplete="off">
+                                <button type="button" class="search-clear-admin" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i class="fas fa-plus"></i> Nuevo Usuario
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-results-info" id="usersSearchInfo" style="display: none;">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando <span id="usersCount">0</span> usuario(s) de un total
+                        </small>
                     </div>
                 </div>
 
@@ -890,7 +910,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 ?>
 
                 <div class="table-responsive">
-                    <table class="table-admin">
+                    <table class="table-admin" id="usersTable">
                         <thead>
                             <tr>
                                 <th><i class="fas fa-hashtag me-2"></i>ID</th>
@@ -1104,14 +1124,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         <div class="tab-pane fade" id="correos-autorizados" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="admin-card-title mb-0">
                             <i class="fas fa-envelope-open me-2"></i>
                             Correos Autorizados
                         </h3>
-                        <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addAuthEmailModal">
-                            <i class="fas fa-plus"></i> Nuevo Correo
-                        </button>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <!-- BARRA DE BÚSQUEDA CORREOS -->
+                            <div class="search-box-admin">
+                                <i class="fas fa-search search-icon-admin"></i>
+                                <input type="text" 
+                                       class="search-input-admin" 
+                                       id="searchEmails" 
+                                       placeholder="Buscar correos electrónicos..."
+                                       autocomplete="off">
+                                <button type="button" class="search-clear-admin" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addAuthEmailModal">
+                                <i class="fas fa-plus"></i> Nuevo Correo
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-results-info" id="emailsSearchInfo" style="display: none;">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando <span id="emailsCount">0</span> correo(s) autorizado(s)
+                        </small>
                     </div>
                 </div>
 
@@ -1130,7 +1170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 <?php endif; ?>
 
                 <div class="table-responsive">
-                    <table class="table-admin">
+                    <table class="table-admin" id="emailsTable">
                         <thead>
                             <tr>
                                 <th><i class="fas fa-envelope me-2"></i>Correo Electrónico</th>
@@ -1180,14 +1220,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         <div class="tab-pane fade" id="platforms" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <h3 class="admin-card-title mb-0">
                             <i class="fas fa-th-large me-2"></i>
                             Gestionar Plataformas y Asuntos
                         </h3>
-                        <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
-                            <i class="fas fa-plus"></i> Nueva Plataforma
-                        </button>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <!-- BARRA DE BÚSQUEDA PLATAFORMAS -->
+                            <div class="search-box-admin">
+                                <i class="fas fa-search search-icon-admin"></i>
+                                <input type="text" 
+                                       class="search-input-admin" 
+                                       id="searchPlatforms" 
+                                       placeholder="Buscar plataformas..."
+                                       autocomplete="off">
+                                <button type="button" class="search-clear-admin" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
+                                <i class="fas fa-plus"></i> Nueva Plataforma
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-results-info" id="platformsSearchInfo" style="display: none;">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando <span id="platformsCount">0</span> plataforma(s)
+                        </small>
                     </div>
                 </div>
 
@@ -1218,7 +1278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 ?>
 
                 <div class="table-responsive">
-                    <table class="table-admin">
+                    <table class="table-admin" id="platformsTable">
                         <thead>
                             <tr>
                                 <th><i class="fas fa-th-large me-2"></i>Nombre Plataforma</th>
@@ -1267,57 +1327,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-         <!-- Pestaña de Asignaciones de Correos a Usuarios -->
-            <div class="tab-pane fade p-3" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
-                <h3 class="text-center text-white mb-3">Asignar Correos a Usuarios</h3>
-                <p class="text-center text-light mb-4">Configura qué correos puede consultar cada usuario del sistema.</p>
-
-                <!-- Mensajes de feedback -->
-                <div class="row d-flex justify-content-center">
-                    <div class="col-md-10 col-lg-8">
-                        <?php if (isset($_SESSION['assignment_message'])): ?>
-                            <div class="alert alert-success text-center" role="alert">
-                                <?= htmlspecialchars($_SESSION['assignment_message']); unset($_SESSION['assignment_message']); ?>
-                            </div>
-                        <?php endif; ?>
-                        <?php if (isset($_SESSION['assignment_error'])): ?>
-                            <div class="alert alert-danger text-center" role="alert">
-                                <?= htmlspecialchars($_SESSION['assignment_error']); unset($_SESSION['assignment_error']); ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+        <!-- Pestaña de Asignaciones de Correos a Usuarios -->
+        <div class="tab-pane fade" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
+            
+            <!-- Configuración Global -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-toggle-on me-2 text-primary"></i>
+                        Configuración de Restricciones
+                    </h3>
                 </div>
+                
+                <!-- Mensajes de feedback -->
+                <?php if (isset($_SESSION['assignment_message'])): ?>
+                    <div class="alert-admin alert-success-admin">
+                        <i class="fas fa-check-circle"></i>
+                        <span><?= htmlspecialchars($_SESSION['assignment_message']); unset($_SESSION['assignment_message']); ?></span>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($_SESSION['assignment_error'])): ?>
+                    <div class="alert-admin alert-danger-admin">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span><?= htmlspecialchars($_SESSION['assignment_error']); unset($_SESSION['assignment_error']); ?></span>
+                    </div>
+                <?php endif; ?>
 
-                <!-- Configuración Global -->
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="card bg-dark border-secondary">
-                            <div class="card-header bg-secondary text-white">
-                                <h5 class="mb-0 text-white">Configuración de Restricciones</h5>
-                            </div>
-                            <div class="card-body bg-dark text-white">
-                                <form method="POST" action="admin.php">
-                                    <input type="hidden" name="current_tab" value="asignaciones">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="USER_EMAIL_RESTRICTIONS_ENABLED" 
-                                               name="USER_EMAIL_RESTRICTIONS_ENABLED" value="1" 
-                                               <?= ($settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1' ? 'checked' : '' ?>>
-                                        <label class="form-check-label text-white" for="USER_EMAIL_RESTRICTIONS_ENABLED">
-                                            <strong class="text-white">Activar restricciones por usuario</strong>
-                                        </label>
-                                    </div>
-                                    <small class="form-text text-light">
-                                        <span class="text-light">Si está activado: cada usuario solo puede consultar los correos que se le asignen específicamente.</span><br>
-                                        <span class="text-light">Si está desactivado: todos los usuarios pueden consultar cualquier correo autorizado.</span>
-                                    </small>
-                                    <button type="submit" name="update" class="btn btn-sm btn-primary mt-2">Guardar Configuración</button>
-                                </form>
+                <form method="POST" action="admin.php">
+                    <input type="hidden" name="current_tab" value="asignaciones">
+                    <div class="form-check-admin">
+                        <input class="form-check-input-admin" type="checkbox" id="USER_EMAIL_RESTRICTIONS_ENABLED" 
+                               name="USER_EMAIL_RESTRICTIONS_ENABLED" value="1" 
+                               <?= ($settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1' ? 'checked' : '' ?>>
+                        <label class="form-check-label-admin" for="USER_EMAIL_RESTRICTIONS_ENABLED">
+                            <i class="fas fa-lock me-2"></i>
+                            <strong>Activar restricciones por usuario</strong>
+                        </label>
+                    </div>
+                    <div class="form-text text-muted mt-2 mb-3">
+                        <span class="d-block">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Si está activado:</strong> cada usuario solo puede consultar los correos que se le asignen específicamente.
+                        </span>
+                        <span class="d-block">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Si está desactivado:</strong> todos los usuarios pueden consultar cualquier correo autorizado.
+                        </span>
+                    </div>
+                    <button type="submit" name="update" class="btn-admin btn-primary-admin btn-sm-admin">
+                        <i class="fas fa-save"></i> Guardar Configuración
+                    </button>
+                </form>
+            </div>
+
+            <!-- Lista de Usuarios y sus Asignaciones -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <h3 class="admin-card-title mb-0">
+                            <i class="fas fa-users-cog me-2"></i>
+                            Gestión de Permisos por Usuario
+                        </h3>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <!-- BARRA DE BÚSQUEDA ASIGNACIONES -->
+                            <div class="search-box-admin">
+                                <i class="fas fa-search search-icon-admin"></i>
+                                <input type="text" 
+                                       class="search-input-admin" 
+                                       id="searchAssignments" 
+                                       placeholder="Buscar usuarios..."
+                                       autocomplete="off">
+                                <button type="button" class="search-clear-admin" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
+                    <div class="search-results-info" id="assignmentsSearchInfo" style="display: none;">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Mostrando <span id="assignmentsCount">0</span> usuario(s)
+                        </small>
+                    </div>
+                    <div class="text-muted mt-2">
+                        <small>
+                            <i class="fas fa-info me-1"></i>
+                            Configura qué correos puede consultar cada usuario del sistema
+                        </small>
+                    </div>
                 </div>
 
-                <!-- Lista de Usuarios y sus Asignaciones -->
                 <?php
                 // Obtener usuarios (excepto admin)
                 $users_query = "SELECT id, username, email, status FROM users WHERE id NOT IN (SELECT id FROM admin) ORDER BY username ASC";
@@ -1341,33 +1441,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 ?>
 
                 <div class="table-responsive">
-                    <table class="table table-dark table-striped">
+                    <table class="table-admin" id="assignmentsTable">
                         <thead>
                             <tr>
-                                <th class="text-white">Usuario</th>
-                                <th class="text-white">Email del Usuario</th>
-                                <th class="text-white">Correos Asignados</th>
-                                <th class="text-white">Acciones</th>
+                                <th><i class="fas fa-user me-2"></i>Usuario</th>
+                                <th><i class="fas fa-envelope me-2"></i>Email del Usuario</th>
+                                <th><i class="fas fa-list me-2"></i>Correos Asignados</th>
+                                <th><i class="fas fa-cogs me-2"></i>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!empty($users_list)): ?>
                                 <?php foreach ($users_list as $user): ?>
                                     <tr>
-                                        <td class="text-white">
-                                            <?= htmlspecialchars($user['username']) ?>
+                                        <td>
+                                            <i class="fas fa-user-circle me-2 text-primary"></i>
+                                            <strong><?= htmlspecialchars($user['username']) ?></strong>
                                             <?php if ($user['status'] == 0): ?>
-                                                <span class="badge bg-danger ms-2">Inactivo</span>
+                                                <span class="badge-admin badge-danger-admin ms-2">
+                                                    <i class="fas fa-pause"></i> Inactivo
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge-admin badge-success-admin ms-2">
+                                                    <i class="fas fa-check"></i> Activo
+                                                </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-white"><?= htmlspecialchars($user['email'] ?? 'Sin email') ?></td>
-                                        <td class="text-white">
+                                        <td>
+                                            <i class="fas fa-at me-2 text-muted"></i>
+                                            <?= htmlspecialchars($user['email'] ?? 'Sin email configurado') ?>
+                                        </td>
+                                        <td>
                                             <div id="assigned-emails-<?= $user['id'] ?>" class="assigned-emails-list">
-                                                <small class="text-muted">Cargando...</small>
+                                                <span class="text-muted">
+                                                    <i class="fas fa-spinner fa-spin me-1"></i>
+                                                    Cargando...
+                                                </span>
                                             </div>
                                         </td>
                                         <td>
-                                            <button class="btn btn-sm btn-primary" 
+                                            <button class="btn-admin btn-primary-admin btn-sm-admin" 
                                                     onclick="openAssignEmailsModal(<?= $user['id'] ?>, '<?= htmlspecialchars(addslashes($user['username'])) ?>')">
                                                 <i class="fas fa-edit"></i> Gestionar Correos
                                             </button>
@@ -1376,63 +1489,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="4" class="text-center text-white">No hay usuarios creados todavía.</td>
+                                    <td colspan="4" class="text-center py-4">
+                                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No hay usuarios creados todavía.</p>
+                                        <small class="text-muted">
+                                            Puedes crear usuarios en la pestaña <strong>Usuarios</strong>
+                                        </small>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
-
-            <!-- Modal para Asignar Correos a Usuario -->
-            <div class="modal fade" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content bg-dark text-white">
-                        <form id="assignEmailsForm" method="POST" action="/admin/procesar_asignaciones.php">
-                            <input type="hidden" name="action" value="assign_emails_to_user">
-                            <input type="hidden" name="user_id" id="assign_user_id">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="assignEmailsModalLabel">Gestionar Correos para Usuario</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>Selecciona los correos que <strong id="assign_username"></strong> puede consultar:</p>
-                                
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="select_all_emails">
-                                        <label class="form-check-label" for="select_all_emails">
-                                            <strong>Seleccionar/Deseleccionar Todos</strong>
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <?php foreach ($emails_list as $email): ?>
-                                        <div class="col-md-6 mb-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input email-checkbox" type="checkbox" 
-                                                       name="email_ids[]" value="<?= $email['id'] ?>" 
-                                                       id="email_<?= $email['id'] ?>">
-                                                <label class="form-check-label" for="email_<?= $email['id'] ?>">
-                                                    <?= htmlspecialchars($email['email']) ?>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar Asignaciones</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+        </div>
     </div>
 </div>
 
+<!-- Modal para Asignar Correos a Usuario - ESTILO MODERNO -->
+<div class="modal fade modal-admin" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="assignEmailsForm" method="POST" action="/admin/procesar_asignaciones.php">
+                <input type="hidden" name="action" value="assign_emails_to_user">
+                <input type="hidden" name="user_id" id="assign_user_id">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignEmailsModalLabel">
+                        <i class="fas fa-user-cog me-2"></i>
+                        Gestionar Correos para Usuario
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="alert-admin alert-info-admin mb-3">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            Selecciona los correos que <strong id="assign_username"></strong> puede consultar en el sistema.
+                            <br><small>Los cambios se aplicarán inmediatamente después de guardar.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-admin">
+                        <div class="form-check-admin">
+                            <input class="form-check-input-admin" type="checkbox" id="select_all_emails">
+                            <label class="form-check-label-admin" for="select_all_emails">
+                                <i class="fas fa-check-double me-2"></i>
+                                <strong>Seleccionar/Deseleccionar Todos</strong>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <h6 class="mb-3">
+                        <i class="fas fa-envelope-open me-2"></i>
+                        Correos Disponibles:
+                    </h6>
+                    
+                    <?php if (!empty($emails_list)): ?>
+                        <div class="row">
+                            <?php foreach ($emails_list as $email): ?>
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check-admin">
+                                        <input class="form-check-input-admin email-checkbox" type="checkbox" 
+                                               name="email_ids[]" value="<?= $email['id'] ?>" 
+                                               id="email_<?= $email['id'] ?>">
+                                        <label class="form-check-label-admin" for="email_<?= $email['id'] ?>">
+                                            <i class="fas fa-envelope me-2 text-muted"></i>
+                                            <?= htmlspecialchars($email['email']) ?>
+                                        </label>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert-admin alert-warning-admin">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>No hay correos autorizados configurados.</strong>
+                                <br>Primero debes añadir correos en la pestaña <strong>Correos Autorizados</strong>.
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-admin btn-primary-admin">
+                        <i class="fas fa-save"></i> Guardar Asignaciones
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+            
 <!-- MODALES MODERNOS -->
 
 <!-- Modal para añadir usuario -->
@@ -1801,7 +1957,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
 <script>
+// ===============================
+// 🔧 INICIALIZACIÓN PRINCIPAL
+// ===============================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando panel de administración...');
+    
     // Activar la pestaña correcta basada en URL
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
@@ -1835,17 +1996,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Configurar tab activo en formularios
-    const configForm = document.getElementById('config');
-    if(configForm) {
-         document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(button => {
-            button.addEventListener('shown.bs.tab', event => {
-               const hiddenInput = document.querySelector('input[name="current_tab"]');
-               if (hiddenInput) {
-                   hiddenInput.value = event.target.getAttribute('data-bs-target').substring(1);
-               }
-            });
-         });
-    }
+    document.querySelectorAll('.nav-tabs button[data-bs-toggle="tab"]').forEach(button => {
+        button.addEventListener('shown.bs.tab', event => {
+           const hiddenInput = document.querySelector('input[name="current_tab"]');
+           if (hiddenInput) {
+               hiddenInput.value = event.target.getAttribute('data-bs-target').substring(1);
+           }
+        });
+    });
     
     // Configurar modal de edición de correos autorizados
     const editEmailModal = document.getElementById('editEmailModal');
@@ -1871,20 +2029,40 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Configurar "Seleccionar todos" para asignaciones
+    const selectAllCheckbox = document.getElementById('select_all_emails');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
+            emailCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            console.log('🔄 Seleccionar todos:', this.checked);
+        });
+    }
+
+    // Cargar emails para todos los usuarios en la pestaña de asignaciones
+    const assignmentsTab = document.getElementById('asignaciones');
+    if (assignmentsTab) {
+        const userContainers = assignmentsTab.querySelectorAll('[id^="assigned-emails-"]');
+        console.log(`🔄 Encontrados ${userContainers.length} contenedores de usuario`);
+        
+        userContainers.forEach(container => {
+            const userId = container.id.replace('assigned-emails-', '');
+            if (userId && !isNaN(userId)) {
+                console.log(`📧 Cargando emails para usuario: ${userId}`);
+                loadUserEmails(parseInt(userId));
+            }
+        });
+    }
+    
+    console.log('✅ Inicialización completada');
 });
 
-function toggleServerView(serverId) {
-    const settingsDiv = document.getElementById('server_' + serverId + '_settings');
-    const checkbox = document.getElementById('srv_enabled_' + serverId);
-    
-    if (checkbox.checked) {
-        settingsDiv.style.display = 'block';
-        settingsDiv.style.animation = 'tabFadeIn 0.4s ease';
-    } else {
-        settingsDiv.style.display = 'none';
-    }
-}
-
+// ===============================
+// 🔧 FUNCIONES DE USUARIOS
+// ===============================
 function editUser(id, username, email, status) {
     document.getElementById('edit_user_id').value = id;
     document.getElementById('edit_username').value = username;
@@ -1903,12 +2081,33 @@ function deleteUser(id, username) {
     deleteModal.show();
 }
 
+// ===============================
+// 🔧 FUNCIONES DE SERVIDORES
+// ===============================
+function toggleServerView(serverId) {
+    const settingsDiv = document.getElementById('server_' + serverId + '_settings');
+    const checkbox = document.getElementById('srv_enabled_' + serverId);
+    
+    if (checkbox.checked) {
+        settingsDiv.style.display = 'block';
+        settingsDiv.style.animation = 'tabFadeIn 0.4s ease';
+    } else {
+        settingsDiv.style.display = 'none';
+    }
+}
+
+// ===============================
+// 🔧 FUNCIONES DE LOGS
+// ===============================
 function verResultado(resultado) {
     document.getElementById('resultado_contenido').textContent = resultado; 
     const resultModal = new bootstrap.Modal(document.getElementById('viewResultModal'));
     resultModal.show();
 }
 
+// ===============================
+// 🔧 FUNCIONES DE ARCHIVOS
+// ===============================
 function validarArchivo() {
     const archivoInput = document.getElementById('logo');
     const archivo = archivoInput.files[0];
@@ -1936,7 +2135,9 @@ function validarArchivo() {
     }
 }
 
-// *** FUNCIONES DE GESTIÓN DE CACHE ***
+// ===============================
+// 🔧 FUNCIONES DE CACHE
+// ===============================
 function showCacheStats() {
     const modalHtml = `
         <div class="modal fade modal-admin" id="cacheStatsModal" tabindex="-1">
@@ -1960,20 +2161,15 @@ function showCacheStats() {
         </div>
     `;
     
-    // Eliminar modal anterior si existe
     const existingModal = document.getElementById('cacheStatsModal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // Añadir nuevo modal
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // Mostrar modal
     const modal = new bootstrap.Modal(document.getElementById('cacheStatsModal'));
     modal.show();
     
-    // Cargar estadísticas
     setTimeout(() => {
         document.getElementById('cacheStatsContent').innerHTML = `
             <div class="row">
@@ -2004,7 +2200,6 @@ function showCacheStats() {
 
 function clearCache() {
     if (confirm('¿Estás seguro de que quieres limpiar todo el cache?\n\nEsto puede ralentizar temporalmente el sistema hasta que se regenere.')) {
-        // Mostrar mensaje de éxito
         const alertHtml = `
             <div class="alert-admin alert-success-admin" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
                 <i class="fas fa-check-circle"></i>
@@ -2013,7 +2208,6 @@ function clearCache() {
         `;
         document.body.insertAdjacentHTML('beforeend', alertHtml);
         
-        // Remover alerta después de 3 segundos
         setTimeout(() => {
             const alert = document.querySelector('.alert-admin[style*="position: fixed"]');
             if (alert) alert.remove();
@@ -2045,16 +2239,13 @@ function testSearchSpeed() {
         </div>
     `;
     
-    // Eliminar modal anterior
     const existingModal = document.getElementById('speedTestModal');
     if (existingModal) existingModal.remove();
     
-    // Añadir y mostrar modal
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     const modal = new bootstrap.Modal(document.getElementById('speedTestModal'));
     modal.show();
     
-    // Simular test de velocidad
     setTimeout(() => {
         const mockResults = [
             { server: 'SERVIDOR_1', time: Math.random() * 500 + 100, status: 'success' },
@@ -2115,8 +2306,9 @@ function testSearchSpeed() {
     }, 3000);
 }
 
-// *** FUNCIONES PARA PLATAFORMAS Y ASUNTOS ***
-
+// ===============================
+// 🔧 FUNCIONES DE PLATAFORMAS
+// ===============================
 function openEditPlatformModal(platformId, platformName) {
     document.getElementById('edit_platform_id').value = platformId;
     document.getElementById('edit_platform_name').value = platformName;
@@ -2331,7 +2523,487 @@ function savePlatformOrder() {
     });
 }
 
-// Función auxiliar para escapar HTML
+// ===============================
+// 🔧 FUNCIONES DE ASIGNACIONES - CORREGIDAS
+// ===============================
+
+// FUNCIÓN PRINCIPAL: Abrir modal de asignación de correos
+function openAssignEmailsModal(userId, username) {
+    console.log('🔄 Abriendo modal para usuario:', userId, username);
+    
+    // Validar parámetros
+    if (!userId || !username) {
+        console.error('❌ Parámetros inválidos:', { userId, username });
+        alert('Error: Datos de usuario inválidos');
+        return;
+    }
+    
+    // Establecer datos del usuario en el modal
+    try {
+        document.getElementById('assign_user_id').value = userId;
+        document.getElementById('assign_username').textContent = username;
+        
+        // Limpiar selecciones anteriores
+        document.querySelectorAll('.email-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        const selectAllCheckbox = document.getElementById('select_all_emails');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+        }
+        
+        // Cargar emails actualmente asignados
+        loadUserEmailsForAssignModal(userId);
+        
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('assignEmailsModal'), {
+            backdrop: 'static',
+            keyboard: true
+        });
+        modal.show();
+        
+        console.log('✅ Modal mostrado correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error configurando modal:', error);
+        alert('Error: No se pudo configurar el modal');
+    }
+}
+
+// FUNCIÓN AUXILIAR: Cargar emails para el modal de asignación
+function loadUserEmailsForAssignModal(userId) {
+    console.log('📧 Cargando emails para modal de usuario:', userId);
+    
+    fetch(`/admin/procesar_asignaciones.php?action=get_user_emails&user_id=${userId}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Respuesta no es JSON válido');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Datos recibidos para modal:', data);
+        
+        if (data.success && data.emails) {
+            // Marcar emails asignados en el modal
+            data.emails.forEach(emailObj => {
+                const checkbox = document.getElementById(`email_${emailObj.id}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log(`✓ Marcado email en modal: ${emailObj.email}`);
+                } else {
+                    console.warn(`⚠️ Checkbox no encontrado para email ID: ${emailObj.id}`);
+                }
+            });
+            
+            console.log(`✅ ${data.emails.length} emails marcados en modal`);
+        } else {
+            console.log('ℹ️ No hay emails asignados para modal');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error cargando emails para modal:', error);
+        alert(`Error cargando datos: ${error.message}`);
+    });
+}
+
+// FUNCIÓN MEJORADA: Cargar emails en la tabla principal
+function loadUserEmails(userId) {
+    console.log('🔄 Cargando emails para usuario en tabla:', userId);
+    const container = document.getElementById('assigned-emails-' + userId);
+    
+    if (!container) {
+        console.error('❌ Container no encontrado para usuario:', userId);
+        return;
+    }
+    
+    // Mostrar loading
+    container.innerHTML = `
+        <span class="text-muted">
+            <i class="fas fa-spinner fa-spin me-1"></i>
+            Cargando...
+        </span>
+    `;
+    
+    fetch(`/admin/procesar_asignaciones.php?action=get_user_emails&user_id=${userId}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Respuesta no es JSON válido');
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log(`✅ Datos para usuario ${userId}:`, data);
+        
+        if (data.success && data.emails) {
+            if (data.emails.length > 0) {
+                const emailsList = data.emails.map(email => 
+                    `<span class="badge-admin badge-info-admin me-1 mb-1">
+                        <i class="fas fa-envelope me-1"></i>
+                        ${escapeHtml(email.email)}
+                    </span>`
+                ).join('');
+                
+                container.innerHTML = emailsList;
+                console.log(`✅ Mostrados ${data.emails.length} emails para usuario ${userId}`);
+            } else {
+                container.innerHTML = `
+                    <span class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Sin correos asignados
+                    </span>
+                `;
+                console.log(`ℹ️ Usuario ${userId} sin correos asignados`);
+            }
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        console.error(`❌ Error cargando emails para usuario ${userId}:`, error);
+        
+        container.innerHTML = `
+            <span class="text-danger">
+                <i class="fas fa-times me-1"></i>
+                Error: ${error.message}
+            </span>
+        `;
+    });
+}
+
+// ===============================
+// 🔍 SISTEMA DE BÚSQUEDA MEJORADO PARA ADMIN
+// ===============================
+
+// Inicializar búsquedas cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 Inicializando sistema de búsqueda...');
+    
+    // Configurar todas las búsquedas
+    initializeSearchSystems();
+    
+    console.log('✅ Sistema de búsqueda inicializado');
+});
+
+// FUNCIÓN PRINCIPAL: Configurar todos los sistemas de búsqueda
+function initializeSearchSystems() {
+    const searchConfigs = [
+        {
+            inputId: 'searchUsers',
+            tableId: 'usersTable',
+            columnsToSearch: [1, 2], // Usuario, Email
+            infoId: 'usersSearchInfo',
+            countId: 'usersCount'
+        },
+        {
+            inputId: 'searchEmails',
+            tableId: 'emailsTable',
+            columnsToSearch: [0], // Correo Electrónico
+            infoId: 'emailsSearchInfo',
+            countId: 'emailsCount'
+        },
+        {
+            inputId: 'searchPlatforms',
+            tableId: 'platformsTable',
+            columnsToSearch: [0], // Nombre Plataforma
+            infoId: 'platformsSearchInfo',
+            countId: 'platformsCount'
+        },
+        {
+            inputId: 'searchAssignments',
+            tableId: 'assignmentsTable',
+            columnsToSearch: [0, 1], // Usuario, Email del Usuario
+            infoId: 'assignmentsSearchInfo',
+            countId: 'assignmentsCount'
+        }
+    ];
+    
+    searchConfigs.forEach(config => {
+        setupSearchForTable(config);
+    });
+}
+
+// FUNCIÓN: Configurar búsqueda para una tabla específica
+function setupSearchForTable(config) {
+    const searchInput = document.getElementById(config.inputId);
+    const table = document.getElementById(config.tableId);
+    
+    if (!searchInput || !table) {
+        console.warn(`⚠️ Elementos no encontrados para: ${config.inputId}`);
+        return;
+    }
+    
+    // Configurar eventos
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            performSearch(config);
+        }, 300); // Debounce de 300ms
+    });
+    
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            clearSearchForTable(config);
+        }
+    });
+    
+    // Configurar botón de limpiar
+    const clearButton = searchInput.parentElement.querySelector('.search-clear-admin');
+    if (clearButton) {
+        clearButton.addEventListener('click', () => clearSearchForTable(config));
+    }
+    
+    console.log(`✅ Búsqueda configurada para: ${config.inputId}`);
+}
+
+// FUNCIÓN: Realizar búsqueda en tabla
+function performSearch(config) {
+    const searchInput = document.getElementById(config.inputId);
+    const table = document.getElementById(config.tableId);
+    const clearButton = searchInput.parentElement.querySelector('.search-clear-admin');
+    const searchInfo = document.getElementById(config.infoId);
+    const countSpan = document.getElementById(config.countId);
+    
+    if (!searchInput || !table) {
+        console.error('❌ Elementos de búsqueda no encontrados');
+        return;
+    }
+    
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const tbody = table.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    let visibleCount = 0;
+    let totalRows = 0;
+    
+    // Limpiar mensaje anterior de "sin resultados"
+    const existingNoResults = tbody.querySelector('.no-results-row');
+    if (existingNoResults) {
+        existingNoResults.remove();
+    }
+    
+    // Mostrar/ocultar elementos de UI
+    if (searchTerm) {
+        if (clearButton) clearButton.style.display = 'flex';
+        if (searchInfo) searchInfo.style.display = 'block';
+    } else {
+        if (clearButton) clearButton.style.display = 'none';
+        if (searchInfo) searchInfo.style.display = 'none';
+    }
+    
+    // Procesar cada fila
+    rows.forEach(row => {
+        // Ignorar filas especiales
+        if (row.classList.contains('no-results-row') || 
+            row.querySelector('td[colspan]')) {
+            return;
+        }
+        
+        totalRows++;
+        
+        let shouldShow = false;
+        const cells = row.querySelectorAll('td');
+        
+        // Limpiar resaltados anteriores
+        cells.forEach(cell => {
+            const html = cell.innerHTML;
+            cell.innerHTML = html.replace(/<span class="search-match">(.*?)<\/span>/gi, '$1');
+        });
+        
+        if (!searchTerm) {
+            shouldShow = true;
+        } else {
+            // Buscar en las columnas especificadas
+            for (let columnIndex of config.columnsToSearch) {
+                if (cells[columnIndex]) {
+                    const cellText = cells[columnIndex].textContent.toLowerCase();
+                    if (cellText.includes(searchTerm)) {
+                        shouldShow = true;
+                        
+                        // Resaltar coincidencia
+                        const originalHTML = cells[columnIndex].innerHTML;
+                        const regex = new RegExp(`(${escapeRegexForSearch(searchTerm)})`, 'gi');
+                        cells[columnIndex].innerHTML = originalHTML.replace(regex, '<span class="search-match">$1</span>');
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Mostrar/ocultar fila
+        if (shouldShow) {
+            row.style.display = '';
+            row.classList.remove('hidden-by-search');
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+            row.classList.add('hidden-by-search');
+        }
+    });
+    
+    // Actualizar contador
+    if (countSpan) {
+        countSpan.textContent = visibleCount;
+        if (visibleCount > 0 && searchTerm) {
+            countSpan.style.animation = 'countPulse 0.3s ease';
+        }
+    }
+    
+    // Mostrar mensaje si no hay resultados
+    if (searchTerm && visibleCount === 0 && totalRows > 0) {
+        const noResultsRow = document.createElement('tr');
+        noResultsRow.classList.add('no-results-row');
+        
+        const colCount = table.querySelectorAll('thead th').length;
+        noResultsRow.innerHTML = `
+            <td colspan="${colCount}" class="text-center py-4">
+                <i class="fas fa-search fa-2x text-muted mb-2 d-block"></i>
+                <p class="text-muted mb-0">
+                    No se encontraron resultados para "<strong>${escapeHtmlForSearch(searchTerm)}</strong>"
+                </p>
+                <small class="text-muted">
+                    Intenta con otros términos de búsqueda
+                </small>
+            </td>
+        `;
+        tbody.appendChild(noResultsRow);
+    }
+    
+    console.log(`🔍 Búsqueda en ${config.inputId}: "${searchTerm}" - ${visibleCount}/${totalRows} resultados`);
+}
+
+// FUNCIÓN: Limpiar búsqueda para una tabla específica
+function clearSearchForTable(config) {
+    const searchInput = document.getElementById(config.inputId);
+    const clearButton = searchInput.parentElement.querySelector('.search-clear-admin');
+    const searchInfo = document.getElementById(config.infoId);
+    
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+    
+    if (clearButton) clearButton.style.display = 'none';
+    if (searchInfo) searchInfo.style.display = 'none';
+    
+    // Realizar búsqueda vacía para mostrar todos los resultados
+    performSearch(config);
+    
+    console.log(`🧹 Búsqueda limpiada para: ${config.inputId}`);
+}
+
+// FUNCIÓN: Escape regex para búsqueda
+function escapeRegexForSearch(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// FUNCIÓN: Escape HTML para búsqueda
+function escapeHtmlForSearch(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+
+// ===============================
+// 🔧 FUNCIONES GLOBALES PARA COMPATIBILIDAD
+// ===============================
+
+// Función global para búsqueda (mantener compatibilidad)
+function searchInTable(searchInputId, tableId, columnsToSearch) {
+    const config = {
+        inputId: searchInputId,
+        tableId: tableId,
+        columnsToSearch: columnsToSearch,
+        infoId: searchInputId.replace('search', '') + 'SearchInfo',
+        countId: searchInputId.replace('search', '') + 'Count'
+    };
+    
+    performSearch(config);
+}
+
+// Función global para limpiar búsqueda (mantener compatibilidad)
+function clearSearch(searchInputId, tableId) {
+    const config = {
+        inputId: searchInputId,
+        tableId: tableId,
+        columnsToSearch: [0, 1, 2], // Por defecto
+        infoId: searchInputId.replace('search', '') + 'SearchInfo',
+        countId: searchInputId.replace('search', '') + 'Count'
+    };
+    
+    clearSearchForTable(config);
+}
+
+// ===============================
+// 🎨 MEJORAS DE UX ADICIONALES
+// ===============================
+
+// Animación al hacer focus en búsquedas
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInputs = document.querySelectorAll('.search-input-admin');
+    
+    searchInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+            this.parentElement.style.transition = 'transform 0.2s ease';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+    });
+});
+
+// Atajos de teclado para búsquedas
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + F para enfocar primera búsqueda visible
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        const visibleSearchInput = document.querySelector('.tab-pane.active .search-input-admin');
+        if (visibleSearchInput) {
+            e.preventDefault();
+            visibleSearchInput.focus();
+            visibleSearchInput.select();
+        }
+    }
+});
+
+console.log('🔍 Sistema de búsqueda avanzado cargado');
+
+// ===============================
+// 🔧 FUNCIÓN DE UTILIDADES
+// ===============================
 function escapeHtml(unsafe) {
     if (!unsafe) return '';
     return unsafe
@@ -2342,121 +3014,31 @@ function escapeHtml(unsafe) {
          .replace(/'/g, "&#039;");
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Cargar correos asignados para cada usuario
-    <?php foreach ($users_list as $user): ?>
-        loadUserEmails(<?= $user['id'] ?>);
-    <?php endforeach; ?>
-    
-    // Manejar select all
-    const selectAllCheckbox = document.getElementById('select_all_emails');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
-            emailCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
-    }
-});
+// ===============================
+// 🔧 ASIGNAR FUNCIONES AL SCOPE GLOBAL
+// ===============================
+window.editUser = editUser;
+window.deleteUser = deleteUser;
+window.toggleServerView = toggleServerView;
+window.verResultado = verResultado;
+window.validarArchivo = validarArchivo;
+window.showCacheStats = showCacheStats;
+window.clearCache = clearCache;
+window.testSearchSpeed = testSearchSpeed;
+window.openEditPlatformModal = openEditPlatformModal;
+window.openDeletePlatformModal = openDeletePlatformModal;
+window.loadPlatformSubjects = loadPlatformSubjects;
+window.addSubject = addSubject;
+window.deleteSubject = deleteSubject;
+window.openEditSubjectModal = openEditSubjectModal;
+window.updateSubject = updateSubject;
+window.savePlatformOrder = savePlatformOrder;
+window.openAssignEmailsModal = openAssignEmailsModal;
+window.loadUserEmails = loadUserEmails;
+window.searchInTable = searchInTable;
+window.clearSearch = clearSearch;
 
-function loadUserEmails(userId) {
-    console.log('🔄 Cargando emails para usuario:', userId);
-    const container = document.getElementById('assigned-emails-' + userId);
-    
-    fetch('/admin/procesar_asignaciones.php?action=get_user_emails&user_id=' + userId, {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        console.log('📡 Respuesta recibida. Status:', response.status, 'Content-Type:', response.headers.get('content-type'));
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('La respuesta no es JSON válido. Content-Type: ' + contentType);
-        }
-        
-        if (!response.ok) {
-            throw new Error('HTTP error! status: ' + response.status);
-        }
-        
-        return response.text();
-    })
-    .then(text => {
-        console.log('📝 Respuesta como texto:', text);
-        
-        try {
-            const data = JSON.parse(text);
-            console.log('✅ JSON parseado correctamente:', data);
-            
-            if (data.success && data.emails) {
-                if (data.emails.length > 0) {
-                    const emailsList = data.emails.map(email => 
-                        '<span class="badge bg-info me-1 mb-1">' + escapeHtml(email.email) + '</span>'
-                    ).join('');
-                    container.innerHTML = emailsList;
-                    console.log('✅ Se mostraron', data.emails.length, 'emails');
-                } else {
-                    container.innerHTML = '<small class="text-warning">Sin correos asignados</small>';
-                    console.log('ℹ️ Usuario sin correos asignados');
-                }
-            } else {
-                console.error('❌ Error en datos:', data.error || 'Error desconocido');
-                container.innerHTML = '<small class="text-danger">Error: ' + (data.error || 'Error desconocido') + '</small>';
-            }
-        } catch (jsonError) {
-            console.error('❌ Error parseando JSON:', jsonError);
-            container.innerHTML = '<small class="text-danger">Error de formato en respuesta del servidor</small>';
-        }
-    })
-    .catch(error => {
-        console.error('💥 Error en fetch:', error);
-        const container = document.getElementById('assigned-emails-' + userId);
-        container.innerHTML = '<small class="text-danger">Error: ' + error.message + '</small>';
-    });
-}
-
-function openAssignEmailsModal(userId, username) {
-    document.getElementById('assign_user_id').value = userId;
-    document.getElementById('assign_username').textContent = username;
-    
-    // Limpiar selecciones anteriores
-    document.querySelectorAll('.email-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    document.getElementById('select_all_emails').checked = false;
-    
-    // Cargar emails actualmente asignados y marcarlos
-    fetch('/admin/procesar_asignaciones.php?action=get_user_emails&user_id=' + userId)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.emails) {
-                data.emails.forEach(emailObj => {
-                    const checkbox = document.getElementById('email_' + emailObj.id);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
-                });
-            }
-        });
-    
-    // Mostrar modal
-    var modal = new bootstrap.Modal(document.getElementById('assignEmailsModal'));
-    modal.show();
-}
-
-function escapeHtml(unsafe) {
-    return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
-}
-
+console.log('✅ Todas las funciones asignadas al scope global');
 </script>
 
 </body>
