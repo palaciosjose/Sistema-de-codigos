@@ -377,28 +377,35 @@ function insertSystemSettings($pdo) {
         ['PAGE_TITLE', 'Consulta tu Código', 'Título de la página principal'],
         ['EMAIL_AUTH_ENABLED', '0', 'Habilitar filtro de correos electrónicos'],
         ['REQUIRE_LOGIN', '1', 'Si está activado (1), se requiere inicio de sesión para todos los usuarios'],
-        ['USER_EMAIL_RESTRICTIONS_ENABLED', '0', 'Activar restricciones de correos por usuario'],
-        ['enlace_global_1', 'https://', 'Enlace del botón 1 en el header'],
+        ['USER_EMAIL_RESTRICTIONS_ENABLED', '0', 'Activar restricciones de correos por usuario (0=todos pueden consultar cualquier correo, 1=solo correos asignados)'],
+        
+        // Enlaces y personalización
+        ['enlace_global_1', 'https://clientes.hostsbl.com', 'Enlace del botón 1 en el header'],
         ['enlace_global_1_texto', 'Ir a Página web', 'Texto del botón 1 en el header'],
-        ['enlace_global_2', 'https://t.me/', 'Enlace del botón 2 en el header'],
+        ['enlace_global_2', 'https://t.me/hostsbl', 'Enlace del botón 2 en el header'],
         ['enlace_global_2_texto', 'Ir a Telegram', 'Texto del botón 2 en el header'],
-        ['enlace_global_numero_whatsapp', '', 'Número de WhatsApp para contacto'],
+        ['enlace_global_numero_whatsapp', '13177790136', 'Número de WhatsApp para contacto'],
         ['enlace_global_texto_whatsapp', 'Hola, necesito soporte técnico', 'Mensaje predeterminado para WhatsApp'],
         ['ID_VENDEDOR', '9', 'ID del vendedor para enlaces de afiliados'],
         ['LOGO', 'logo.png', 'Nombre del archivo de logo'],
-        ['EMAIL_QUERY_TIME_LIMIT_MINUTES', '100', 'Tiempo máximo (en minutos) para buscar correos'],
-        ['IMAP_CONNECTION_TIMEOUT', '10', 'Tiempo límite para conexiones IMAP (segundos)'],
+        
+        // Configuraciones de performance OPTIMIZADAS
+        ['EMAIL_QUERY_TIME_LIMIT_MINUTES', '20', 'Tiempo máximo (en minutos) para buscar correos - OPTIMIZADO'],
+        ['IMAP_CONNECTION_TIMEOUT', '8', 'Tiempo límite para conexiones IMAP (segundos) - OPTIMIZADO'],
         ['IMAP_SEARCH_OPTIMIZATION', '1', 'Activar optimizaciones de búsqueda IMAP'],
         ['PERFORMANCE_LOGGING', '0', 'Activar logs de rendimiento'],
-        ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado'],
+        ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado - OPTIMIZADO'],
+        
+        // Configuraciones de cache
         ['CACHE_ENABLED', '1', 'Activar sistema de cache para mejorar performance'],
         ['CACHE_TIME_MINUTES', '5', 'Tiempo de vida del cache en minutos'],
         ['CACHE_MEMORY_ENABLED', '1', 'Activar cache en memoria para consultas repetidas'],
+        
+        // Configuraciones de filtrado OPTIMIZADAS
         ['TRUST_IMAP_DATE_FILTER', '1', 'Confiar en el filtrado de fechas IMAP sin verificación adicional'],
-        ['USE_PRECISE_IMAP_SEARCH', '1', 'Usar búsquedas IMAP más precisas con fecha y hora específica'],
-        ['MAX_EMAILS_TO_CHECK', '50', 'Número máximo de emails a verificar por consulta'],
+        ['USE_PRECISE_IMAP_SEARCH', '1', 'Usar búsquedas IMAP más precisas con fecha y hora específica - OPTIMIZADO'],
+        ['MAX_EMAILS_TO_CHECK', '35', 'Número máximo de emails a verificar por consulta - OPTIMIZADO'],
         ['IMAP_SEARCH_TIMEOUT', '30', 'Tiempo límite para búsquedas IMAP en segundos'],
-        ['INSTALLED', '0', 'Indica si el sistema ha sido instalado completamente'],
         ['LICENSE_PROTECTED', '1', 'Sistema protegido por licencia']
     ];
     

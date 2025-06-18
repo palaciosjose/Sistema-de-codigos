@@ -10,6 +10,7 @@ check_session(true, '../index.php');
 
 header('Content-Type: text/html; charset=utf-8');
 
+// --- Verificaciones de instalación y base de datos (tu código existente) ---
 if (empty($db_host) || empty($db_user) || empty($db_password) || empty($db_name) || !file_exists('../instalacion/basededatos.php')) {
     echo '
     <!DOCTYPE html>
@@ -332,9 +333,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 if (in_array($key, [
                     'EMAIL_AUTH_ENABLED',
                     'REQUIRE_LOGIN',
+                    'USER_EMAIL_RESTRICTIONS_ENABLED',
                     'IMAP_SEARCH_OPTIMIZATION',
                     'PERFORMANCE_LOGGING', 
-                    'EARLY_SEARCH_STOP'
+                    'EARLY_SEARCH_STOP',
+                    'CACHE_ENABLED',
+                    'CACHE_MEMORY_ENABLED',
+                    'TRUST_IMAP_DATE_FILTER',
+                    'USE_PRECISE_IMAP_SEARCH' 
                 ])) {
                     $zero = '0';
                     $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?");
@@ -522,11 +528,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                             <i class="fas fa-clock me-2"></i>
                             Límite de tiempo para consulta de correos (minutos)
                         </label>
-                        <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '15' ?>">
-                        <small class="text-muted">Tiempo máximo para buscar correos. Correos más antiguos no serán procesados.</small>
+                        <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '20' ?>">
+                        <small class="text-muted">Tiempo máximo para buscar correos. Valor recomendado: 20 minutos para mejor performance.</small>
                     </div>
                 </div>
 
+                <!-- NUEVA SECCIÓN: OPTIMIZACIONES DE PERFORMANCE -->
+                <div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="fas fa-rocket me-2 text-warning"></i>
+            Optimizaciones de Performance
+        </h3>
+    </div>
+    
+    <div class="alert-admin alert-info-admin">
+        <i class="fas fa-info-circle"></i>
+        <div>
+            <strong>Configuraciones avanzadas:</strong> Ajusta estos valores para optimizar el rendimiento del sistema según tu servidor y necesidades.
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group-admin">
+                <label for="MAX_EMAILS_TO_CHECK" class="form-label-admin">
+                    <i class="fas fa-envelope me-2"></i>
+                    Máximo de emails a verificar por consulta
+                </label>
+                <input type="number" class="form-control-admin" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="100" value="<?= $settings['MAX_EMAILS_TO_CHECK'] ?? '35' ?>">
+                <small class="text-muted">Valor recomendado: 35. Reducir para buzones muy grandes.</small>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-group-admin">
+                <label for="IMAP_CONNECTION_TIMEOUT" class="form-label-admin">
+                    <i class="fas fa-clock me-2"></i>
+                    Timeout de conexión IMAP (segundos)
+                </label>
+                <input type="number" class="form-control-admin" id="IMAP_CONNECTION_TIMEOUT" name="IMAP_CONNECTION_TIMEOUT" min="5" max="30" value="<?= $settings['IMAP_CONNECTION_TIMEOUT'] ?? '8' ?>">
+                <small class="text-muted">Valor recomendado: 8. Conexiones más rápidas para servidores estables.</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" class="form-check-input-admin" id="USE_PRECISE_IMAP_SEARCH" name="USE_PRECISE_IMAP_SEARCH" value="1" <?= ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <label for="USE_PRECISE_IMAP_SEARCH" class="form-check-label-admin">
+                    <i class="fas fa-search-plus me-2"></i>
+                    Búsquedas IMAP precisas
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Usar búsquedas más específicas con fecha y hora exacta.</small>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" class="form-check-input-admin" id="EARLY_SEARCH_STOP" name="EARLY_SEARCH_STOP" value="1" <?= ($settings['EARLY_SEARCH_STOP'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <label for="EARLY_SEARCH_STOP" class="form-check-label-admin">
+                    <i class="fas fa-stop-circle me-2"></i>
+                    Parada temprana de búsqueda
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Detener búsqueda al encontrar el primer resultado válido.</small>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" class="form-check-input-admin" id="IMAP_SEARCH_OPTIMIZATION" name="IMAP_SEARCH_OPTIMIZATION" value="1" <?= ($settings['IMAP_SEARCH_OPTIMIZATION'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <label for="IMAP_SEARCH_OPTIMIZATION" class="form-check-label-admin">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Optimizaciones de búsqueda IMAP
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Activar todas las optimizaciones automáticas de búsqueda.</small>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-group-admin">
+                <label for="IMAP_SEARCH_TIMEOUT" class="form-label-admin">
+                    <i class="fas fa-hourglass-half me-2"></i>
+                    Timeout de búsqueda IMAP (segundos)
+                </label>
+                <input type="number" class="form-control-admin" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= $settings['IMAP_SEARCH_TIMEOUT'] ?? '30' ?>">
+                <small class="text-muted">Tiempo máximo para cada operación de búsqueda individual.</small>
+            </div>
+        </div>
+    </div>
+</div>
+                
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <h3 class="admin-card-title">
@@ -845,7 +940,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                             <?= htmlspecialchars(ucfirst($log['plataforma'])) ?>
                                         </span>
                                     </td>
-                                    <td><?= htmlspecialchars($log['ip']) ?></td>
+                                    <td>
+                                        <i class="fas fa-globe me-2 text-muted"></i>
+                                        <?= htmlspecialchars($log['ip']) ?>
+                                    </td>
                                     <td>
                                         <i class="fas fa-calendar-alt me-2 text-muted"></i>
                                         <?= htmlspecialchars($log['fecha']) ?>
@@ -1670,7 +1768,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
 <script>
-// ===== DEFINIR TODAS LAS FUNCIONES DE FORMA SIMPLE =====
+// ===== DEFINICIÓN DE TODAS LAS FUNCIONES (SE DEFINEN ANTES DEL DOMContentLoaded) =====
 
 // Función para editar usuario
 function editUser(id, username, email, status) {
@@ -2034,11 +2132,15 @@ function loadUserEmailsForAssignModal(userId) {
                     checkbox.checked = true;
                 }
             });
+        } else {
+            // Manejo de error si la respuesta AJAX indica un fallo
+            throw new Error(data.error || 'Error desconocido al obtener correos para el modal');
         }
     })
     .catch(error => {
         console.error('Error cargando emails para modal:', error);
-        alert('Error cargando datos: ' + error.message);
+        // Alertar al usuario si la carga falla
+        alert('Error cargando datos para el modal: ' + error.message);
     });
 }
 
@@ -2094,6 +2196,7 @@ function loadUserEmails(userId) {
                 container.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Sin correos asignados</span>';
             }
         } else {
+            // Manejo de error si la respuesta AJAX indica un fallo
             throw new Error(data.error || 'Error desconocido al obtener correos asignados');
         }
     })
@@ -2134,13 +2237,15 @@ function submitAddAuthEmailForm() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => response.text()) // Usamos .text() primero para depurar respuestas no JSON
     .then(text => {
-        console.log('Respuesta del servidor:', text);
+        console.log('Respuesta del servidor:', text); // Log la respuesta cruda
         try {
             const data = JSON.parse(text);
             if (data.success) {
                 alert(data.message || 'Correo autorizado añadido correctamente.');
+                // Recargar solo la tabla de correos autorizados si es posible, o toda la página
+                // Idealmente, aquí solo se actualizaría la fila en la tabla si se usa AJAX para esa tabla
                 setTimeout(() => {
                     location.reload(); 
                 }, 1000); 
@@ -2155,7 +2260,7 @@ function submitAddAuthEmailForm() {
                 }, 500);
             }
         } catch (e) {
-            alert('Error en la respuesta del servidor.');
+            alert('Error en la respuesta del servidor (no JSON válido).');
             console.error('Respuesta del servidor no es JSON válido:', text, e);
             
             // Reabrir el modal si hay error
@@ -2187,7 +2292,6 @@ function escapeHtml(unsafe) {
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
 }
-
 
 // ===== INICIO: LÓGICA DE BÚSQUEDA DINÁMICA =====
 
@@ -2251,119 +2355,6 @@ function setupTableSearch(inputId, tableId, columnsToSearch, infoId) {
 }
 
 
-// ===== INICIALIZACIÓN CUANDO SE CARGA LA PÁGINA =====
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Iniciando panel de administración...');
-    
-    // Configurar modal de edición de correos autorizados
-    const editEmailModal = document.getElementById('editEmailModal');
-    if (editEmailModal) {
-        editEmailModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const emailId = button.getAttribute('data-bs-id');
-            const emailValue = button.getAttribute('data-bs-email');
-            
-            document.getElementById('edit_email_id').value = emailId;
-            document.getElementById('edit_email_value').value = emailValue;
-        });
-    }
-
-    // Configurar seleccionar todos los emails en modal de asignación
-    const selectAllCheckbox = document.getElementById('select_all_emails');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
-            emailCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
-    }
-
-    // Inicializar drag and drop para plataformas
-    const platformsTableBody = document.getElementById('platformsTableBody');
-    if (platformsTableBody && typeof Sortable !== 'undefined') {
-        try {
-            Sortable.create(platformsTableBody, {
-                animation: 150,
-                handle: 'td:first-child',
-                onEnd: function (evt) {
-                    savePlatformOrder();
-                }
-            });
-            console.log('Drag and drop configurado para plataformas');
-        } catch (error) {
-            console.warn('No se pudo configurar drag and drop:', error);
-        }
-    }
-
-    // Cargar emails para usuarios en pestaña de asignaciones
-    const assignmentsTab = document.getElementById('asignaciones');
-    if (assignmentsTab) {
-        const userContainers = assignmentsTab.querySelectorAll('[id^="assigned-emails-"]');
-        userContainers.forEach(container => {
-            const userId = container.id.replace('assigned-emails-', '');
-            if (userId && !isNaN(userId)) {
-                loadUserEmails(parseInt(userId));
-            }
-        });
-    }
-
-    // Configurar navegación de pestañas desde URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabFromUrl = urlParams.get('tab');
-    if (tabFromUrl) {
-        const tabButton = document.getElementById(tabFromUrl + '-tab');
-        if (tabButton) {
-            const tab = new bootstrap.Tab(tabButton);
-            tab.show();
-        }
-    }
-
-    // Configurar eventos de pestañas para actualizar campos hidden
-    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
-    tabButtons.forEach(button => {
-        button.addEventListener('shown.bs.tab', function(event) {
-            const newTab = event.target.getAttribute('data-bs-target').replace('#', '');
-            console.log('Cambiando a pestaña:', newTab);
-            
-            const currentTabInputs = document.querySelectorAll('.current-tab-input');
-            currentTabInputs.forEach(input => {
-                input.value = newTab;
-            });
-        });
-    });
-
-    // INICIO: Configuración de las búsquedas en las tablas
-    setupTableSearch('searchInputUsers', 'usersTable', [1, 2], 'usersSearchResultsInfo');
-    setupTableSearch('searchInputEmails', 'emailsTable', [0], 'emailsSearchResultsInfo');
-    setupTableSearch('searchInputPlatforms', 'platformsTable', [0], 'platformsSearchResultsInfo');
-    setupTableSearch('searchInputAssignments', 'assignmentsTable', [0], 'assignmentsSearchResultsInfo');
-    // FIN: Configuración de las búsquedas
-
-    console.log('Panel de administración inicializado correctamente');
-});
-
-// ===== ASIGNAR FUNCIONES AL SCOPE GLOBAL =====
-window.editUser = editUser;
-window.deleteUser = deleteUser;
-window.toggleServerView = toggleServerView;
-window.verResultado = verResultado;
-window.validarArchivo = validarArchivo;
-window.openEditPlatformModal = openEditPlatformModal;
-window.openDeletePlatformModal = openDeletePlatformModal;
-window.loadPlatformSubjects = loadPlatformSubjects;
-window.addSubject = addSubject;
-window.deleteSubject = deleteSubject;
-window.openEditSubjectModal = openEditSubjectModal;
-window.updateSubject = updateSubject;
-window.savePlatformOrder = savePlatformOrder;
-window.openAssignEmailsModal = openAssignEmailsModal;
-window.loadUserEmails = loadUserEmails;
-window.submitAddAuthEmailForm = submitAddAuthEmailForm;
-window.submitEditAuthEmail = submitEditAuthEmail;
-
-console.log('Todas las funciones asignadas al scope global correctamente');
-
 // Función para enviar la edición de correo autorizado vía AJAX
 function submitEditAuthEmail() {
     const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editEmailModal'));
@@ -2421,3 +2412,233 @@ function submitEditAuthEmail() {
         alert('Ocurrió un error de conexión. Inténtalo de nuevo.');
     });
 }
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Iniciando panel de administración...');
+    
+    // Configurar modal de edición de correos autorizados
+    const editEmailModal = document.getElementById('editEmailModal');
+    if (editEmailModal) {
+        editEmailModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const emailId = button.getAttribute('data-bs-id');
+            const emailValue = button.getAttribute('data-bs-email');
+            
+            document.getElementById('edit_email_id').value = emailId;
+            document.getElementById('edit_email_value').value = emailValue;
+        });
+    }
+
+    // Configurar seleccionar todos los emails en modal de asignación
+    const selectAllCheckbox = document.getElementById('select_all_emails');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const emailCheckboxes = document.querySelectorAll('.email-checkbox');
+            emailCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+
+    // Inicializar drag and drop para plataformas
+    const platformsTableBody = document.getElementById('platformsTableBody');
+    if (platformsTableBody && typeof Sortable !== 'undefined') {
+        try {
+            Sortable.create(platformsTableBody, {
+                animation: 150,
+                handle: 'td:first-child',
+                onEnd: function (evt) {
+                    savePlatformOrder();
+                }
+            });
+            console.log('Drag and drop configurado para plataformas');
+        } catch (error) {
+            console.warn('No se pudo configurar drag and drop:', error);
+        }
+    }
+
+    // ===== FUNCIÓN PARA CARGAR TODOS LOS EMAILS DE USUARIOS =====
+    function loadAllUserEmails() {
+        console.log('Cargando todos los emails de usuarios...');
+        const assignmentsTab = document.getElementById('asignaciones');
+        if (!assignmentsTab) {
+            console.log('Pestaña de asignaciones no encontrada');
+            return;
+        }
+        
+        const userContainers = assignmentsTab.querySelectorAll('[id^="assigned-emails-"]');
+        console.log('Contenedores encontrados:', userContainers.length);
+        
+        userContainers.forEach(container => {
+            const userId = container.id.replace('assigned-emails-', '');
+            if (userId && !isNaN(userId)) {
+                console.log('Cargando emails para usuario:', userId);
+                loadUserEmails(parseInt(userId));
+            }
+        });
+    }
+
+    // ===== FUNCIÓN PARA DETECTAR SI UNA PESTAÑA ESTÁ ACTIVA =====
+    function isTabActive(tabId) {
+        const tabButton = document.getElementById(tabId + '-tab');
+        const tabPane = document.getElementById(tabId);
+        
+        if (!tabButton || !tabPane) return false;
+        
+        // Verificar si el botón tiene la clase active
+        const buttonActive = tabButton.classList.contains('active');
+        
+        // Verificar si el panel tiene las clases show y active
+        const paneActive = tabPane.classList.contains('show') && tabPane.classList.contains('active');
+        
+        // Verificar por URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabFromUrl = urlParams.get('tab');
+        const urlActive = tabFromUrl === tabId;
+        
+        console.log(`Tab ${tabId} - Button active: ${buttonActive}, Pane active: ${paneActive}, URL active: ${urlActive}`);
+        
+        return buttonActive || paneActive || urlActive;
+    }
+
+    // ===== CONFIGURAR NAVEGACIÓN DE PESTAÑAS DESDE URL (MEJORADO) =====
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = urlParams.get('tab');
+    
+    if (tabFromUrl) {
+        const tabButton = document.getElementById(tabFromUrl + '-tab');
+        if (tabButton) {
+            const tab = new bootstrap.Tab(tabButton);
+            tab.show();
+            
+            // Si es la pestaña de asignaciones, cargar emails después de un pequeño delay
+            if (tabFromUrl === 'asignaciones') {
+                console.log('Cargando asignaciones desde URL...');
+                setTimeout(() => {
+                    loadAllUserEmails();
+                }, 500); // 500ms delay para asegurar que la pestaña esté completamente cargada
+            }
+        }
+    } else {
+        // Si no hay pestaña en URL, verificar si asignaciones está activa por defecto
+        setTimeout(() => {
+            if (isTabActive('asignaciones')) {
+                console.log('Asignaciones activa por defecto, cargando emails...');
+                loadAllUserEmails();
+            }
+        }, 200);
+    }
+
+    // ===== CONFIGURAR EVENTOS DE PESTAÑAS (MEJORADO) =====
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            const newTab = event.target.getAttribute('data-bs-target').replace('#', '');
+            console.log('Cambiando a pestaña:', newTab);
+            
+            const currentTabInputs = document.querySelectorAll('.current-tab-input');
+            currentTabInputs.forEach(input => {
+                input.value = newTab;
+            });
+
+            // Si la pestaña de asignaciones se activa, recargar los correos
+            if (newTab === 'asignaciones') {
+                console.log('Pestaña asignaciones activada manualmente, cargando emails...');
+                setTimeout(() => {
+                    loadAllUserEmails();
+                }, 200); // Delay para asegurar que el DOM esté listo
+            }
+        });
+    });
+
+    // Configurar búsquedas en las tablas si existen
+    if (typeof setupTableSearch === 'function') {
+        setupTableSearch('searchInputUsers', 'usersTable', [1, 2], 'usersSearchResultsInfo');
+        setupTableSearch('searchInputEmails', 'emailsTable', [0], 'emailsSearchResultsInfo');
+        setupTableSearch('searchInputPlatforms', 'platformsTable', [0], 'platformsSearchResultsInfo');
+        setupTableSearch('searchInputAssignments', 'assignmentsTable', [0], 'assignmentsSearchResultsInfo');
+    }
+
+    // ===== FUNCIÓN PARA DEBUGGING (OPCIONAL) =====
+    window.forceReloadAllEmails = function() {
+        console.log('Forzando recarga de todos los emails...');
+        loadAllUserEmails();
+    };
+
+    console.log('Panel de administración inicializado correctamente');
+});
+
+// ===== TAMBIÉN MEJORA LA FUNCIÓN loadUserEmails =====
+// Busca esta función en tu archivo y mejórala con mejor manejo de errores:
+
+function loadUserEmails(userId) {
+    console.log('Cargando emails para usuario en tabla:', userId);
+    const container = document.getElementById('assigned-emails-' + userId);
+    
+    if (!container) {
+        console.error('Container no encontrado para usuario:', userId);
+        return;
+    }
+    
+    container.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</span>';
+    
+    // Añadir timestamp para evitar cache
+    const timestamp = new Date().getTime();
+    
+    fetch(`procesar_asignaciones.php?action=get_user_emails&user_id=${userId}&_t=${timestamp}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                console.error('Respuesta no es JSON. Contenido:', text);
+                throw new Error('Respuesta del servidor no es JSON válido');
+            });
+        }
+    })
+    .then(data => {
+        console.log('Datos para usuario', userId, ':', data);
+        
+        if (data.success && data.emails) {
+            if (data.emails.length > 0) {
+                const emailsList = data.emails.map(email => 
+                    '<span class="badge-admin badge-info-admin me-1 mb-1">' +
+                    '<i class="fas fa-envelope me-1"></i>' +
+                    escapeHtml(email.email) +
+                    '</span>'
+                ).join('');
+                
+                container.innerHTML = emailsList;
+            } else {
+                container.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Sin correos asignados</span>';
+            }
+        } else {
+            throw new Error(data.error || 'Error desconocido al obtener correos asignados');
+        }
+    })
+    .catch(error => {
+        console.error('Error cargando emails para usuario', userId, ':', error);
+        container.innerHTML = '<span class="text-danger"><i class="fas fa-times me-1"></i>Error: ' + error.message + '</span>';
+        
+        // Reintentar después de 2 segundos
+        setTimeout(() => {
+            console.log('Reintentando carga para usuario:', userId);
+            loadUserEmails(userId);
+        }, 2000);
+    });
+}
+</script>
