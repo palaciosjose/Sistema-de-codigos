@@ -1,7 +1,7 @@
 <?php
 /**
- * Instalador del Sistema con Verificación de Licencia (VERSIÓN CORREGIDA)
- * Versión 2.1 - Problema de rutas solucionado
+ * Instalador del Sistema con Verificación de Licencia 
+ * Versión 2.1 - 
  */
 
 session_start();
@@ -71,6 +71,9 @@ function verificarSistemaLicencias() {
         'current_working_dir' => getcwd(),
         'installer_dir' => __DIR__
     ];
+    
+    return $diagnostico;  
+}    
 
 $diagnostico_licencias = verificarSistemaLicencias();
 
@@ -375,25 +378,26 @@ function insertInitialData($pdo, $admin_user, $admin_password) {
 function insertSystemSettings($pdo) {
     $settings = [
         ['PAGE_TITLE', 'Consulta tu Código', 'Título de la página principal'],
-        ['EMAIL_AUTH_ENABLED', '0', 'Habilitar filtro de correos electrónicos'],
+        ['EMAIL_AUTH_ENABLED', '1', 'Habilitar filtro de correos electrónicos'],
         ['REQUIRE_LOGIN', '1', 'Si está activado (1), se requiere inicio de sesión para todos los usuarios'],
         ['USER_EMAIL_RESTRICTIONS_ENABLED', '0', 'Activar restricciones de correos por usuario (0=todos pueden consultar cualquier correo, 1=solo correos asignados)'],
         
         // Enlaces y personalización
-        ['enlace_global_1', 'https://clientes.hostsbl.com', 'Enlace del botón 1 en el header'],
+        ['enlace_global_1', 'https://', 'Enlace del botón 1 en el header'],
         ['enlace_global_1_texto', 'Ir a Página web', 'Texto del botón 1 en el header'],
-        ['enlace_global_2', 'https://t.me/hostsbl', 'Enlace del botón 2 en el header'],
+        ['enlace_global_2', 'https://t.me/', 'Enlace del botón 2 en el header'],
         ['enlace_global_2_texto', 'Ir a Telegram', 'Texto del botón 2 en el header'],
-        ['enlace_global_numero_whatsapp', '13177790136', 'Número de WhatsApp para contacto'],
+        ['enlace_global_numero_whatsapp', '0000000', 'Número de WhatsApp para contacto'],
         ['enlace_global_texto_whatsapp', 'Hola, necesito soporte técnico', 'Mensaje predeterminado para WhatsApp'],
-        ['ID_VENDEDOR', '9', 'ID del vendedor para enlaces de afiliados'],
+        ['ID_VENDEDOR', '0', 'ID del vendedor para enlaces de afiliados'],
         ['LOGO', 'logo.png', 'Nombre del archivo de logo'],
         
-        // Configuraciones de performance OPTIMIZADAS
-        ['EMAIL_QUERY_TIME_LIMIT_MINUTES', '20', 'Tiempo máximo (en minutos) para buscar correos - OPTIMIZADO'],
+        // Configuraciones de performance OPTIMIZADAS CON ZONA HORARIA
+        ['EMAIL_QUERY_TIME_LIMIT_MINUTES', '30', 'Tiempo máximo (en minutos) para considerar emails válidos - OPTIMIZADO'],
+        ['TIMEZONE_DEBUG_HOURS', '48', 'Horas hacia atrás para búsqueda inicial IMAP (para manejar zonas horarias)'],
         ['IMAP_CONNECTION_TIMEOUT', '8', 'Tiempo límite para conexiones IMAP (segundos) - OPTIMIZADO'],
         ['IMAP_SEARCH_OPTIMIZATION', '1', 'Activar optimizaciones de búsqueda IMAP'],
-        ['PERFORMANCE_LOGGING', '0', 'Activar logs de rendimiento'],
+        ['PERFORMANCE_LOGGING', '0', 'Activar logs de rendimiento (temporal para debugging)'],
         ['EARLY_SEARCH_STOP', '1', 'Parar búsqueda al encontrar primer resultado - OPTIMIZADO'],
         
         // Configuraciones de cache

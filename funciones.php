@@ -408,55 +408,216 @@ class EmailSearchEngine {
         return $this->searchSimple($inbox, $email, $subjects);
     }
     
-    /**
-     * Búsqueda optimizada con IMAP
-     */
-    private function searchOptimized($inbox, $email, $subjects) {
+/**
+ * Búsqueda optimizada con IMAP - MEJORADA para zonas horarias
+ */
+private function searchOptimized($inbox, $email, $subjects) {
+    try {
+        // CAMBIO PRINCIPAL: Usar horas configurables para cubrir diferencias de zona horaria
+        $search_hours = (int)($this->settings['TIMEZONE_DEBUG_HOURS'] ?? 48); // Configurable, 48h por defecto
+        $search_date = date("d-M-Y", time() - ($search_hours * 3600));
+        
+        $this->logPerformance("Búsqueda ampliada: últimas 48h desde " . $search_date);
+        
+        // Construir criterio de búsqueda con rango amplio
+        $criteria = 'TO "' . $email . '" SINCE "' . $search_date . '"';
+        
+        $all_emails = imap_search($inbox, $criteria);
+        
+        if (!$all_emails) {
+            $this->logPerformance("No se encontraron emails en rango amplio para: " . $email);
+            return [];
+        }
+        
+        $this->logPerformance("Emails encontrados en rango amplio: " . count($all_emails));
+        
+        // NUEVO: Filtrar por tiempo preciso usando timestamps locales
+        return $this->filterEmailsByTimeAndSubject($inbox, $all_emails, $subjects);
+        
+    } catch (Exception $e) {
+        $this->logPerformance("Error en búsqueda optimizada: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Filtrar emails por tiempo preciso y asunto
+ * Este método resuelve problemas de zona horaria usando timestamps locales
+ */
+private function filterEmailsByTimeAndSubject($inbox, $email_ids, $subjects) {
+    $found_emails = [];
+    $max_check = (int)($this->settings['MAX_EMAILS_TO_CHECK'] ?? 50);
+    
+    // Obtener el límite de tiempo configurado (en minutos)
+    $time_limit_minutes = (int)($this->settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? 20);
+    $cutoff_timestamp = time() - ($time_limit_minutes * 60);
+    
+    $this->logPerformance("Filtrando emails: límite " . $time_limit_minutes . " minutos, timestamp corte: " . date('Y-m-d H:i:s', $cutoff_timestamp));
+    
+    // Ordenar emails por más recientes primero
+    rsort($email_ids);
+    $emails_to_check = array_slice($email_ids, 0, $max_check);
+    
+    $checked_count = 0;
+    $time_filtered_count = 0;
+    $subject_matched_count = 0;
+    
+    foreach ($emails_to_check as $email_id) {
         try {
-            $time_limit = (int)($this->settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? 100);
-            $search_date = date("d-M-Y", time() - ($time_limit * 60));
+            $checked_count++;
+            $header = imap_headerinfo($inbox, $email_id);
             
-            // Construir criterio de búsqueda
-            $criteria = 'TO "' . $email . '" SINCE "' . $search_date . '"';
-            
-            $all_emails = imap_search($inbox, $criteria);
-            
-            if (!$all_emails) {
-                return [];
+            if (!$header || !isset($header->date)) {
+                continue;
             }
             
-            // Filtrar por asuntos
-            return $this->filterEmailsBySubject($inbox, $all_emails, $subjects);
+            // Convertir fecha del email a timestamp
+            $email_timestamp = $this->parseEmailTimestamp($header->date);
+            if ($email_timestamp === false) {
+                $this->logPerformance("No se pudo parsear fecha: " . $header->date);
+                continue;
+            }
+            
+            // FILTRO DE TIEMPO: Verificar si está dentro del rango permitido
+            if ($email_timestamp < $cutoff_timestamp) {
+                // Este email es muy viejo, saltar
+                continue;
+            }
+            
+            $time_filtered_count++;
+            $email_age_minutes = round((time() - $email_timestamp) / 60, 1);
+            $this->logPerformance("Email válido por tiempo: " . date('Y-m-d H:i:s', $email_timestamp) . " (hace " . $email_age_minutes . " min)");
+            
+            // FILTRO DE ASUNTO: Verificar si coincide con algún asunto buscado
+            if (!isset($header->subject)) {
+                continue;
+            }
+            
+            $decoded_subject = $this->decodeMimeSubject($header->subject);
+            
+            foreach ($subjects as $subject) {
+                if ($this->subjectMatches($decoded_subject, $subject)) {
+                    $found_emails[] = $email_id;
+                    $subject_matched_count++;
+                    
+                    $this->logPerformance("¡MATCH! Asunto: '" . substr($decoded_subject, 0, 50) . "...' con patrón: '" . substr($subject, 0, 30) . "...'");
+                    
+                    // Early stop si está habilitado
+                    if (($this->settings['EARLY_SEARCH_STOP'] ?? '1') === '1') {
+                        $this->logPerformance("Early stop activado, deteniendo búsqueda");
+                        return $found_emails;
+                    }
+                    break;
+                }
+            }
             
         } catch (Exception $e) {
-            $this->logPerformance("Error en búsqueda optimizada: " . $e->getMessage());
-            return [];
+            $this->logPerformance("Error procesando email ID " . $email_id . ": " . $e->getMessage());
+            continue;
         }
     }
     
-    /**
-     * Búsqueda simple (fallback confiable)
-     */
-    private function searchSimple($inbox, $email, $subjects) {
-        try {
-            $criteria = 'TO "' . $email . '"';
-            $all_emails = imap_search($inbox, $criteria);
+    $this->logPerformance("Resumen filtrado - Revisados: $checked_count, Válidos por tiempo: $time_filtered_count, Con asunto coincidente: $subject_matched_count");
+    
+    return $found_emails;
+}
+
+/**
+ * Parsear timestamp de email de forma robusta
+ * Maneja diferentes formatos de fecha que pueden venir en headers de email
+ */
+private function parseEmailTimestamp($email_date) {
+    if (empty($email_date)) {
+        return false;
+    }
+    
+    try {
+        // Intentar parseo directo con strtotime (funciona con la mayoría de formatos RFC)
+        $timestamp = strtotime($email_date);
+        
+        if ($timestamp !== false && $timestamp > 0) {
+            // Validar que el timestamp sea razonable (no muy viejo ni futuro)
+            $now = time();
+            $one_year_ago = $now - (365 * 24 * 3600);
+            $one_day_future = $now + (24 * 3600);
             
-            if (!$all_emails) {
-                return [];
+            if ($timestamp >= $one_year_ago && $timestamp <= $one_day_future) {
+                return $timestamp;
+            } else {
+                $this->logPerformance("Timestamp fuera de rango razonable: " . date('Y-m-d H:i:s', $timestamp) . " de fecha: " . $email_date);
             }
-            
-            // Ordenar por más recientes y limitar
-            rsort($all_emails);
-            $emails_to_check = array_slice($all_emails, 0, 20);
-            
-            return $this->filterEmailsBySubject($inbox, $emails_to_check, $subjects);
-            
-        } catch (Exception $e) {
-            $this->logPerformance("Error en búsqueda simple: " . $e->getMessage());
+        }
+        
+        // Si el parseo directo falla, intentar con DateTime (más robusto)
+        $datetime = new DateTime($email_date);
+        $timestamp = $datetime->getTimestamp();
+        
+        // Validar nuevamente
+        if ($timestamp >= $one_year_ago && $timestamp <= $one_day_future) {
+            return $timestamp;
+        }
+        
+        $this->logPerformance("DateTime timestamp fuera de rango: " . date('Y-m-d H:i:s', $timestamp) . " de fecha: " . $email_date);
+        return false;
+        
+    } catch (Exception $e) {
+        $this->logPerformance("Error parseando fecha '" . $email_date . "': " . $e->getMessage());
+        
+        // Último intento: extraer timestamp usando regex si es un formato conocido
+        if (preg_match('/(\d{1,2})\s+(\w{3})\s+(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/', $email_date, $matches)) {
+            try {
+                $day = $matches[1];
+                $month = $matches[2];
+                $year = $matches[3];
+                $hour = $matches[4];
+                $minute = $matches[5];
+                $second = $matches[6];
+                
+                $formatted_date = "$day $month $year $hour:$minute:$second";
+                $timestamp = strtotime($formatted_date);
+                
+                if ($timestamp !== false && $timestamp > 0) {
+                    return $timestamp;
+                }
+            } catch (Exception $regex_error) {
+                $this->logPerformance("Error en parseo regex: " . $regex_error->getMessage());
+            }
+        }
+        
+        return false;
+    }
+}
+    
+    /**
+ * Búsqueda simple (fallback confiable) - MEJORADA para zonas horarias
+ */
+private function searchSimple($inbox, $email, $subjects) {
+    try {
+        $this->logPerformance("Iniciando búsqueda simple (fallback)");
+        
+        // Usar búsqueda amplia sin restricción de fecha como fallback
+        $criteria = 'TO "' . $email . '"';
+        $all_emails = imap_search($inbox, $criteria);
+        
+        if (!$all_emails) {
+            $this->logPerformance("No se encontraron emails en búsqueda simple");
             return [];
         }
+        
+        $this->logPerformance("Búsqueda simple encontró: " . count($all_emails) . " emails totales");
+        
+        // Ordenar por más recientes y limitar para performance
+        rsort($all_emails);
+        $emails_to_check = array_slice($all_emails, 0, 30); // Limitar a 30 para búsqueda simple
+        
+        // Usar el mismo filtrado preciso por tiempo y asunto
+        return $this->filterEmailsByTimeAndSubject($inbox, $emails_to_check, $subjects);
+        
+    } catch (Exception $e) {
+        $this->logPerformance("Error en búsqueda simple: " . $e->getMessage());
+        return [];
     }
+}
     
     /**
      * Filtrar emails por asunto

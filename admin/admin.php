@@ -305,7 +305,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             'TRUST_IMAP_DATE_FILTER',
             'USE_PRECISE_IMAP_SEARCH',
             'MAX_EMAILS_TO_CHECK',
-            'IMAP_SEARCH_TIMEOUT'
+            'IMAP_SEARCH_TIMEOUT',
+            'TIMEZONE_DEBUG_HOURS'
+            
         ];
 
         foreach ($updatable_keys as $key) {
@@ -621,7 +623,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         </div>
     </div>
 </div>
-                
+
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <h3 class="admin-card-title">
