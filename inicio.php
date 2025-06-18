@@ -177,6 +177,7 @@ $has_results = !empty($resultado) || !empty($error_message);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Lógica del título que se escribe solo ---
     const title = document.getElementById('typing-title');
     if (title) {
         const titleText = 'Consulta tu Código Aquí';
@@ -191,26 +192,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         setTimeout(typeWriter, 500);
     }
+    
+    // ================================================================
+    // --- LÓGICA FINAL PARA EL MENÚ DESPLEGABLE ---
+    // ================================================================
+    const mainCard = document.querySelector('.main-card');
     const customSelect = document.querySelector('.custom-select');
-    if (customSelect) {
+    
+    if (mainCard && customSelect) {
         const trigger = customSelect.querySelector('.custom-select__trigger');
         const options = customSelect.querySelectorAll('.custom-option');
         const hiddenInput = document.getElementById('plataforma');
         const triggerSpan = trigger.querySelector('span');
-        trigger.addEventListener('click', () => customSelect.classList.toggle('open'));
+        
+        // --- Abre y cierra el menú ---
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            const isOpen = customSelect.classList.toggle('open');
+            // **Añade o quita la clase a la tarjeta principal**
+            mainCard.classList.toggle('options-open', isOpen);
+        });
+        
+        // --- Asigna el valor al seleccionar una opción ---
         options.forEach(option => {
             option.addEventListener('click', function() {
                 if (this.hasAttribute('data-value')) {
                     triggerSpan.textContent = this.textContent;
                     triggerSpan.style.color = 'var(--text-primary)';
                     hiddenInput.value = this.getAttribute('data-value');
+                    
+                    // **Cierra el menú y restaura la tarjeta**
                     customSelect.classList.remove('open');
+                    mainCard.classList.remove('options-open');
                 }
             });
         });
-        window.addEventListener('click', e => {
-            if (!customSelect.contains(e.target)) {
+        
+        // --- Cierra el menú si se hace clic fuera ---
+        window.addEventListener('click', () => {
+            if (customSelect.classList.contains('open')) {
+                // **Cierra el menú y restaura la tarjeta**
                 customSelect.classList.remove('open');
+                mainCard.classList.remove('options-open');
             }
         });
     }

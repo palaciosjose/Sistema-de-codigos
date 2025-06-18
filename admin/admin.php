@@ -4,13 +4,12 @@ require_once '../instalacion/basededatos.php';
 require_once '../funciones.php';
 require_once '../security/auth.php';
 require_once '../cache/cache_helper.php';
+require_once '../license_client.php';
 
-// Verificar que el usuario esté autenticado y sea administrador
 check_session(true, '../index.php');
 
 header('Content-Type: text/html; charset=utf-8');
 
-// Verificar si la base de datos está configurada y se puede conectar
 if (empty($db_host) || empty($db_user) || empty($db_password) || empty($db_name) || !file_exists('../instalacion/basededatos.php')) {
     echo '
     <!DOCTYPE html>
@@ -31,7 +30,6 @@ if (empty($db_host) || empty($db_user) || empty($db_password) || empty($db_name)
     exit();
 }
 
-// Crear una única conexión a la base de datos para todo el script
 $conn = new mysqli($db_host, $db_user, $db_password, $db_name);
 $conn->set_charset("utf8mb4");
 
@@ -55,7 +53,6 @@ if ($conn->connect_error) {
     exit();
 }
 
-// Verificar si las tablas necesarias existen
 $required_tables = ['admin', 'settings', 'email_servers', 'users', 'logs'];
 foreach ($required_tables as $table) {
     $result = $conn->query("SHOW TABLES LIKE '$table'");
@@ -76,19 +73,17 @@ foreach ($required_tables as $table) {
                 <a href="../instalacion/instalador.php" class="btn btn-primary">Reinstalar Sistema</a>
             </div>
         </body>
-        </html>';
+    </html>';
         exit();
     }
 }
 
-// Verificar si existen servidores de correo en la base de datos
 $check_servers = $conn->query("SELECT COUNT(*) as count FROM email_servers");
 $server_count = 0;
 if ($check_servers && $row = $check_servers->fetch_assoc()) {
     $server_count = $row['count'];
 }
 
-// Si no hay servidores, crear 5 servidores predeterminados
 if ($server_count == 0) {
     $default_servers = [
         ["SERVIDOR_1", 0, "imap.gmail.com", 993, "usuario1@gmail.com", ""],
@@ -110,10 +105,8 @@ if ($server_count == 0) {
 
 $settings = get_all_settings($conn);
 
-// Variable para controlar el flujo de la interfaz
 $show_form = false;
 
-// Cargar valores actuales de EMAIL_SERVERS
 $email_servers_data = [];
 $result = $conn->query("SELECT * FROM email_servers ORDER BY id ASC");
 while ($row = $result->fetch_assoc()) {
@@ -121,11 +114,13 @@ while ($row = $result->fetch_assoc()) {
 }
 $result->close();
 
-// *** LÓGICA PARA CORREOS AUTORIZADOS ***
+$license_client = new ClientLicense();
+$license_info = $license_client->getLicenseInfo();
+$is_license_valid = $license_client->isLicenseValid();
+
 $auth_email_message = '';
 $auth_email_error = '';
 
-// Manejar eliminación de correo autorizado
 if (isset($_GET['delete_auth_email']) && is_numeric($_GET['delete_auth_email'])) {
     $email_id_to_delete = intval($_GET['delete_auth_email']);
     $stmt = $conn->prepare("DELETE FROM authorized_emails WHERE id = ?");
@@ -144,7 +139,6 @@ if (isset($_GET['delete_auth_email']) && is_numeric($_GET['delete_auth_email']))
     exit();
 }
 
-// Manejar adición de correo autorizado (VÍA AJAX)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_email'])) {
     header('Content-Type: application/json');
 
@@ -186,7 +180,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_email'])) {
     exit();
 }
 
-// Manejar edición de correo autorizado (VÍA AJAX)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_authorized_email'])) {
     header('Content-Type: application/json');
     $response = ['success' => false, 'error' => '', 'message' => ''];
@@ -229,7 +222,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_authorized_email
     exit();
 }
 
-// Recuperar mensajes de sesión y limpiarlos
 if (isset($_SESSION['auth_email_message'])) {
     $auth_email_message = $_SESSION['auth_email_message'];
     unset($_SESSION['auth_email_message']);
@@ -239,7 +231,6 @@ if (isset($_SESSION['auth_email_error'])) {
     unset($_SESSION['auth_email_error']);
 }
 
-// Obtener correos autorizados para mostrar en la tabla
 $authorized_emails_list = [];
 $result_auth = $conn->query("SELECT id, email, created_at FROM authorized_emails ORDER BY email ASC");
 if ($result_auth) {
@@ -251,11 +242,9 @@ if ($result_auth) {
     $auth_email_error = "Error al obtener la lista de correos autorizados: " . $conn->error;
 }
 
-// Manejar formulario de actualización
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     $update_servers_only = isset($_POST['update_servers_only']) && $_POST['update_servers_only'] == '1';
 
-    // Solo actualizar servidores de correo si estamos en la pestaña de servidores o es update_servers_only
     if ($update_servers_only || (isset($_POST['current_tab']) && $_POST['current_tab'] == 'servidores')) {
         foreach ($email_servers_data as $server) {
             $server_id = $server['id'];
@@ -286,6 +275,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             $stmt->close();
         }
         
+        // ¡IMPORTANTE! Limpiar la caché de servidores después de actualizarlos.
+        SimpleCache::clear_servers_cache(); //
+
         if ($update_servers_only) {
             $_SESSION['message'] = 'Servidores IMAP actualizados con éxito.';
             header("Location: admin.php?tab=servidores");
@@ -293,7 +285,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         }
     }
 
-    // Si no es actualización solo de servidores, actualizar el resto de configuraciones
     if (!$update_servers_only) {
         $updatable_keys = [
             'PAGE_TITLE',
@@ -393,7 +384,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         }
         
         SimpleCache::clear_settings_cache();
-        SimpleCache::clear_servers_cache();
+        // Si hay cambios que afectan plataformas, limpiar también
+        SimpleCache::clear_platforms_cache();
     }
     
     header("Location: admin.php?tab=" . ($_POST['current_tab'] ?? 'configuracion'));
@@ -483,10 +475,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="asignaciones-tab" data-bs-toggle="tab" data-bs-target="#asignaciones" type="button" role="tab" aria-controls="asignaciones" aria-selected="false">Asignar Correos</button>
         </li>
+         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="licencia-tab" data-bs-toggle="tab" data-bs-target="#licencia" type="button" role="tab">
+                <i class="fas fa-certificate me-2"></i>Licencia
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content" id="adminTabContent">
-        <!-- TAB CONFIGURACIÓN -->
         <div class="tab-pane fade show active" id="config" role="tabpanel">
             <form method="POST" action="admin.php" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <input type="hidden" name="current_tab" value="config" class="current-tab-input">
@@ -590,7 +586,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </form>
         </div>
 
-        <!-- TAB SERVIDORES -->
         <div class="tab-pane fade" id="servidores" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -679,7 +674,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-        <!-- TAB USUARIOS -->
         <div class="tab-pane fade" id="users" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -691,9 +685,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addUserModal">
                             <i class="fas fa-plus"></i> Nuevo Usuario
                         </button>
+                        <div class="search-box-admin">
+                            <i class="fas fa-search search-icon-admin"></i>
+                            <input type="text" id="searchInputUsers" class="search-input-admin" placeholder="Buscar por usuario o correo...">
+                        </div>
                     </div>
                 </div>
-
+                <div class="search-results-info" id="usersSearchResultsInfo"></div>
                 <?php
                 $users_stmt = $conn->prepare("SELECT id, username, email, status, created_at FROM users ORDER BY id DESC");
                 $users_stmt->execute();
@@ -762,13 +760,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                 </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
+                            <tr class="no-results-row" style="display: none;">
+                                <td colspan="6" class="text-center py-4">
+                                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No se encontraron resultados para tu búsqueda.</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB LOGS -->
         <div class="tab-pane fade" id="logs" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -861,7 +864,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             </div>
         </div>
 
-        <!-- TAB CORREOS AUTORIZADOS -->
         <div class="tab-pane fade" id="correos-autorizados" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -873,9 +875,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addAuthEmailModal">
                             <i class="fas fa-plus"></i> Nuevo Correo
                         </button>
+                        <div class="search-box-admin">
+                            <i class="fas fa-search search-icon-admin"></i>
+                            <input type="text" id="searchInputEmails" class="search-input-admin" placeholder="Buscar por correo...">
+                        </div>
                     </div>
                 </div>
-                
+                <div class="search-results-info" id="emailsSearchResultsInfo"></div>
                 <?php if ($auth_email_message): ?>
                     <div class="alert-admin alert-success-admin">
                         <i class="fas fa-check-circle"></i>
@@ -931,13 +937,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                     </td>
                                 </tr>
                             <?php endif; ?>
+                            <tr class="no-results-row" style="display: none;">
+                                <td colspan="3" class="text-center py-4">
+                                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No se encontraron resultados para tu búsqueda.</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB PLATAFORMAS -->
         <div class="tab-pane fade" id="platforms" role="tabpanel">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -949,9 +960,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <button class="btn-admin btn-success-admin" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
                             <i class="fas fa-plus"></i> Nueva Plataforma
                         </button>
+                        <div class="search-box-admin">
+                            <i class="fas fa-search search-icon-admin"></i>
+                            <input type="text" id="searchInputPlatforms" class="search-input-admin" placeholder="Buscar por plataforma...">
+                        </div>
                     </div>
                 </div>
-
+                <div class="search-results-info" id="platformsSearchResultsInfo"></div>
                 <?php if (isset($_SESSION['platform_message'])): ?>
                     <div class="alert-admin alert-success-admin">
                         <i class="fas fa-check-circle"></i>
@@ -1019,13 +1034,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                     </td>
                                 </tr>
                             <?php endif; ?>
+                             <tr class="no-results-row" style="display: none;">
+                                <td colspan="3" class="text-center py-4">
+                                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No se encontraron resultados para tu búsqueda.</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB ASIGNACIONES -->
         <div class="tab-pane fade" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
             <div class="admin-card">
                 <div class="admin-card-header">
@@ -1080,14 +1100,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <i class="fas fa-users-cog me-2"></i>
                         Gestión de Permisos por Usuario
                     </h3>
+                     <div class="action-buttons-group">
+                        <div class="search-box-admin">
+                            <i class="fas fa-search search-icon-admin"></i>
+                            <input type="text" id="searchInputAssignments" class="search-input-admin" placeholder="Buscar por usuario...">
+                        </div>
+                    </div>
                 </div>
-                <div class="text-muted mt-2">
-                    <small>
-                        <i class="fas fa-info me-1"></i>
-                        Configura qué correos puede consultar cada usuario del sistema
-                    </small>
-                </div>
-
+                 <div class="search-results-info" id="assignmentsSearchResultsInfo"></div>
                 <?php
                 // Obtener usuarios (excepto admin)
                 $users_query = "SELECT id, username, email, status FROM users WHERE id NOT IN (SELECT id FROM admin) ORDER BY username ASC";
@@ -1167,17 +1187,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                                     </td>
                                 </tr>
                             <?php endif; ?>
+                             <tr class="no-results-row" style="display: none;">
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                                    <p class="text-muted mb-0">No se encontraron resultados para tu búsqueda.</p>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="licencia" role="tabpanel">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-certificate me-2 text-primary"></i>
+                        Estado de la Licencia
+                    </h3>
+                </div>
+                <div class="mb-4">
+                    <?php if ($is_license_valid): ?>
+                        <div class="alert-admin alert-success-admin">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>¡Licencia Válida!</strong> Tu sistema está activo y funcionando correctamente.
+                        </div>
+                        <p><strong>Dominio de la Licencia:</strong> <span class="text-primary"><?= htmlspecialchars($license_info['domain'] ?? 'N/A') ?></span></p>
+                        <p><strong>Activada el:</strong> <span class="text-primary"><?= htmlspecialchars($license_info['activated_at'] ?? 'N/A') ?></span></p>
+                        <p><strong>Última Verificación:</strong> <span class="text-primary"><?= htmlspecialchars($license_info['last_check'] ?? 'N/A') ?></span></p>
+                    <?php else: ?>
+                        <div class="alert-admin alert-danger-admin">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>¡Licencia Inválida o no Encontrada!</strong> Por favor, activa o verifica tu licencia.
+                        </div>
+                        <?php if ($license_info): ?>
+                            <p><strong>Estado Actual:</strong> <span class="text-danger"><?= htmlspecialchars($license_info['status'] ?? 'Desconocido') ?></span></p>
+                            <p><strong>Última Verificación:</strong> <span class="text-danger"><?= htmlspecialchars($license_info['last_check'] ?? 'N/A') ?></span></p>
+                        <?php endif; ?>
+                        <div class="text-center mt-3">
+                            <a href="../instalacion/instalador.php?step=license" class="btn-admin btn-primary-admin">
+                                <i class="fas fa-key me-2"></i>Activar/Verificar Licencia
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- TODOS LOS MODALES -->
-
-<!-- Modal para añadir usuario -->
 <div class="modal fade modal-admin" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1225,7 +1284,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para editar usuario -->
 <div class="modal fade modal-admin" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1274,7 +1332,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para eliminar usuario -->
 <div class="modal fade modal-admin" id="deleteUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1306,7 +1363,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para ver resultado de logs -->
 <div class="modal fade modal-admin" id="viewResultModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1325,7 +1381,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para añadir correo autorizado -->
 <div class="modal fade modal-admin" id="addAuthEmailModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1358,11 +1413,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para editar correo autorizado -->
 <div class="modal fade modal-admin" id="editEmailModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="admin.php?tab=correos_autorizados">
+            <form id="editAuthEmailForm">
                 <div class="modal-header">
                     <h5 class="modal-title">
                         <i class="fas fa-envelope-open me-2"></i>
@@ -1382,7 +1436,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-admin btn-secondary-admin" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" name="edit_authorized_email" class="btn-admin btn-primary-admin">
+                    <button type="button" name="edit_authorized_email" class="btn-admin btn-primary-admin" onclick="submitEditAuthEmail()">
                         <i class="fas fa-save"></i> Guardar Cambios
                     </button>
                 </div>
@@ -1391,7 +1445,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para añadir plataforma -->
 <div class="modal fade modal-admin" id="addPlatformModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1424,7 +1477,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para editar plataforma -->
 <div class="modal fade modal-admin" id="editPlatformModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1470,7 +1522,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para eliminar plataforma -->
 <div class="modal fade modal-admin" id="deletePlatformModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1505,7 +1556,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para editar asunto -->
 <div class="modal fade modal-admin" id="editSubjectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -1537,7 +1587,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Modal para asignar correos -->
 <div class="modal fade modal-admin" id="assignEmailsModal" tabindex="-1" aria-labelledby="assignEmailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1550,7 +1599,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                         <i class="fas fa-user-cog me-2"></i>
                         Gestionar Correos para Usuario
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 
                 <div class="modal-body">
@@ -1617,7 +1666,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     </div>
 </div>
 
-<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
@@ -2140,6 +2188,69 @@ function escapeHtml(unsafe) {
          .replace(/'/g, "&#039;");
 }
 
+
+// ===== INICIO: LÓGICA DE BÚSQUEDA DINÁMICA =====
+
+/**
+ * Configura un campo de búsqueda para filtrar una tabla dinámicamente.
+ * @param {string} inputId - El ID del elemento <input> de búsqueda.
+ * @param {string} tableId - El ID del elemento <table> a filtrar.
+ * @param {number[]} columnsToSearch - Un array de índices de las columnas (<td>) a buscar.
+ * @param {string} infoId - El ID del elemento donde se mostrará el contador de resultados.
+ */
+function setupTableSearch(inputId, tableId, columnsToSearch, infoId) {
+    const searchInput = document.getElementById(inputId);
+    const table = document.getElementById(tableId);
+    const infoContainer = document.getElementById(infoId);
+
+    if (!searchInput || !table || !infoContainer) {
+        console.error(`Error al configurar la búsqueda: Elementos no encontrados (Input: ${inputId}, Table: ${tableId}, Info: ${infoId})`);
+        return;
+    }
+
+    const tableBody = table.querySelector('tbody');
+    const allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results-row)'));
+    const noResultsRow = tableBody.querySelector('.no-results-row');
+
+    searchInput.addEventListener('keyup', function() {
+        const filter = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        allRows.forEach(row => {
+            let foundMatch = false;
+            // Solo buscar en las columnas especificadas
+            columnsToSearch.forEach(colIndex => {
+                const cell = row.getElementsByTagName('td')[colIndex];
+                if (cell) {
+                    const cellText = cell.textContent || cell.innerText;
+                    if (cellText.toLowerCase().includes(filter)) {
+                        foundMatch = true;
+                    }
+                }
+            });
+
+            if (foundMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Mostrar u ocultar la fila "sin resultados"
+        if (noResultsRow) {
+            noResultsRow.style.display = visibleCount === 0 ? '' : 'none';
+        }
+
+        // Actualizar contador de resultados
+        infoContainer.innerHTML = `Mostrando <span class="search-match">${visibleCount}</span> de ${allRows.length} registros.`;
+    });
+    
+    // Disparar un evento keyup inicial para establecer el contador
+    searchInput.dispatchEvent(new Event('keyup'));
+}
+
+
 // ===== INICIALIZACIÓN CUANDO SE CARGA LA PÁGINA =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Iniciando panel de administración...');
@@ -2215,13 +2326,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const newTab = event.target.getAttribute('data-bs-target').replace('#', '');
             console.log('Cambiando a pestaña:', newTab);
             
-            // Actualizar campos hidden de current_tab
             const currentTabInputs = document.querySelectorAll('.current-tab-input');
             currentTabInputs.forEach(input => {
                 input.value = newTab;
             });
         });
     });
+
+    // INICIO: Configuración de las búsquedas en las tablas
+    setupTableSearch('searchInputUsers', 'usersTable', [1, 2], 'usersSearchResultsInfo');
+    setupTableSearch('searchInputEmails', 'emailsTable', [0], 'emailsSearchResultsInfo');
+    setupTableSearch('searchInputPlatforms', 'platformsTable', [0], 'platformsSearchResultsInfo');
+    setupTableSearch('searchInputAssignments', 'assignmentsTable', [0], 'assignmentsSearchResultsInfo');
+    // FIN: Configuración de las búsquedas
 
     console.log('Panel de administración inicializado correctamente');
 });
@@ -2243,14 +2360,64 @@ window.savePlatformOrder = savePlatformOrder;
 window.openAssignEmailsModal = openAssignEmailsModal;
 window.loadUserEmails = loadUserEmails;
 window.submitAddAuthEmailForm = submitAddAuthEmailForm;
+window.submitEditAuthEmail = submitEditAuthEmail;
 
 console.log('Todas las funciones asignadas al scope global correctamente');
-</script>
 
-</body>
-</html>
-<?php 
-if ($conn) {
-    $conn->close();
+// Función para enviar la edición de correo autorizado vía AJAX
+function submitEditAuthEmail() {
+    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('editEmailModal'));
+    const emailId = document.getElementById('edit_email_id').value;
+    const emailValue = document.getElementById('edit_email_value').value.trim();
+
+    // Validación simple para asegurar que el correo no esté vacío
+    if (!emailValue) {
+        alert('El campo de correo no puede estar vacío.');
+        return;
+    }
+
+    // Preparamos los datos que enviaremos al servidor
+    const formData = new FormData();
+    formData.append('edit_authorized_email', '1'); // Para que tu PHP sepa qué hacer
+    formData.append('edit_email_id', emailId);
+    formData.append('edit_email_value', emailValue);
+
+    // Usamos fetch para enviar los datos en segundo plano
+    fetch('admin.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json()) // Esperamos una respuesta en formato JSON
+    .then(data => {
+        if (data.success) {
+            // Si el servidor responde que todo fue exitoso
+            alert(data.message || 'Correo actualizado exitosamente.');
+            modalInstance.hide(); // Ocultamos la ventana modal
+
+            // ---- ¡La Magia Sucede Aquí! ----
+            // Actualizamos la tabla sin recargar la página.
+            const triggerButton = document.querySelector(`button[data-bs-id='${emailId}']`);
+            if (triggerButton) {
+                const row = triggerButton.closest('tr');
+                if (row) {
+                    const emailCell = row.cells[0]; // La celda del correo es la primera (índice 0)
+                    // Actualizamos el HTML de la celda con el nuevo correo
+                    emailCell.innerHTML = `<i class="fas fa-envelope me-2 text-primary"></i> ${escapeHtml(emailValue)}`;
+                    // Actualizamos también el botón para que tenga el valor nuevo si se vuelve a editar
+                    triggerButton.setAttribute('data-bs-email', emailValue);
+                }
+            } else {
+                // Si por alguna razón no encontramos la fila, recargamos la página como plan B
+                location.reload();
+            }
+        } else {
+            // Si el servidor responde con un error
+            alert('Error: ' + (data.error || 'Ocurrió un problema.'));
+        }
+    })
+    .catch(error => {
+        // Si hay un error de red o algo inesperado
+        console.error('Error en la petición de edición:', error);
+        alert('Ocurrió un error de conexión. Inténtalo de nuevo.');
+    });
 }
-?>

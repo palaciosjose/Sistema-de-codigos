@@ -462,3 +462,233 @@ body.admin-page::after {
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--glow-border);
 }
+
+/* Contenedor de información de licencia */
+.license-info-container {
+    margin-top: 1rem;
+}
+
+/* Tarjetas de estado de licencia */
+.license-status-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glow-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.license-status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+.license-status-card.status-success {
+    border-color: var(--accent-green);
+    background: rgba(50, 255, 181, 0.1);
+}
+
+.license-status-card.status-warning {
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.license-status-card.status-danger {
+    border-color: var(--danger-red);
+    background: rgba(255, 77, 77, 0.1);
+}
+
+.license-status-card.status-info {
+    border-color: #17a2b8;
+    background: rgba(23, 162, 184, 0.1);
+}
+
+/* Iconos de licencia */
+.license-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.license-status-card.status-success .license-icon {
+    color: var(--accent-green);
+}
+
+.license-status-card.status-warning .license-icon {
+    color: #ffd700;
+}
+
+.license-status-card.status-danger .license-icon {
+    color: var(--danger-red);
+}
+
+.license-status-card.status-info .license-icon {
+    color: #17a2b8;
+}
+
+.license-status-card:not([class*="status-"]) .license-icon {
+    color: var(--text-secondary);
+}
+
+/* Texto de estado de licencia */
+.license-status-text h5 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.license-status-text p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Barra de progreso de licencia */
+.license-progress-container {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glow-border);
+    border-radius: 12px;
+}
+
+.license-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.license-progress-bar {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.license-progress-fill {
+    height: 100%;
+    transition: width 0.6s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.license-progress-fill.progress-success {
+    background: linear-gradient(90deg, var(--accent-green), #20c997);
+}
+
+.license-progress-fill.progress-info {
+    background: linear-gradient(90deg, #17a2b8, #20c997);
+}
+
+.license-progress-fill.progress-warning {
+    background: linear-gradient(90deg, #ffd700, #ff8c00);
+}
+
+.license-progress-fill.progress-danger {
+    background: linear-gradient(90deg, var(--danger-red), #dc3545);
+}
+
+/* Animación de la barra de progreso */
+.license-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Fechas de la licencia */
+.license-progress-dates {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.license-start, .license-end {
+    display: flex;
+    align-items: center;
+}
+
+/* Alertas de licencia */
+.alert-admin.alert-warning-admin {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: #ffd700;
+    color: #ffd700;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .license-status-card {
+        height: auto;
+        margin-bottom: 1rem;
+    }
+    
+    .license-progress-dates {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .license-progress-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+}
+
+/* Efecto de pulsado para licencias próximas a vencer */
+.license-status-card.status-danger {
+    animation: danger-pulse 2s ease-in-out infinite;
+}
+
+@keyframes danger-pulse {
+    0%, 100% { 
+        border-color: var(--danger-red);
+        box-shadow: 0 0 10px rgba(255, 77, 77, 0.2);
+    }
+    50% { 
+        border-color: #ff6b6b;
+        box-shadow: 0 0 20px rgba(255, 77, 77, 0.4);
+    }
+}
+
+.license-status-card.status-warning {
+    animation: warning-pulse 3s ease-in-out infinite;
+}
+
+@keyframes warning-pulse {
+    0%, 100% { 
+        border-color: #ffd700;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    }
+    50% { 
+        border-color: #ffed4a;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+}
