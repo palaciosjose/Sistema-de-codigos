@@ -244,9 +244,12 @@ if ($result_auth) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
+    
     $update_servers_only = isset($_POST['update_servers_only']) && $_POST['update_servers_only'] == '1';
-
-    if ($update_servers_only || (isset($_POST['current_tab']) && $_POST['current_tab'] == 'servidores')) {
+    $current_tab = $_POST['current_tab'] ?? 'configuracion';
+    
+    // PROCESAMIENTO DE SERVIDORES
+    if ($update_servers_only || $current_tab == 'servidores') {
         foreach ($email_servers_data as $server) {
             $server_id = $server['id'];
             $server_checkbox = isset($_POST["enabled_$server_id"]) ? 1 : 0;
@@ -274,10 +277,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             $stmt->bind_param("isissi", $server_checkbox, $imap_server, $imap_port, $imap_user, $imap_password, $server_id);
             $stmt->execute();
             $stmt->close();
+
         }
         
-        // ¡IMPORTANTE! Limpiar la caché de servidores después de actualizarlos.
-        SimpleCache::clear_servers_cache(); //
+        SimpleCache::clear_servers_cache();
 
         if ($update_servers_only) {
             $_SESSION['message'] = 'Servidores IMAP actualizados con éxito.';
@@ -286,73 +289,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         }
     }
 
+    // PROCESAMIENTO DE CONFIGURACIÓN GENERAL
     if (!$update_servers_only) {
+        
+        // LISTA COMPLETA de configuraciones manejadas
         $updatable_keys = [
+            // Campos de texto
             'PAGE_TITLE',
+            'enlace_global_1', 
+            'enlace_global_1_texto', 
+            'enlace_global_2', 
+            'enlace_global_2_texto',
+            'enlace_global_numero_whatsapp', 
+            'enlace_global_texto_whatsapp',
+            'ID_VENDEDOR',
+            'LOGO',
+            
+            // Campos numéricos
+            'EMAIL_QUERY_TIME_LIMIT_MINUTES',
+            'CACHE_TIME_MINUTES',
+            'MAX_EMAILS_TO_CHECK',
+            'IMAP_CONNECTION_TIMEOUT',
+            'IMAP_SEARCH_TIMEOUT',
+            'TIMEZONE_DEBUG_HOURS',
+            
+            // Checkboxes principales
             'EMAIL_AUTH_ENABLED',
-            'enlace_global_1', 'enlace_global_1_texto', 'enlace_global_2', 'enlace_global_2_texto',
-            'enlace_global_numero_whatsapp', 'enlace_global_texto_whatsapp','ID_VENDEDOR','LOGO',
             'REQUIRE_LOGIN',
             'USER_EMAIL_RESTRICTIONS_ENABLED',
-            'EMAIL_QUERY_TIME_LIMIT_MINUTES',
-            'IMAP_CONNECTION_TIMEOUT',
+            
+            // Checkboxes de cache
+            'CACHE_ENABLED',
+            'CACHE_MEMORY_ENABLED',
+            
+            // Checkboxes de optimización
             'IMAP_SEARCH_OPTIMIZATION', 
             'PERFORMANCE_LOGGING',
             'EARLY_SEARCH_STOP',
-            'CACHE_ENABLED',
-            'CACHE_TIME_MINUTES', 
-            'CACHE_MEMORY_ENABLED',
             'TRUST_IMAP_DATE_FILTER',
-            'USE_PRECISE_IMAP_SEARCH',
-            'MAX_EMAILS_TO_CHECK',
-            'IMAP_SEARCH_TIMEOUT',
-            'TIMEZONE_DEBUG_HOURS'
-            
+            'USE_PRECISE_IMAP_SEARCH'
         ];
 
+        // Lista de configuraciones que son checkboxes (0/1)
+        $checkbox_keys = [
+            'EMAIL_AUTH_ENABLED',
+            'REQUIRE_LOGIN',
+            'USER_EMAIL_RESTRICTIONS_ENABLED',
+            'CACHE_ENABLED',
+            'CACHE_MEMORY_ENABLED',
+            'IMAP_SEARCH_OPTIMIZATION',
+            'PERFORMANCE_LOGGING',
+            'EARLY_SEARCH_STOP',
+            'TRUST_IMAP_DATE_FILTER',
+            'USE_PRECISE_IMAP_SEARCH'
+        ];
+
+        $updates_count = 0;
+        $errors_count = 0;
+
         foreach ($updatable_keys as $key) {
-            if (isset($_POST[$key])) {
-                $final_value = $_POST[$key];
-                if (in_array($key, [
-                    'EMAIL_AUTH_ENABLED',
-                    'REQUIRE_LOGIN',
-                    'USER_EMAIL_RESTRICTIONS_ENABLED',
-                    'IMAP_SEARCH_OPTIMIZATION',
-                    'PERFORMANCE_LOGGING',
-                    'EARLY_SEARCH_STOP',
-                    'CACHE_ENABLED',
-                    'CACHE_MEMORY_ENABLED',
-                    'TRUST_IMAP_DATE_FILTER',
-                    'USE_PRECISE_IMAP_SEARCH'
-                ])) {
-                    $final_value = ($final_value === '1') ? '1' : '0';
-                }
-                $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?");
-                $stmt->bind_param("sss", $key, $final_value, $final_value);
-                $stmt->execute();
-                $stmt->close();
+            $value_to_save = null;
+            
+            if (in_array($key, $checkbox_keys)) {
+                // Para checkboxes: si está en POST con valor '1' es '1', si no es '0'
+                $value_to_save = isset($_POST[$key]) && $_POST[$key] === '1' ? '1' : '0';
             } else {
-                if (in_array($key, [
-                    'EMAIL_AUTH_ENABLED',
-                    'REQUIRE_LOGIN',
-                    'USER_EMAIL_RESTRICTIONS_ENABLED',
-                    'IMAP_SEARCH_OPTIMIZATION',
-                    'PERFORMANCE_LOGGING', 
-                    'EARLY_SEARCH_STOP',
-                    'CACHE_ENABLED',
-                    'CACHE_MEMORY_ENABLED',
-                    'TRUST_IMAP_DATE_FILTER',
-                    'USE_PRECISE_IMAP_SEARCH' 
-                ])) {
-                    $zero = '0';
-                    $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?");
-                    $stmt->bind_param("sss", $key, $zero, $zero);  
-                    $stmt->execute();
+                // Para campos de texto/numéricos: solo actualizar si está presente en POST
+                if (isset($_POST[$key])) {
+                    $value_to_save = trim($_POST[$key]);
+                }
+            }
+            
+            if ($value_to_save !== null) {
+                try {
+                    // Verificar si ya existe
+                    $check_stmt = $conn->prepare("SELECT value FROM settings WHERE name = ?");
+                    $check_stmt->bind_param("s", $key);
+                    $check_stmt->execute();
+                    $check_result = $check_stmt->get_result();
+                    $exists = $check_result->num_rows > 0;
+                    $check_stmt->close();
+                    
+                    if ($exists) {
+                        // Actualizar
+                        $stmt = $conn->prepare("UPDATE settings SET value = ? WHERE name = ?");
+                        $stmt->bind_param("ss", $value_to_save, $key);
+                    } else {
+                        // Insertar
+                        $stmt = $conn->prepare("INSERT INTO settings (name, value) VALUES (?, ?)");
+                        $stmt->bind_param("ss", $key, $value_to_save);
+                    }
+                    
+                    $success = $stmt->execute();
                     $stmt->close();
+                    
+                    if ($success) {
+                        $updates_count++;
+                    } else {
+                        
+                        $errors_count++;
+                    }
+                } catch (Exception $e) {
+
+                    $errors_count++;
                 }
             }
         }
 
+        // PROCESAMIENTO DE LOGO
         $target_dir = "../images/logo/";
         if(isset($_FILES["logo"]) && $_FILES["logo"]["error"] == UPLOAD_ERR_OK){
             $rutaTemporal = $_FILES['logo']['tmp_name'];
@@ -382,21 +426,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                     $stmt_logo->execute();
                     $stmt_logo->close();
                     
-                    $_SESSION['message'] = 'Configuración actualizada con éxito.';
+                    $_SESSION['message'] = 'Configuración actualizada con éxito (incluido logo).';
                 } else {
                     $_SESSION['message'] = 'Error: No se pudo subir el archivo.';
                 }
             }
         } else {
-            $_SESSION['message'] = 'Configuración actualizada con éxito.';
+            if ($errors_count > 0) {
+                $_SESSION['message'] = "Configuración actualizada con $errors_count errores. Revisa los logs.";
+            } else {
+                $_SESSION['message'] = 'Configuración actualizada con éxito.';
+            }
         }
         
+        // LIMPIAR CACHE AGRESIVAMENTE
         SimpleCache::clear_settings_cache();
-        // Si hay cambios que afectan plataformas, limpiar también
         SimpleCache::clear_platforms_cache();
+        SimpleCache::clear_cache(); // Limpia TODO el cache
+        
+        // VERIFICAR QUE LOS VALORES SE GUARDARON CORRECTAMENTE
+        $critical_keys = ['EMAIL_AUTH_ENABLED', 'USER_EMAIL_RESTRICTIONS_ENABLED', 'CACHE_ENABLED'];
+        foreach ($critical_keys as $key) {
+            $verification_stmt = $conn->prepare("SELECT value FROM settings WHERE name = ?");
+            $verification_stmt->bind_param("s", $key);
+            $verification_stmt->execute();
+            $verification_result = $verification_stmt->get_result();
+            if ($verification_result->num_rows > 0) {
+                $row = $verification_result->fetch_assoc();
+            } else {
+            }
+            $verification_stmt->close();
+        }
+        
+        // VERIFICAR CACHE REGENERADO
+        try {
+            $fresh_settings = SimpleCache::get_settings($conn);
+            foreach ($critical_keys as $key) {
+                $cache_value = $fresh_settings[$key] ?? 'NOT_FOUND';
+            }
+        } catch (Exception $e) {
+        }
     }
     
-    header("Location: admin.php?tab=" . ($_POST['current_tab'] ?? 'configuracion'));
+    header("Location: admin.php?tab=" . $current_tab . "&debug=1&updated=" . time());
     exit();
 }
 
@@ -1174,49 +1246,147 @@ document.addEventListener('visibilitychange', function() {
             
             <form method="POST" action="admin.php" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <input type="hidden" name="current_tab" value="config" class="current-tab-input">
-                
-                <div class="admin-card">
-                    <div class="admin-card-header">
-                        <h3 class="admin-card-title">
-                            <i class="fas fa-toggle-on me-2 text-primary"></i>
-                            Opciones Principales
-                        </h3>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="EMAIL_AUTH_ENABLED" name="EMAIL_AUTH_ENABLED" value="1" <?= $settings['EMAIL_AUTH_ENABLED'] ? 'checked' : '' ?>>
-                                <label for="EMAIL_AUTH_ENABLED" class="form-check-label-admin">
-                                    <i class="fas fa-filter me-2"></i>
-                                    Filtro de Correos Electrónicos
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check-admin">
-                                <input type="checkbox" class="form-check-input-admin" id="REQUIRE_LOGIN" name="REQUIRE_LOGIN" value="1" <?= ($settings['REQUIRE_LOGIN'] ?? '1') === '1' ? 'checked' : '' ?>>
-                                <label for="REQUIRE_LOGIN" class="form-check-label-admin">
-                                    <i class="fas fa-lock me-2"></i>
-                                    Seguridad de Login Habilitada
-                                </label>
-                            </div>
-                            <small class="text-muted d-block mt-1">Si está activado, todos los usuarios necesitan iniciar sesión.</small>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group-admin">
-                        <label for="EMAIL_QUERY_TIME_LIMIT_MINUTES" class="form-label-admin">
-                            <i class="fas fa-clock me-2"></i>
-                            Límite de tiempo para consulta de correos (minutos)
-                        </label>
-                        <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '30' ?>">
-                        <small class="text-muted">Tiempo máximo para buscar correos. Valor recomendado: 30 minutos para mejor performance.</small>
-                    </div>
-                </div>
 
-                <!-- NUEVA SECCIÓN: OPTIMIZACIONES DE PERFORMANCE -->
-                <div class="admin-card">
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="fas fa-toggle-on me-2 text-primary"></i>
+            Opciones Principales
+        </h3>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="EMAIL_AUTH_ENABLED" 
+                       name="EMAIL_AUTH_ENABLED" 
+                       value="1" 
+                       <?= (isset($settings['EMAIL_AUTH_ENABLED']) && $settings['EMAIL_AUTH_ENABLED'] === '1') ? 'checked' : '' ?>>
+                <label for="EMAIL_AUTH_ENABLED" class="form-check-label-admin">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtro de Correos Electrónicos
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Activar lista de correos autorizados</small>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="REQUIRE_LOGIN" 
+                       name="REQUIRE_LOGIN" 
+                       value="1" 
+                       <?= (isset($settings['REQUIRE_LOGIN']) && $settings['REQUIRE_LOGIN'] === '1') ? 'checked' : '' ?>>
+                <label for="REQUIRE_LOGIN" class="form-check-label-admin">
+                    <i class="fas fa-lock me-2"></i>
+                    Seguridad de Login Habilitada
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Si está activado, todos los usuarios necesitan iniciar sesión.</small>
+        </div>
+    </div>
+
+    <!-- Segunda fila de checkboxes -->
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="CACHE_ENABLED" 
+                       name="CACHE_ENABLED" 
+                       value="1" 
+                       <?= (isset($settings['CACHE_ENABLED']) && $settings['CACHE_ENABLED'] === '1') ? 'checked' : '' ?>>
+                <label for="CACHE_ENABLED" class="form-check-label-admin">
+                    <i class="fas fa-database me-2"></i>
+                    Sistema de Cache Habilitado
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Mejora el rendimiento guardando resultados en cache</small>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="CACHE_MEMORY_ENABLED" 
+                       name="CACHE_MEMORY_ENABLED" 
+                       value="1" 
+                       <?= (isset($settings['CACHE_MEMORY_ENABLED']) && $settings['CACHE_MEMORY_ENABLED'] === '1') ? 'checked' : '' ?>>
+                <label for="CACHE_MEMORY_ENABLED" class="form-check-label-admin">
+                    <i class="fas fa-memory me-2"></i>
+                    Cache en Memoria
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Cache temporal en memoria para consultas repetidas</small>
+        </div>
+    </div>
+
+    <!-- Separador visual -->
+    <hr class="my-4" style="border-color: rgba(255,255,255,0.2); margin: 2rem 0;">
+
+    <!-- Checkbox de restricciones por usuario -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="USER_EMAIL_RESTRICTIONS_ENABLED" 
+                       name="USER_EMAIL_RESTRICTIONS_ENABLED" 
+                       value="1" 
+                       <?= (isset($settings['USER_EMAIL_RESTRICTIONS_ENABLED']) && $settings['USER_EMAIL_RESTRICTIONS_ENABLED'] === '1') ? 'checked' : '' ?>>
+                <label for="USER_EMAIL_RESTRICTIONS_ENABLED" class="form-check-label-admin">
+                    <i class="fas fa-users-cog me-2"></i>
+                    <strong>Activar restricciones por usuario</strong>
+                </label>
+            </div>
+            <div class="form-text text-muted mt-2">
+                <span class="d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Si está activado:</strong> cada usuario solo puede consultar los correos que se le asignen específicamente.
+                </span>
+                <span class="d-block">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Si está desactivado:</strong> todos los usuarios pueden consultar cualquier correo autorizado.
+                </span>
+                <span class="d-block mt-1 text-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>Nota:</strong> Esta opción requiere que "Filtro de Correos Electrónicos" esté activado.
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Campos numéricos -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="form-group-admin">
+                <label for="EMAIL_QUERY_TIME_LIMIT_MINUTES" class="form-label-admin">
+                    <i class="fas fa-clock me-2"></i>
+                    Límite de tiempo para consulta de correos (minutos)
+                </label>
+                <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= htmlspecialchars($settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '30') ?>">
+                <small class="text-muted">Tiempo máximo para buscar correos. Valor recomendado: 30 minutos para mejor performance.</small>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-group-admin">
+                <label for="CACHE_TIME_MINUTES" class="form-label-admin">
+                    <i class="fas fa-hourglass-half me-2"></i>
+                    Tiempo de vida del cache (minutos)
+                </label>
+                <input type="number" class="form-control-admin" id="CACHE_TIME_MINUTES" name="CACHE_TIME_MINUTES" min="1" max="60" value="<?= htmlspecialchars($settings['CACHE_TIME_MINUTES'] ?? '5') ?>">
+                <small class="text-muted">Tiempo que se mantienen los datos en cache antes de refrescar.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NUEVA SECCIÓN: OPTIMIZACIONES DE PERFORMANCE -->
+<div class="admin-card">
     <div class="admin-card-header">
         <h3 class="admin-card-title">
             <i class="fas fa-rocket me-2 text-warning"></i>
@@ -1231,34 +1401,16 @@ document.addEventListener('visibilitychange', function() {
         </div>
     </div>
     
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group-admin">
-                <label for="MAX_EMAILS_TO_CHECK" class="form-label-admin">
-                    <i class="fas fa-envelope me-2"></i>
-                    Máximo de emails a verificar por consulta
-                </label>
-                <input type="number" class="form-control-admin" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="100" value="<?= $settings['MAX_EMAILS_TO_CHECK'] ?? '35' ?>">
-                <small class="text-muted">Valor recomendado: 35. Reducir para buzones muy grandes.</small>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="form-group-admin">
-                <label for="IMAP_CONNECTION_TIMEOUT" class="form-label-admin">
-                    <i class="fas fa-clock me-2"></i>
-                    Timeout de conexión IMAP (segundos)
-                </label>
-                <input type="number" class="form-control-admin" id="IMAP_CONNECTION_TIMEOUT" name="IMAP_CONNECTION_TIMEOUT" min="5" max="30" value="<?= $settings['IMAP_CONNECTION_TIMEOUT'] ?? '8' ?>">
-                <small class="text-muted">Valor recomendado: 8. Conexiones más rápidas para servidores estables.</small>
-            </div>
-        </div>
-    </div>
-    
+    <!-- Checkboxes de optimización -->
     <div class="row">
         <div class="col-md-6">
             <div class="form-check-admin">
-                <input type="checkbox" class="form-check-input-admin" id="USE_PRECISE_IMAP_SEARCH" name="USE_PRECISE_IMAP_SEARCH" value="1" <?= ($settings['USE_PRECISE_IMAP_SEARCH'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="USE_PRECISE_IMAP_SEARCH" 
+                       name="USE_PRECISE_IMAP_SEARCH" 
+                       value="1" 
+                       <?= (isset($settings['USE_PRECISE_IMAP_SEARCH']) && $settings['USE_PRECISE_IMAP_SEARCH'] === '1') ? 'checked' : '' ?>>
                 <label for="USE_PRECISE_IMAP_SEARCH" class="form-check-label-admin">
                     <i class="fas fa-search-plus me-2"></i>
                     Búsquedas IMAP precisas
@@ -1269,7 +1421,12 @@ document.addEventListener('visibilitychange', function() {
         
         <div class="col-md-6">
             <div class="form-check-admin">
-                <input type="checkbox" class="form-check-input-admin" id="EARLY_SEARCH_STOP" name="EARLY_SEARCH_STOP" value="1" <?= ($settings['EARLY_SEARCH_STOP'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="EARLY_SEARCH_STOP" 
+                       name="EARLY_SEARCH_STOP" 
+                       value="1" 
+                       <?= (isset($settings['EARLY_SEARCH_STOP']) && $settings['EARLY_SEARCH_STOP'] === '1') ? 'checked' : '' ?>>
                 <label for="EARLY_SEARCH_STOP" class="form-check-label-admin">
                     <i class="fas fa-stop-circle me-2"></i>
                     Parada temprana de búsqueda
@@ -1279,10 +1436,15 @@ document.addEventListener('visibilitychange', function() {
         </div>
     </div>
     
-    <div class="row">
+    <div class="row mt-3">
         <div class="col-md-6">
             <div class="form-check-admin">
-                <input type="checkbox" class="form-check-input-admin" id="IMAP_SEARCH_OPTIMIZATION" name="IMAP_SEARCH_OPTIMIZATION" value="1" <?= ($settings['IMAP_SEARCH_OPTIMIZATION'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="IMAP_SEARCH_OPTIMIZATION" 
+                       name="IMAP_SEARCH_OPTIMIZATION" 
+                       value="1" 
+                       <?= (isset($settings['IMAP_SEARCH_OPTIMIZATION']) && $settings['IMAP_SEARCH_OPTIMIZATION'] === '1') ? 'checked' : '' ?>>
                 <label for="IMAP_SEARCH_OPTIMIZATION" class="form-check-label-admin">
                     <i class="fas fa-tachometer-alt me-2"></i>
                     Optimizaciones de búsqueda IMAP
@@ -1292,18 +1454,76 @@ document.addEventListener('visibilitychange', function() {
         </div>
         
         <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="TRUST_IMAP_DATE_FILTER" 
+                       name="TRUST_IMAP_DATE_FILTER" 
+                       value="1" 
+                       <?= (isset($settings['TRUST_IMAP_DATE_FILTER']) && $settings['TRUST_IMAP_DATE_FILTER'] === '1') ? 'checked' : '' ?>>
+                <label for="TRUST_IMAP_DATE_FILTER" class="form-check-label-admin">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    Confiar en filtrado de fechas IMAP
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Confiar en el servidor IMAP para filtrar fechas (más rápido).</small>
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="form-check-admin">
+                <input type="checkbox" 
+                       class="form-check-input-admin" 
+                       id="PERFORMANCE_LOGGING" 
+                       name="PERFORMANCE_LOGGING" 
+                       value="1" 
+                       <?= (isset($settings['PERFORMANCE_LOGGING']) && $settings['PERFORMANCE_LOGGING'] === '1') ? 'checked' : '' ?>>
+                <label for="PERFORMANCE_LOGGING" class="form-check-label-admin">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Logging de performance
+                </label>
+            </div>
+            <small class="text-muted d-block mt-1">Registrar métricas de rendimiento en logs.</small>
+        </div>
+    </div>
+    
+    <!-- Campos numéricos de performance -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="form-group-admin">
+                <label for="MAX_EMAILS_TO_CHECK" class="form-label-admin">
+                    <i class="fas fa-envelope me-2"></i>
+                    Máximo de emails a verificar por consulta
+                </label>
+                <input type="number" class="form-control-admin" id="MAX_EMAILS_TO_CHECK" name="MAX_EMAILS_TO_CHECK" min="10" max="100" value="<?= htmlspecialchars($settings['MAX_EMAILS_TO_CHECK'] ?? '35') ?>">
+                <small class="text-muted">Valor recomendado: 35. Reducir para buzones muy grandes.</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="form-group-admin">
+                <label for="IMAP_CONNECTION_TIMEOUT" class="form-label-admin">
+                    <i class="fas fa-clock me-2"></i>
+                    Timeout de conexión IMAP (segundos)
+                </label>
+                <input type="number" class="form-control-admin" id="IMAP_CONNECTION_TIMEOUT" name="IMAP_CONNECTION_TIMEOUT" min="5" max="30" value="<?= htmlspecialchars($settings['IMAP_CONNECTION_TIMEOUT'] ?? '8') ?>">
+                <small class="text-muted">Valor recomendado: 8. Conexiones más rápidas para servidores estables.</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
             <div class="form-group-admin">
                 <label for="IMAP_SEARCH_TIMEOUT" class="form-label-admin">
                     <i class="fas fa-hourglass-half me-2"></i>
                     Timeout de búsqueda IMAP (segundos)
                 </label>
-                <input type="number" class="form-control-admin" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= $settings['IMAP_SEARCH_TIMEOUT'] ?? '30' ?>">
+                <input type="number" class="form-control-admin" id="IMAP_SEARCH_TIMEOUT" name="IMAP_SEARCH_TIMEOUT" min="10" max="120" value="<?= htmlspecialchars($settings['IMAP_SEARCH_TIMEOUT'] ?? '30') ?>">
                 <small class="text-muted">Tiempo máximo para cada operación de búsqueda individual.</small>
             </div>
         </div>
     </div>
 </div>
-
                 <div class="admin-card">
                     <div class="admin-card-header">
                         <h3 class="admin-card-title">
@@ -1825,55 +2045,8 @@ document.addEventListener('visibilitychange', function() {
                 </div>
             </div>
         </div>
-
+        
         <div class="tab-pane fade" id="asignaciones" role="tabpanel" aria-labelledby="asignaciones-tab">
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-toggle-on me-2 text-primary"></i>
-                        Configuración de Restricciones
-                    </h3>
-                </div>
-                
-                <?php if (isset($_SESSION['assignment_message'])): ?>
-                    <div class="alert-admin alert-success-admin">
-                        <i class="fas fa-check-circle"></i>
-                        <span><?= htmlspecialchars($_SESSION['assignment_message']); unset($_SESSION['assignment_message']); ?></span>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($_SESSION['assignment_error'])): ?>
-                    <div class="alert-admin alert-danger-admin">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span><?= htmlspecialchars($_SESSION['assignment_error']); unset($_SESSION['assignment_error']); ?></span>
-                    </div>
-                <?php endif; ?>
-
-                <form method="POST" action="admin.php">
-                    <input type="hidden" name="current_tab" value="asignaciones" class="current-tab-input">
-                    <div class="form-check-admin">
-                        <input class="form-check-input-admin" type="checkbox" id="USER_EMAIL_RESTRICTIONS_ENABLED" name="USER_EMAIL_RESTRICTIONS_ENABLED" value="1" <?= ($settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1' ? 'checked' : '' ?>>
-                        <label class="form-check-label-admin" for="USER_EMAIL_RESTRICTIONS_ENABLED">
-                            <i class="fas fa-lock me-2"></i>
-                            <strong>Activar restricciones por usuario</strong>
-                        </label>
-                    </div>
-                    <div class="form-text text-muted mt-2 mb-3">
-                        <span class="d-block">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <strong>Si está activado:</strong> cada usuario solo puede consultar los correos que se le asignen específicamente.
-                        </span>
-                        <span class="d-block">
-                            <i class="fas fa-info-circle me-1"></i>
-                            <strong>Si está desactivado:</strong> todos los usuarios pueden consultar cualquier correo autorizado.
-                        </span>
-                    </div>
-                    <button type="submit" name="update" class="btn-admin btn-primary-admin btn-sm-admin">
-                        <i class="fas fa-save"></i> Guardar Configuración
-                    </button>
-                </form>
-            </div>
-
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h3 class="admin-card-title mb-0">
@@ -1888,6 +2061,16 @@ document.addEventListener('visibilitychange', function() {
                     </div>
                 </div>
                  <div class="search-results-info" id="assignmentsSearchResultsInfo"></div>
+                 <!-- Aviso sobre restricciones desactivadas -->
+<?php if (!isset($settings['USER_EMAIL_RESTRICTIONS_ENABLED']) || $settings['USER_EMAIL_RESTRICTIONS_ENABLED'] !== '1'): ?>
+    <div class="alert-admin alert-warning-admin">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>Restricciones por usuario desactivadas.</strong>
+            Para usar esta funcionalidad, activa "Restricciones por usuario" en la pestaña de <strong>Configuración</strong>.
+        </div>
+    </div>
+<?php endif; ?>
                 <?php
                 // Obtener usuarios (excepto admin)
                 $users_query = "SELECT id, username, email, status FROM users WHERE id NOT IN (SELECT id FROM admin) ORDER BY username ASC";
