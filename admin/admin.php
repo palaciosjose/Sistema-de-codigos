@@ -492,6 +492,686 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
     <div class="tab-content" id="adminTabContent">
         <div class="tab-pane fade show active" id="config" role="tabpanel">
+            
+            <!-- 
+AGREGAR ESTA SECCIÓN AL INICIO DE LA PESTAÑA DE CONFIGURACIÓN EN admin.php 
+Colocar justo después de: <div class="tab-pane fade show active" id="config" role="tabpanel">
+-->
+
+<!-- Dashboard de Estadísticas en Tiempo Real -->
+<div class="admin-card dashboard-stats-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="fas fa-chart-line me-2 text-primary"></i>
+            Dashboard en Tiempo Real
+        </h3>
+        <div class="dashboard-controls">
+            <span class="last-update">Última actualización: <span id="lastUpdateTime">--:--:--</span></span>
+            <button type="button" class="btn-admin btn-secondary-admin btn-sm-admin" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i> Actualizar
+            </button>
+        </div>
+    </div>
+    
+    <!-- Estadísticas principales -->
+    <div class="dashboard-main-stats">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="searchesToday">--</div>
+                <div class="stat-label">Búsquedas Hoy</div>
+                <div class="stat-trend" id="searchesTrend">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+12% vs ayer</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-success">
+            <div class="stat-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="successRate">--%</div>
+                <div class="stat-label">Tasa de Éxito</div>
+                <div class="stat-trend positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+3% esta semana</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-info">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="activeUsers">--</div>
+                <div class="stat-label">Usuarios Activos</div>
+                <div class="stat-trend" id="usersTrend">
+                    <i class="fas fa-circle"></i>
+                    <span>Últimas 24h</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-warning">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="avgTime">-.-s</div>
+                <div class="stat-label">Tiempo Promedio</div>
+                <div class="stat-trend positive">
+                    <i class="fas fa-arrow-down"></i>
+                    <span>-0.2s vs ayer</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estadísticas adicionales -->
+    <div class="dashboard-secondary-stats">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="mini-stat">
+                    <div class="mini-stat-icon">
+                        <i class="fas fa-user-check text-success"></i>
+                    </div>
+                    <div class="mini-stat-content">
+                        <div class="mini-stat-number" id="totalUsers">--</div>
+                        <div class="mini-stat-label">Total Usuarios</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mini-stat">
+                    <div class="mini-stat-icon">
+                        <i class="fas fa-server text-info"></i>
+                    </div>
+                    <div class="mini-stat-content">
+                        <div class="mini-stat-number" id="activeServers">--</div>
+                        <div class="mini-stat-label">Servidores Activos</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mini-stat">
+                    <div class="mini-stat-icon">
+                        <i class="fas fa-th-large text-warning"></i>
+                    </div>
+                    <div class="mini-stat-content">
+                        <div class="mini-stat-number" id="totalPlatforms">--</div>
+                        <div class="mini-stat-label">Plataformas</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mini-stat">
+                    <div class="mini-stat-icon">
+                        <i class="fas fa-chart-bar text-primary"></i>
+                    </div>
+                    <div class="mini-stat-content">
+                        <div class="mini-stat-number" id="weekSearches">--</div>
+                        <div class="mini-stat-label">Esta Semana</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de actividad por horas -->
+    <div class="dashboard-chart-section">
+        <h6 class="chart-title">
+            <i class="fas fa-chart-area me-2"></i>
+            Actividad por Horas (Hoy)
+        </h6>
+        <div class="chart-container">
+            <canvas id="hourlyChart" width="400" height="100"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- CSS Styles para el Dashboard -->
+<style>
+/* Estilos específicos para el dashboard */
+.dashboard-stats-card {
+    background: linear-gradient(135deg, rgba(26, 18, 53, 0.8) 0%, rgba(42, 31, 77, 0.9) 100%);
+    border: 1px solid var(--glow-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-green), #00f2fe, var(--accent-green));
+    animation: dashboard-glow 3s ease-in-out infinite;
+}
+
+@keyframes dashboard-glow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.dashboard-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.last-update {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Estadísticas principales */
+.dashboard-main-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent-green);
+}
+
+.stat-card.stat-success::before { background: #32FFB5; }
+.stat-card.stat-info::before { background: #00f2fe; }
+.stat-card.stat-warning::before { background: #f59e0b; }
+.stat-card.stat-primary::before { background: #6366f1; }
+
+.stat-icon {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: var(--accent-green);
+}
+
+.stat-success .stat-icon { color: #32FFB5; }
+.stat-info .stat-icon { color: #00f2fe; }
+.stat-warning .stat-icon { color: #f59e0b; }
+.stat-primary .stat-icon { color: #6366f1; }
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.stat-trend {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-trend.positive {
+    color: #32FFB5;
+}
+
+/* Estadísticas secundarias */
+.dashboard-secondary-stats {
+    margin: 2rem 0;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.mini-stat {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.mini-stat-icon {
+    margin-right: 0.75rem;
+    font-size: 1.2rem;
+}
+
+.mini-stat-number {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.mini-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Sección del gráfico */
+.dashboard-chart-section {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.chart-title {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.chart-container {
+    position: relative;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+/* Animaciones de carga */
+.loading-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-main-stats {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .dashboard-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+/* Estados de conexión */
+.connection-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s infinite;
+}
+
+.connection-status.offline {
+    background: var(--danger-red);
+    animation: none;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Efectos de contador animado */
+.stat-number.counting {
+    animation: countUp 0.8s ease-out;
+}
+
+@keyframes countUp {
+    from {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+</style>
+
+<!-- JavaScript para el Dashboard -->
+<script>
+// Variables globales para el dashboard
+let dashboardChart = null;
+let dashboardUpdateInterval = null;
+let isUpdatingDashboard = false;
+
+// Función para inicializar el dashboard
+function initializeDashboard() {
+    console.log('Inicializando dashboard...');
+    
+    // Crear el gráfico
+    createHourlyChart();
+    
+    // Cargar datos iniciales
+    refreshDashboard();
+    
+    // Configurar actualización automática cada 30 segundos
+    dashboardUpdateInterval = setInterval(refreshDashboard, 30000);
+    
+    // Añadir indicador de conexión
+    addConnectionIndicator();
+}
+
+// Función para actualizar el dashboard
+async function refreshDashboard() {
+    if (isUpdatingDashboard) return;
+    
+    isUpdatingDashboard = true;
+    const refreshIcon = document.getElementById('refreshIcon');
+    
+    try {
+        // Animar icono de actualización
+        if (refreshIcon) {
+            refreshIcon.classList.add('fa-spin');
+        }
+        
+        // Realizar petición AJAX
+        const response = await fetch('get_dashboard_stats.php', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            updateDashboardData(data);
+            updateConnectionStatus(true);
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+        
+    } catch (error) {
+        console.error('Error actualizando dashboard:', error);
+        updateConnectionStatus(false);
+        showDashboardError(error.message);
+    } finally {
+        isUpdatingDashboard = false;
+        if (refreshIcon) {
+            refreshIcon.classList.remove('fa-spin');
+        }
+    }
+}
+
+// Función para actualizar los datos en el DOM
+function updateDashboardData(data) {
+    const stats = data.main_stats;
+    const additional = data.additional_stats;
+    
+    // Actualizar estadísticas principales con animación
+    animateNumber('searchesToday', stats.searches_today);
+    animateNumber('successRate', stats.success_rate, '%');
+    animateNumber('activeUsers', stats.active_users);
+    animateNumber('avgTime', stats.avg_response_time, 's');
+    
+    // Actualizar estadísticas adicionales
+    updateElement('totalUsers', additional.total_users);
+    updateElement('activeServers', additional.active_servers);
+    updateElement('totalPlatforms', additional.total_platforms);
+    updateElement('weekSearches', additional.week_searches);
+    
+    // Actualizar timestamp
+    updateElement('lastUpdateTime', data.last_updated);
+    
+    // Actualizar gráfico
+    if (dashboardChart && data.hourly_chart) {
+        updateHourlyChart(data.hourly_chart);
+    }
+}
+
+// Función para animar números
+function animateNumber(elementId, newValue, suffix = '') {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const currentValue = parseInt(element.textContent) || 0;
+    const increment = (newValue - currentValue) / 20;
+    let current = currentValue;
+    
+    const animation = setInterval(() => {
+        current += increment;
+        if ((increment > 0 && current >= newValue) || (increment < 0 && current <= newValue)) {
+            current = newValue;
+            clearInterval(animation);
+        }
+        
+        if (suffix === '%') {
+            element.textContent = Math.round(current) + suffix;
+        } else if (suffix === 's') {
+            element.textContent = current.toFixed(1) + suffix;
+        } else {
+            element.textContent = Math.round(current).toLocaleString();
+        }
+    }, 50);
+    
+    // Añadir efecto visual
+    element.classList.add('counting');
+    setTimeout(() => element.classList.remove('counting'), 800);
+}
+
+// Función para actualizar elementos simples
+function updateElement(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = typeof value === 'number' ? value.toLocaleString() : value;
+    }
+}
+
+// Función para crear el gráfico de actividad por horas
+function createHourlyChart() {
+    const canvas = document.getElementById('hourlyChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Configuración básica del gráfico
+    const chartData = {
+        labels: Array.from({length: 24}, (_, i) => i + ':00'),
+        datasets: [{
+            label: 'Búsquedas',
+            data: new Array(24).fill(0),
+            borderColor: '#32FFB5',
+            backgroundColor: 'rgba(50, 255, 181, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#32FFB5',
+            pointBorderColor: '#32FFB5',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#32FFB5'
+        }]
+    };
+    
+    // Crear gráfico simple con Canvas
+    dashboardChart = {
+        canvas: canvas,
+        ctx: ctx,
+        data: chartData,
+        update: function(newData) {
+            this.data.datasets[0].data = newData.map(item => item.searches);
+            this.render();
+        },
+        render: function() {
+            const ctx = this.ctx;
+            const canvas = this.canvas;
+            const data = this.data.datasets[0].data;
+            const max = Math.max(...data) || 1;
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Configurar estilos
+            ctx.strokeStyle = '#32FFB5';
+            ctx.fillStyle = 'rgba(50, 255, 181, 0.1)';
+            ctx.lineWidth = 2;
+            
+            // Dibujar línea y área
+            ctx.beginPath();
+            data.forEach((value, index) => {
+                const x = (index / (data.length - 1)) * canvas.width;
+                const y = canvas.height - (value / max) * canvas.height;
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            // Rellenar área bajo la curva
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Dibujar línea
+            ctx.beginPath();
+            data.forEach((value, index) => {
+                const x = (index / (data.length - 1)) * canvas.width;
+                const y = canvas.height - (value / max) * canvas.height;
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+        }
+    };
+    
+    dashboardChart.render();
+}
+
+// Función para actualizar el gráfico
+function updateHourlyChart(hourlyData) {
+    if (dashboardChart) {
+        dashboardChart.update(hourlyData);
+    }
+}
+
+// Función para mostrar el estado de conexión
+function addConnectionIndicator() {
+    const header = document.querySelector('.dashboard-stats-card .admin-card-header');
+    if (header) {
+        const indicator = document.createElement('div');
+        indicator.className = 'connection-status';
+        indicator.id = 'connectionStatus';
+        header.appendChild(indicator);
+    }
+}
+
+// Función para actualizar el estado de conexión
+function updateConnectionStatus(isOnline) {
+    const indicator = document.getElementById('connectionStatus');
+    if (indicator) {
+        indicator.className = isOnline ? 'connection-status' : 'connection-status offline';
+    }
+}
+
+// Función para mostrar errores
+function showDashboardError(message) {
+    console.error('Dashboard Error:', message);
+    // Aquí podrías mostrar una notificación temporal al usuario
+}
+
+// Inicializar cuando la pestaña de configuración esté activa
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si estamos en la pestaña de configuración
+    const configTab = document.getElementById('config');
+    if (configTab && configTab.classList.contains('active')) {
+        setTimeout(initializeDashboard, 500);
+    }
+    
+    // Escuchar cambios de pestaña
+    const configTabButton = document.getElementById('config-tab');
+    if (configTabButton) {
+        configTabButton.addEventListener('shown.bs.tab', function() {
+            setTimeout(initializeDashboard, 200);
+        });
+    }
+});
+
+// Limpiar intervalos cuando se cambie de pestaña
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden && dashboardUpdateInterval) {
+        clearInterval(dashboardUpdateInterval);
+        dashboardUpdateInterval = null;
+    } else if (!document.hidden && !dashboardUpdateInterval) {
+        dashboardUpdateInterval = setInterval(refreshDashboard, 30000);
+    }
+});
+</script>
+            
             <form method="POST" action="admin.php" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <input type="hidden" name="current_tab" value="config" class="current-tab-input">
                 
