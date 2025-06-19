@@ -1,7 +1,7 @@
 <?php
 /**
- * Instalador del Sistema con Verificación de Licencia 
- * Versión 2.1 - 
+ * Instalador del Sistema con Verificación de Licencia (VERSIÓN CORREGIDA)
+ * Versión 2.1 - Problema de rutas solucionado
  */
 
 session_start();
@@ -73,7 +73,7 @@ function verificarSistemaLicencias() {
     ];
     
     return $diagnostico;  
-}    
+}                      
 
 $diagnostico_licencias = verificarSistemaLicencias();
 
@@ -387,7 +387,7 @@ function insertSystemSettings($pdo) {
         ['enlace_global_1_texto', 'Ir a Página web', 'Texto del botón 1 en el header'],
         ['enlace_global_2', 'https://t.me/', 'Enlace del botón 2 en el header'],
         ['enlace_global_2_texto', 'Ir a Telegram', 'Texto del botón 2 en el header'],
-        ['enlace_global_numero_whatsapp', '0000000', 'Número de WhatsApp para contacto'],
+        ['enlace_global_numero_whatsapp', '000000', 'Número de WhatsApp para contacto'],
         ['enlace_global_texto_whatsapp', 'Hola, necesito soporte técnico', 'Mensaje predeterminado para WhatsApp'],
         ['ID_VENDEDOR', '0', 'ID del vendedor para enlaces de afiliados'],
         ['LOGO', 'logo.png', 'Nombre del archivo de logo'],
@@ -410,7 +410,8 @@ function insertSystemSettings($pdo) {
         ['USE_PRECISE_IMAP_SEARCH', '1', 'Usar búsquedas IMAP más precisas con fecha y hora específica - OPTIMIZADO'],
         ['MAX_EMAILS_TO_CHECK', '35', 'Número máximo de emails a verificar por consulta - OPTIMIZADO'],
         ['IMAP_SEARCH_TIMEOUT', '30', 'Tiempo límite para búsquedas IMAP en segundos'],
-        ['LICENSE_PROTECTED', '1', 'Sistema protegido por licencia']
+        ['LICENSE_PROTECTED', '1', 'Sistema protegido por licencia'],
+        ['INSTALLED', '0', 'Indica si el sistema está instalado correctamente']
     ];
     
     $stmt = $pdo->prepare("INSERT IGNORE INTO settings (name, value, description) VALUES (?, ?, ?)");
@@ -597,25 +598,30 @@ function setupFileSystem() {
 }
 
 function finalizeInstallation($pdo) {
-    $stmt = $pdo->prepare("UPDATE settings SET value = '1' WHERE name = 'INSTALLED'");
+    $stmt = $pdo->prepare("INSERT INTO settings (name, value, description) VALUES ('INSTALLED', '1', 'Sistema instalado correctamente') ON DUPLICATE KEY UPDATE value = '1'");
     $stmt->execute();
     
-    file_put_contents(__DIR__ . '/installed.txt', 
-        date('Y-m-d H:i:s') . " - Instalación completada exitosamente con licencia activada\n" .
+    // Crear archivo de confirmación
+    $install_file_content = date('Y-m-d H:i:s') . " - Instalación completada exitosamente con licencia activada\n" .
         "Archivo de licencia: " . LICENSE_FILE . "\n" .
-        "Directorio de licencias: " . LICENSE_DIR
-    );
+        "Directorio de licencias: " . LICENSE_DIR . "\n" .
+        "Base de datos configurada: SÍ\n" .
+        "Configuración INSTALLED creada: SÍ";
     
+    file_put_contents(__DIR__ . '/installed.txt', $install_file_content);
+    
+    // Limpiar cache si existe
     if (class_exists('SimpleCache')) {
         SimpleCache::clear_cache();
     }
-}
-
-// Verificar si ya está instalado
-if (!isset($installation_successful) && !isset($installation_error)) {
-    if (is_installed()) {
-        header('Location: ../inicio.php');
-        exit();
+    
+    // Verificar que todo esté correcto
+    $check_stmt = $pdo->prepare("SELECT value FROM settings WHERE name = 'INSTALLED'");
+    $check_stmt->execute();
+    $check_result = $check_stmt->fetch();
+    
+    if (!$check_result || $check_result['value'] !== '1') {
+        throw new Exception('Error: No se pudo confirmar la instalación en la base de datos');
     }
 }
 
@@ -950,47 +956,160 @@ if (!isset($installation_successful) && !isset($installation_error)) {
     <div id="topProgressBar"></div>
 
     <div class="container py-4">
-        <?php if (isset($installation_successful) && $installation_successful): ?>
-            <div class="text-center">
-                <div class="mb-4">
-                    <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
-                </div>
-                <h1 class="text-center mb-4">¡Instalación Exitosa!</h1>
-                <div class="form-section">
-                    <p class="mb-3">La configuración se ha guardado correctamente y la instalación se ha completado con éxito.</p>
-                    <?php
-                    $license_info = $license_client->getLicenseInfo();
-                    if ($license_info): ?>
-                        <div class="alert alert-success">
-                            <h6><i class="fas fa-certificate me-2"></i>Información de Licencia</h6>
-                            <ul class="list-unstyled mb-0 text-start">
-                                <li><strong>Dominio:</strong> <span class="text-success"><?= htmlspecialchars($license_info['domain']) ?></span></li>
-                                <li><strong>Activada:</strong> <span class="text-success"><?= htmlspecialchars($license_info['activated_at']) ?></span></li>
-                                <li><strong>Estado:</strong> <span class="badge bg-success">Válida</span></li>
-                            </ul>
-                        </div>
-                    <?php else: ?>
-                        <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle me-2"></i>Información de Licencia</h6>
-                            <ul class="list-unstyled mb-0 text-start">
-                                <li><strong>Estado:</strong> <span class="badge bg-success">Activada durante instalación</span></li>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
-                    <ul class="list-unstyled text-start">
-                        <li><i class="fas fa-check text-success me-2"></i> Licencia activada y verificada</li>
-                        <li><i class="fas fa-check text-success me-2"></i> Base de datos configurada</li>
-                        <li><i class="fas fa-check text-success me-2"></i> Usuario administrador creado</li>
-                        <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
-                        <li><i class="fas fa-check text-success me-2"></i> Rutas de licencia corregidas</li>
-                    </ul>
-                </div>
-                <div class="d-flex justify-content-center">
-                    <a href="../inicio.php" class="btn btn-primary btn-lg">
-                        <i class="fas fa-home me-2"></i>Ir al Sistema
-                    </a>
-                </div>
+        <?php if (isset($installation_successful) && $installation_successful): 
+        
+try {
+    // 1. Verificar que la base de datos esté accesible
+    require_once 'basededatos.php';
+    $test_conn = new mysqli($db_host, $db_user, $db_password, $db_name);
+    $test_conn->set_charset("utf8mb4");
+    
+    if ($test_conn->connect_error) {
+        throw new Exception('Error de conexión post-instalación: ' . $test_conn->connect_error);
+    }
+    
+    // 2. Verificar que la configuración INSTALLED existe y está en '1'
+    $test_result = $test_conn->query("SELECT value FROM settings WHERE name = 'INSTALLED'");
+    if (!$test_result || $test_result->num_rows === 0) {
+        throw new Exception('Configuración INSTALLED no encontrada en la base de datos');
+    }
+    
+    $test_row = $test_result->fetch_assoc();
+    if ($test_row['value'] !== '1') {
+        throw new Exception('Configuración INSTALLED no está establecida correctamente. Valor actual: ' . $test_row['value']);
+    }
+    
+    // 3. Verificar que funciones.php puede detectar la instalación
+    $old_dir = getcwd();
+    chdir('..');  // Ir al directorio padre
+    require_once 'funciones.php';
+    $is_detected = is_installed();
+    chdir($old_dir);  // Volver al directorio original
+    
+    if (!$is_detected) {
+        throw new Exception('La función is_installed() no detecta la instalación como completa');
+    }
+    
+    $test_conn->close();
+    $installation_verified = true;
+    
+} catch (Exception $e) {
+    $installation_verified = false;
+    $verification_error = $e->getMessage();
+    error_log("Error verificación post-instalación: " . $e->getMessage());
+}
+        ?>
+<div class="text-center">
+    <div class="mb-4">
+        <?php if (isset($installation_verified) && $installation_verified): ?>
+            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+            <div class="mt-3">
+                <span class="badge bg-success fs-6">
+                    <i class="fas fa-shield-check me-1"></i>
+                    Verificación Exitosa
+                </span>
             </div>
+        <?php else: ?>
+            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+            <div class="mt-3">
+                <span class="badge bg-warning text-dark fs-6">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Verificación con Advertencias
+                </span>
+            </div>
+        <?php endif; ?>
+    </div>
+    
+    <h1 class="text-center mb-4">¡Instalación Exitosa!</h1>
+    
+    <div class="form-section">
+        <p class="mb-3">La configuración se ha guardado correctamente y la instalación se ha completado.</p>
+        
+        <?php if (isset($installation_verified) && $installation_verified): ?>
+            <div class="alert alert-success">
+                <h6><i class="fas fa-check-circle me-2"></i>Verificación Completa</h6>
+                <ul class="list-unstyled mb-0 text-start">
+                    <li>✅ Base de datos conectada correctamente</li>
+                    <li>✅ Configuración INSTALLED creada</li>
+                    <li>✅ Sistema detecta instalación completa</li>
+                    <li>✅ Licencia activa y funcionando</li>
+                </ul>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Instalación Completada con Advertencias</h6>
+                <p class="mb-2"><strong>Error de verificación:</strong></p>
+                <code class="d-block p-2 bg-dark text-light rounded">
+                    <?= htmlspecialchars($verification_error ?? 'Error desconocido') ?>
+                </code>
+                <hr>
+                <p class="mb-0">
+                    <strong>La instalación se completó, pero hay un problema menor.</strong><br>
+                    Puedes intentar acceder al sistema o contactar soporte.
+                </p>
+            </div>
+        <?php endif; ?>
+        
+        <?php
+        $license_info = $license_client->getLicenseInfo();
+        if ($license_info): ?>
+            <div class="alert alert-success">
+                <h6><i class="fas fa-certificate me-2"></i>Información de Licencia</h6>
+                <ul class="list-unstyled mb-0 text-start">
+                    <li><strong>Dominio:</strong> <span class="text-success"><?= htmlspecialchars($license_info['domain']) ?></span></li>
+                    <li><strong>Activada:</strong> <span class="text-success"><?= htmlspecialchars($license_info['activated_at']) ?></span></li>
+                    <li><strong>Estado:</strong> <span class="badge bg-success">Válida</span></li>
+                </ul>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Información de Licencia</h6>
+                <ul class="list-unstyled mb-0 text-start">
+                    <li><strong>Estado:</strong> <span class="badge bg-success">Activada durante instalación</span></li>
+                </ul>
+            </div>
+        <?php endif; ?>
+        
+        <ul class="list-unstyled text-start mt-3">
+            <li><i class="fas fa-check text-success me-2"></i> Licencia activada y verificada</li>
+            <li><i class="fas fa-check text-success me-2"></i> Base de datos configurada</li>
+            <li><i class="fas fa-check text-success me-2"></i> Usuario administrador creado</li>
+            <li><i class="fas fa-check text-success me-2"></i> Sistema de protección habilitado</li>
+            <li><i class="fas fa-check text-success me-2"></i> Rutas de licencia corregidas</li>
+            <?php if (isset($installation_verified) && $installation_verified): ?>
+            <li><i class="fas fa-check text-success me-2"></i> Verificación post-instalación exitosa</li>
+            <?php endif; ?>
+        </ul>
+    </div>
+    
+    <div class="d-flex justify-content-center gap-3">
+        <a href="../inicio.php" class="btn btn-primary btn-lg">
+            <i class="fas fa-home me-2"></i>Ir al Sistema
+        </a>
+        <?php if (!isset($installation_verified) || !$installation_verified): ?>
+        <a href="?step=configuration" class="btn btn-warning btn-lg">
+            <i class="fas fa-redo me-2"></i>Reintentar Instalación
+        </a>
+        <?php endif; ?>
+    </div>
+    
+    <?php if (isset($installation_verified) && !$installation_verified): ?>
+    <div class="mt-4">
+        <details class="text-start">
+            <summary class="btn btn-outline-secondary btn-sm">Ver información de depuración</summary>
+            <div class="mt-2 p-3 bg-dark text-light rounded">
+                <small>
+                    <strong>Directorio actual:</strong> <?= htmlspecialchars(getcwd()) ?><br>
+                    <strong>Archivo basededatos.php:</strong> <?= file_exists('basededatos.php') ? 'Existe' : 'No existe' ?><br>
+                    <strong>Directorio padre:</strong> <?= htmlspecialchars(dirname(getcwd())) ?><br>
+                    <strong>Archivo funciones.php:</strong> <?= file_exists('../funciones.php') ? 'Existe' : 'No existe' ?><br>
+                    <strong>Error específico:</strong> <?= htmlspecialchars($verification_error ?? 'N/A') ?>
+                </small>
+            </div>
+        </details>
+    </div>
+    <?php endif; ?>
+</div>
             
         <?php elseif (isset($installation_error) && $installation_error): ?>
             <div class="text-center">

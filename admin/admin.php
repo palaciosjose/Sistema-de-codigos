@@ -530,8 +530,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
                             <i class="fas fa-clock me-2"></i>
                             Límite de tiempo para consulta de correos (minutos)
                         </label>
-                        <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '20' ?>">
-                        <small class="text-muted">Tiempo máximo para buscar correos. Valor recomendado: 20 minutos para mejor performance.</small>
+                        <input type="number" class="form-control-admin" id="EMAIL_QUERY_TIME_LIMIT_MINUTES" name="EMAIL_QUERY_TIME_LIMIT_MINUTES" min="1" max="1440" value="<?= $settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? '30' ?>">
+                        <small class="text-muted">Tiempo máximo para buscar correos. Valor recomendado: 30 minutos para mejor performance.</small>
                     </div>
                 </div>
 

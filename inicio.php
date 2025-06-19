@@ -170,7 +170,7 @@ $has_results = !empty($resultado) || !empty($error_message);
 
 <footer class="footer-modern">
     <p>¿Interesado en un sistema similar? 
-        <a href="https://clientes.hostsbl.com/aff.php?aff=<?= htmlspecialchars($settings['ID_VENDEDOR'] ?? ''); ?>" target="_blank">Contacta para más información</a>
+<a href="https://wa.me/573232405812" target="_blank">Contacta para más información</a>
     </p>
 </footer>
 
