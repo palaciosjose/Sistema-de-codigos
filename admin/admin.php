@@ -439,36 +439,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
             }
         }
         
-        // LIMPIAR CACHE AGRESIVAMENTE
-        SimpleCache::clear_settings_cache();
-        SimpleCache::clear_platforms_cache();
-        SimpleCache::clear_cache(); // Limpia TODO el cache
-        
-        // VERIFICAR QUE LOS VALORES SE GUARDARON CORRECTAMENTE
-        $critical_keys = ['EMAIL_AUTH_ENABLED', 'USER_EMAIL_RESTRICTIONS_ENABLED', 'CACHE_ENABLED'];
-        foreach ($critical_keys as $key) {
-            $verification_stmt = $conn->prepare("SELECT value FROM settings WHERE name = ?");
-            $verification_stmt->bind_param("s", $key);
-            $verification_stmt->execute();
-            $verification_result = $verification_stmt->get_result();
-            if ($verification_result->num_rows > 0) {
-                $row = $verification_result->fetch_assoc();
-            } else {
-            }
-            $verification_stmt->close();
-        }
-        
-        // VERIFICAR CACHE REGENERADO
+        // 🔧 SISTEMA DE CACHE SILENCIOSO - Solo errores críticos en logs
         try {
-            $fresh_settings = SimpleCache::get_settings($conn);
+            // 1. Limpiar cache existente
+            SimpleCache::clear_settings_cache();
+            SimpleCache::clear_platforms_cache(); 
+            SimpleCache::clear_cache(); 
+            
+            // 2. Esperar un momento para que se complete la limpieza
+            usleep(100000); // 0.1 segundos
+            
+            // 3. Forzar regeneración inmediata de configuraciones críticas
+            $fresh_settings = SimpleCache::invalidate_and_reload_settings($conn);
+            
+            // 4. Verificar que los valores críticos se guardaron correctamente (solo errores)
+            $critical_keys = ['EMAIL_AUTH_ENABLED', 'USER_EMAIL_RESTRICTIONS_ENABLED', 'REQUIRE_LOGIN'];
+            $verification_errors = [];
+            
             foreach ($critical_keys as $key) {
-                $cache_value = $fresh_settings[$key] ?? 'NOT_FOUND';
+                // Verificar en BD directamente
+                $verification_stmt = $conn->prepare("SELECT value FROM settings WHERE name = ?");
+                $verification_stmt->bind_param("s", $key);
+                $verification_stmt->execute();
+                $verification_result = $verification_stmt->get_result();
+                
+                if ($verification_result->num_rows > 0) {
+                    $row = $verification_result->fetch_assoc();
+                    $bd_value = $row['value'];
+                    $cache_value = $fresh_settings[$key] ?? 'NOT_FOUND';
+                    
+                    // Solo logear si hay error
+                    if ($bd_value !== $cache_value) {
+                        $verification_errors[] = "$key (BD:'$bd_value' ≠ Cache:'$cache_value')";
+                        error_log("❌ CACHE ERROR: $key - BD:'$bd_value' ≠ Cache:'$cache_value'");
+                    }
+                } else {
+                    $verification_errors[] = "$key (No encontrado en BD)";
+                    error_log("❌ CONFIG ERROR: $key no encontrado en BD");
+                }
+                $verification_stmt->close();
             }
+            
+            // 5. Regenerar caches dependientes
+            SimpleCache::get_platform_subjects($conn);
+            SimpleCache::get_enabled_servers($conn);
+            
+            // 6. Mensaje de resultado (solo si hay errores)
+            if (!empty($verification_errors)) {
+                $_SESSION['message'] .= ' ⚠️ Errores de cache: ' . implode(', ', $verification_errors);
+                error_log("⚠️ CACHE ERRORS: " . implode(', ', $verification_errors));
+            }
+            
         } catch (Exception $e) {
+            error_log("❌ ERROR CRÍTICO REGENERANDO CACHE: " . $e->getMessage());
+            $_SESSION['message'] .= ' ⚠️ Error crítico regenerando cache: ' . $e->getMessage();
         }
     }
     
-    header("Location: admin.php?tab=" . $current_tab . "&debug=1&updated=" . time());
+    // Redirección con parámetros de debug
+    $redirect_params = [
+        'tab' => $current_tab,
+        'updated' => time()
+    ];
+    
+    header("Location: admin.php?" . http_build_query($redirect_params));
     exit();
 }
 
