@@ -545,16 +545,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         </a>
     </div>
 
-    <?php if (isset($_SESSION['message'])): ?>
-        <div class="mx-4">
-            <div class="alert-admin alert-success-admin">
-                <i class="fas fa-check-circle"></i>
-                <span><?= htmlspecialchars($_SESSION['message']) ?></span>
-            </div>
-        </div>
-        <?php unset($_SESSION['message']); ?>
-    <?php endif; ?>
-
     <ul class="nav nav-tabs nav-tabs-modern" id="adminTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab">
@@ -2689,8 +2679,7 @@ function testAllEnabledServers() {
     </div>
 
     <div class="row">
-        <!-- Información Detallada -->
-        <div class="col-md-6">
+        <div class="col-md-12">
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h4 class="admin-card-title">
@@ -2729,49 +2718,48 @@ function testAllEnabledServers() {
                             <?php endif; ?>
                         </table>
 
-                        <!-- Métricas de rendimiento -->
                         <?php if ($license_stats): ?>
                             <hr>
                             <h6><i class="fas fa-chart-line me-2"></i>Métricas de Verificación</h6>
                             <div class="row">
-                                <div class="col-6">
-                                    <div class="license-metric bg-light text-dark">
-                                        <div class="fs-6 text-muted">Total verificaciones</div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="license-metric"> <div class="fs-6 text-muted">Total verificaciones</div>
                                         <div class="fs-4 fw-bold text-primary"><?= $license_stats['validation_count'] ?></div>
                                     </div>
                                 </div>
-                                <div class="col-6">
-                                    <div class="license-metric bg-light text-dark">
-                                        <div class="fs-6 text-muted">Días activa</div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="license-metric"> <div class="fs-6 text-muted">Días activa</div>
                                         <div class="fs-4 fw-bold text-success"><?= $license_stats['days_since_activation'] ?></div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Próxima verificación -->
-                            <div class="mt-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span><strong>Próxima verificación automática:</strong></span>
-                                    <span class="badge bg-<?= $license_stats['hours_until_next_check'] > 0 ? 'info' : 'warning' ?> fs-6">
-                                        <?php if ($license_stats['hours_until_next_check'] > 0): ?>
-                                            En <?= round($license_stats['hours_until_next_check'], 1) ?> horas
-                                        <?php else: ?>
-                                            Pendiente
-                                        <?php endif; ?>
-                                    </span>
+                            <div class="row">
+                                <div class="col-md-6"> <div class="mt-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span><strong>Próxima verificación automática:</strong></span>
+                                            <span class="badge bg-<?= $license_stats['hours_until_next_check'] > 0 ? 'info' : 'warning' ?> fs-6">
+                                                <?php if ($license_stats['hours_until_next_check'] > 0): ?>
+                                                    En <?= round($license_stats['hours_until_next_check'], 1) ?> horas
+                                                <?php else: ?>
+                                                    Pendiente
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6"> <?php if ($license_stats['error_count'] > 0): ?>
+                                        <div class="mt-3 alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            <strong>Errores detectados:</strong> <?= $license_stats['error_count'] ?>
+                                            <?php if (!empty($license_stats['last_error'])): ?>
+                                                <br><small><?= htmlspecialchars($license_stats['last_error']) ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
-                            <!-- Errores si los hay -->
-                            <?php if ($license_stats['error_count'] > 0): ?>
-                                <div class="mt-3 alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <strong>Errores detectados:</strong> <?= $license_stats['error_count'] ?>
-                                    <?php if (!empty($license_stats['last_error'])): ?>
-                                        <br><small><?= htmlspecialchars($license_stats['last_error']) ?></small>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
                         <?php endif; ?>
 
                     <?php else: ?>
@@ -2784,114 +2772,9 @@ function testAllEnabledServers() {
                 </div>
             </div>
         </div>
-
-        <!-- Actividad Reciente y Acciones -->
-        <div class="col-md-6">
-            <!-- Actividad Reciente -->
-            <div class="admin-card mb-3">
-                <div class="admin-card-header">
-                    <h4 class="admin-card-title">
-                        <i class="fas fa-history me-2 text-info"></i>
-                        Actividad Reciente
-                    </h4>
-                </div>
-                <div class="admin-card-body">
-                    <div class="activity-timeline">
-                        <?php if (!empty($recent_activity)): ?>
-                            <?php foreach (array_slice($recent_activity, 0, 8) as $activity): ?>
-                                <div class="timeline-item <?= $activity['type'] ?>">
-                                    <div class="d-flex justify-content-between">
-                                        <small class="text-muted"><?= htmlspecialchars($activity['timestamp']) ?></small>
-                                        <span class="badge badge-sm bg-<?= 
-                                            $activity['type'] === 'success' ? 'success' : 
-                                            ($activity['type'] === 'error' ? 'danger' : 
-                                            ($activity['type'] === 'warning' ? 'warning' : 'info')) 
-                                        ?>">
-                                            <?= strtoupper($activity['type']) ?>
-                                        </span>
-                                    </div>
-                                    <div class="fw-medium"><?= htmlspecialchars($activity['message']) ?></div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="text-center text-muted py-3">
-                                <i class="fas fa-info-circle fa-2x mb-2"></i>
-                                <p>No hay actividad registrada</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Panel de Acciones -->
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h4 class="admin-card-title">
-                        <i class="fas fa-cogs me-2 text-warning"></i>
-                        Acciones de Administrador
-                    </h4>
-                </div>
-                <div class="admin-card-body">
-                    <div class="d-grid gap-2">
-                        <!-- Verificación forzada -->
-                        <form method="post" class="mb-2">
-                            <input type="hidden" name="license_action" value="force_check">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-sync me-2"></i>
-                                Verificar Licencia Ahora
-                            </button>
-                        </form>
-
-                        <!-- Enlace al monitor completo -->
-                        <a href="license_monitor.php" class="btn btn-info w-100" target="_blank">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Monitor Completo
-                        </a>
-
-                        <!-- Diagnóstico rápido -->
-                        <button type="button" class="btn btn-secondary w-100" onclick="toggleDiagnostic()">
-                            <i class="fas fa-wrench me-2"></i>
-                            Información Técnica
-                        </button>
-                    </div>
-
-                    <!-- Panel de diagnóstico (oculto por defecto) -->
-                    <div id="diagnostic-panel" style="display: none;" class="mt-3">
-                        <hr>
-                        <h6><i class="fas fa-stethoscope me-2"></i>Diagnóstico del Sistema</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <tr>
-                                    <td>Servidor de licencias:</td>
-                                    <td><small><?= htmlspecialchars($diagnostic_info['server_url'] ?? 'N/A') ?></small></td>
-                                </tr>
-                                <tr>
-                                    <td>Archivo de licencia:</td>
-                                    <td>
-                                        <i class="fas fa-<?= ($diagnostic_info['file_exists'] ?? false) ? 'check text-success' : 'times text-danger' ?> me-1"></i>
-                                        <?= ($diagnostic_info['file_exists'] ?? false) ? 'Existe' : 'No encontrado' ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Permisos de escritura:</td>
-                                    <td>
-                                        <i class="fas fa-<?= ($diagnostic_info['directory_writable'] ?? false) ? 'check text-success' : 'times text-danger' ?> me-1"></i>
-                                        <?= ($diagnostic_info['directory_writable'] ?? false) ? 'Correcto' : 'Sin permisos' ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Directorio:</td>
-                                    <td><small><code><?= htmlspecialchars($diagnostic_info['license_dir'] ?? 'N/A') ?></code></small></td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
 
+            
 <div class="modal fade modal-admin" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

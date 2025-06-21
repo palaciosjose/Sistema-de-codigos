@@ -9,16 +9,29 @@
     --card-purple: #2A1F4D;
     --card-purple-light: #3a2d6d;
     --input-dark: rgba(0, 0, 0, 0.3);
-    --text-primary: #FFFFFF;
-    --text-secondary: #BCAEE5;
-    --accent-green: #32FFB5;
+    --text-primary: #FFFFFF; /* Blanco para texto principal */
+    --text-secondary: #BCAEE5; /* Morado claro para texto secundario/muted */
+    --accent-green: #32FFB5; /* Verde de acento */
     --glow-green: rgba(50, 255, 181, 0.15);
     --glow-border: rgba(50, 255, 181, 0.4);
-    --danger-red: #ff4d4d;
+    --danger-red: #ff4d4d; /* Rojo para errores */
 
-    /* Nuevas variables para los textos más visibles */
-    --text-info-light: #C4B5FD; /* Un morado claro para info/muted */
-    --text-success-light: #90EE90; /* Verde más brillante para éxito */
+    /* Variables para textos y fondos de alerts */
+    --alert-success-bg: rgba(50, 255, 181, 0.1);
+    --alert-success-border: rgba(50, 255, 181, 0.3);
+    --alert-success-text: #adffde;
+
+    --alert-warning-bg: rgba(245, 158, 11, 0.1);
+    --alert-warning-border: rgba(245, 158, 11, 0.3);
+    --alert-warning-text: #f59e0b;
+
+    --alert-danger-bg: rgba(255, 77, 77, 0.1);
+    --alert-danger-border: rgba(255, 77, 77, 0.3);
+    --alert-danger-text: #ff9a9a;
+
+    --alert-info-bg: rgba(0, 242, 254, 0.1);
+    --alert-info-border: rgba(0, 242, 254, 0.3);
+    --alert-info-text: #00f2fe;
 }
 
 /* --- FONDO ANIMADO --- */
@@ -146,7 +159,7 @@ body.admin-page::after {
 
 .tab-content { padding: 2rem; }
 
-/* --- TARJETAS INTERNAS --- */
+/* --- TARJETAS INTERNAS (admin-card) --- */
 .admin-card {
     background: rgba(0,0,0,0.2);
     border: 1px solid var(--glow-border);
@@ -158,28 +171,19 @@ body.admin-page::after {
     margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--glow-border);
-    /* Flexbox para alinear título y acciones */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap; /* Permitir que los elementos se envuelvan en pantallas pequeñas */
-    gap: 1rem; /* Espacio entre los elementos del header */
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .admin-card-title { font-size: 1.2rem; font-weight: 600; color: var(--text-primary); }
 
 
-/*
-*
-*
-* --- INICIO DE CAMBIOS ---
-*
-*
-*/
-
-/* --- FORMULARIOS (CORREGIDO) --- */
+/* --- FORMULARIOS --- */
 .form-group-admin {
-    margin-bottom: 1.5rem; /* Aumentamos el espacio entre cada grupo de campos */
+    margin-bottom: 1.5rem;
 }
 
 .form-label-admin {
@@ -187,7 +191,7 @@ body.admin-page::after {
     color: var(--text-secondary);
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
-    display: flex; /* Alineación de icono y texto */
+    display: flex;
     align-items: center;
     gap: 0.5rem;
 }
@@ -205,16 +209,15 @@ body.admin-page::after {
     box-shadow: 0 0 0 3px var(--glow-green);
     outline: none;
 }
-/* Hacemos visible el texto de ayuda */
 .form-group-admin .text-muted {
-    color: var(--text-info-light) !important; /* Usamos la nueva variable */
-    opacity: 0.9; /* Un poco más de opacidad */
-    font-size: 0.85rem; /* Ligeramente más grande */
+    color: var(--text-secondary) !important;
+    opacity: 0.9;
+    font-size: 0.85rem;
     display: block;
     margin-top: 0.5rem;
 }
-.text-muted { /* Asegurar que cualquier otro .text-muted también sea legible */
-    color: var(--text-info-light) !important;
+.text-muted {
+    color: var(--text-secondary) !important;
     opacity: 0.9;
 }
 
@@ -260,9 +263,9 @@ body.admin-page::after {
 .table-admin tbody td:first-child { border-left: 1px solid var(--glow-border); border-radius: 10px 0 0 10px; }
 .table-admin tbody td:last-child { border-right: 1px solid var(--glow-border); border-radius: 0 10px 10px 0; }
 .table-admin .d-flex {
-    gap: 0.5rem; /* Espacio entre botones */
+    gap: 0.5rem;
 }
-.badge-admin { /* Estilos para los badges de las tablas */
+.badge-admin {
     padding: 0.3em 0.6em;
     border-radius: 5px;
     font-size: 0.75em;
@@ -300,29 +303,29 @@ body.admin-page::after {
     opacity: 1;
 }
 
-/* --- CAMPOS DE BÚSQUEDA (NUEVOS ESTILOS NEÓN) --- */
+/* --- CAMPOS DE BÚSQUEDA --- */
 .search-box-admin {
     position: relative;
     display: flex;
     align-items: center;
     background-color: var(--input-dark);
-    border: 1px solid var(--glow-border); /* Borde neón sutil */
+    border: 1px solid var(--glow-border);
     border-radius: 10px;
     padding: 0.5rem 0.8rem;
     transition: all 0.3s ease;
-    box-shadow: 0 0 8px rgba(50, 255, 181, 0.1); /* Sombra neón inicial */
-    min-width: 200px; /* Ancho mínimo para que se vea bien */
-    flex-grow: 1; /* Permite que crezca un poco para llenar espacio */
+    box-shadow: 0 0 8px rgba(50, 255, 181, 0.1);
+    min-width: 200px;
+    flex-grow: 1;
 }
 
 .search-box-admin:focus-within {
-    border-color: var(--accent-green); /* Borde de enfoque más intenso */
-    box-shadow: 0 0 15px var(--glow-green); /* Sombra neón más fuerte en foco */
-    transform: translateY(-2px); /* Pequeño efecto de levantamiento */
+    border-color: var(--accent-green);
+    box-shadow: 0 0 15px var(--glow-green);
+    transform: translateY(-2px);
 }
 
 .search-icon-admin {
-    color: var(--text-secondary); /* Color del icono */
+    color: var(--text-secondary);
     margin-right: 0.5rem;
     font-size: 0.9rem;
 }
@@ -332,13 +335,13 @@ body.admin-page::after {
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text-primary); /* Color del texto de entrada */
+    color: var(--text-primary);
     font-size: 0.9rem;
-    padding: 0; /* Quitar padding interno para que lo controle el padre */
+    padding: 0;
 }
 
 .search-input-admin::placeholder {
-    color: var(--text-secondary); /* Color del placeholder */
+    color: var(--text-secondary);
     opacity: 0.7;
 }
 
@@ -360,7 +363,7 @@ body.admin-page::after {
     padding: 0.2rem;
     border-radius: 50%;
     transition: all 0.2s ease;
-    display: flex; /* Para centrar el icono */
+    display: flex;
     align-items: center;
     justify-content: center;
 }
@@ -373,7 +376,7 @@ body.admin-page::after {
 /* Información de búsqueda (debajo de la barra de búsqueda) */
 .search-results-info {
     margin-top: 0.8rem;
-    color: var(--text-info-light); /* Aseguramos que sea visible */
+    color: var(--text-secondary);
     font-size: 0.85rem;
 }
 
@@ -393,84 +396,76 @@ body.admin-page::after {
 
 /* Estilos para "no hay resultados" en la tabla */
 .table-admin .no-results-row td {
-    color: var(--text-info-light); /* Usamos el color de información */
+    color: var(--text-secondary);
     font-style: italic;
     opacity: 0.9;
 }
 .table-admin .no-results-row .fa-search {
-    color: var(--text-secondary); /* Un poco más oscuro que el texto, pero visible */
+    color: var(--text-secondary);
     opacity: 0.6;
 }
 
 /* Estilo para resaltar la búsqueda */
 .search-match {
-    background-color: rgba(50, 255, 181, 0.3); /* Un fondo neón sutil */
-    color: var(--text-primary); /* Asegura que el texto se vea bien */
+    background-color: rgba(50, 255, 181, 0.3);
+    color: var(--text-primary);
     padding: 0.1em 0.2em;
     border-radius: 3px;
 }
 
 /* --- AJUSTE DE DISTRIBUCIÓN DE BOTONES Y BARRA DE BÚSQUEDA --- */
-/* Contenedor principal que agrupa la barra de búsqueda y los botones de acción */
 .action-buttons-group {
     display: flex;
     align-items: center;
-    gap: 1rem; /* Espacio entre los elementos */
-    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
-    justify-content: flex-end; /* Alinea los elementos a la derecha */
-    margin-left: auto; /* Empuja este grupo completo a la derecha */
-    /* Para invertir el orden visual sin cambiar el HTML */
-    flex-direction: row-reverse; /* Esto pone el último elemento primero visualmente */
+    gap: 1rem;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    flex-direction: row-reverse;
 }
 
-/* Ajuste específico para el search-box-admin dentro de este grupo */
 .action-buttons-group .search-box-admin {
-    max-width: 300px; /* Mantener un ancho máximo para el campo de búsqueda */
-    flex-grow: 1; /* Puede crecer hasta su max-width */
-    flex-shrink: 1; /* Puede encogerse si es necesario */
+    max-width: 300px;
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 
-/* Media query para pantallas más pequeñas: ajustar la alineación si es necesario */
 @media (max-width: 768px) {
     .action-buttons-group {
-        justify-content: center; /* Centrar elementos en pantallas pequeñas */
-        width: 100%; /* Ocupar todo el ancho disponible */
-        flex-direction: column; /* Apilar elementos verticalmente en móviles */
-        align-items: stretch; /* Estirar elementos al ancho completo */
-        margin-left: 0; /* Eliminar margen auto en móvil para centrar */
+        justify-content: center;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        margin-left: 0;
     }
-    /* El orden se mantiene invertido al apilar, si quieres que se apile botón arriba, luego búsqueda,
-       deberías considerar el orden del HTML en lugar de row-reverse aquí.
-       Pero si el HTML ya está "botón luego búsqueda", row-reverse lo haría "búsqueda luego botón".
-       Si quieres "botón luego búsqueda" en responsive, y ya tienes el HTML así, simplemente no uses flex-direction: column-reverse;
-       lo dejaremos en column para que se apile normalmente. */
     .action-buttons-group .search-box-admin,
     .action-buttons-group .btn-admin {
-        max-width: 100%; /* Ocupar todo el ancho disponible en móvil */
-        width: 100%; /* Asegurar el 100% de ancho */
+        max-width: 100%;
+        width: 100%;
     }
 }
 
-/* Ajuste para que el título y el grupo de botones se separen bien */
 .admin-card-header {
     display: flex;
-    justify-content: space-between; /* Título a la izquierda, botones a la derecha */
+    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 1rem; /* Espacio entre título y grupo de botones */
+    gap: 1rem;
     padding-bottom: 1rem;
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--glow-border);
 }
 
-/* Contenedor de información de licencia */
-.license-info-container {
+/* --- ESTILOS DE LA PESTAÑA DE LICENCIA --- */
+
+/* Contenedor de información de licencia (principal) */
+.license-info-container { /* Esta clase no es la del card directamente, es un contenedor externo */
     margin-top: 1rem;
 }
 
-/* Tarjetas de estado de licencia */
+/* Tarjetas de estado de licencia (los 4 cuadros pequeños de arriba) */
 .license-status-card {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.3); /* Fondo oscuro para la tarjeta de estado general */
     border: 1px solid var(--glow-border);
     border-radius: 12px;
     padding: 1.5rem;
@@ -489,53 +484,43 @@ body.admin-page::after {
     box-shadow: var(--shadow-glow);
 }
 
-.license-status-card.status-success {
+/* Clases de estado que vienen del PHP */
+.license-status-card.success { /* Esta clase es directamente del PHP, asegura que el borde sea verde */
     border-color: var(--accent-green);
     background: rgba(50, 255, 181, 0.1);
 }
 
-.license-status-card.status-warning {
-    border-color: #ffd700;
-    background: rgba(255, 215, 0, 0.1);
-}
-
-.license-status-card.status-danger {
+.license-status-card.danger { /* Esta clase es directamente del PHP, asegura que el borde sea rojo */
     border-color: var(--danger-red);
     background: rgba(255, 77, 77, 0.1);
 }
 
-.license-status-card.status-info {
+.license-status-card.warning { /* Clase warning del PHP */
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.license-status-card.info { /* Clase info del PHP */
     border-color: #17a2b8;
     background: rgba(23, 162, 184, 0.1);
 }
 
-/* Iconos de licencia */
-.license-icon {
+
+/* Iconos de licencia en los 4 cuadros */
+.license-status-card .fas { /* Más genérico para asegurar que todos los íconos se tiñan */
     font-size: 2rem;
     margin-bottom: 0.5rem;
+    color: var(--text-primary); /* Color base, luego se sobrescribe por tipo de tarjeta */
 }
 
-.license-status-card.status-success .license-icon {
-    color: var(--accent-green);
-}
+/* Asegurar color de íconos por tipo de estado */
+.license-status-card.success .fas { color: var(--accent-green); }
+.license-status-card.danger .fas { color: var(--danger-red); }
+.license-status-card.warning .fas { color: #ffd700; }
+.license-status-card.info .fas { color: #17a2b8; }
 
-.license-status-card.status-warning .license-icon {
-    color: #ffd700;
-}
 
-.license-status-card.status-danger .license-icon {
-    color: var(--danger-red);
-}
-
-.license-status-card.status-info .license-icon {
-    color: #17a2b8;
-}
-
-.license-status-card:not([class*="status-"]) .license-icon {
-    color: var(--text-secondary);
-}
-
-/* Texto de estado de licencia */
+/* Texto de estado de licencia en los 4 cuadros */
 .license-status-text h5 {
     margin: 0;
     font-weight: 600;
@@ -549,7 +534,33 @@ body.admin-page::after {
     font-size: 0.9rem;
 }
 
-/* Barra de progreso de licencia */
+/* **ESTILOS PARA LAS CAJAS DE MÉTRICAS (Total verificaciones, Días activa) - El cuadro principal de la imagen** */
+.license-metric {
+    background: rgba(0, 0, 0, 0.3); /* Fondo oscuro semitransparente para las métricas */
+    border: 1px solid var(--glow-border); /* Borde sutil del tema */
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    backdrop-filter: blur(10px);
+    color: var(--text-secondary); /* Color de texto general para el contenido */
+}
+
+.license-metric .fs-6.text-muted { /* Estilo para el label "Total verificaciones" */
+    color: var(--text-secondary) !important; /* Fuerza el color secundario de tu tema */
+    opacity: 0.8;
+}
+
+.license-metric .fs-4.fw-bold { /* Estilo para los números grandes (ej. "5" y "2") */
+    color: var(--text-primary); /* Color primario de tu tema para los números */
+}
+
+/* Asegurar que los números en verde sean el verde de acento de tu tema */
+.license-metric .fs-4.fw-bold.text-primary,
+.license-metric .fs-4.fw-bold.text-success {
+    color: var(--accent-green) !important; /* Aplica tu verde de acento */
+}
+
+/* Barra de progreso de licencia (si se usa) */
 .license-progress-container {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -637,9 +648,9 @@ body.admin-page::after {
 
 /* Alertas de licencia */
 .alert-admin.alert-warning-admin {
-    background: rgba(255, 215, 0, 0.1);
-    border-color: #ffd700;
-    color: #ffd700;
+    background: var(--alert-warning-bg);
+    border-color: var(--alert-warning-border);
+    color: var(--alert-warning-text);
 }
 
 /* Responsive para móviles */
@@ -659,6 +670,15 @@ body.admin-page::after {
         flex-direction: column;
         gap: 0.5rem;
         text-align: center;
+    }
+    .action-buttons-group { /* Asegurar que se apilen en móviles */
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .action-buttons-group .search-box-admin,
+    .action-buttons-group .btn-admin {
+        max-width: 100%;
+        width: 100%;
     }
 }
 
@@ -691,4 +711,88 @@ body.admin-page::after {
         border-color: #ffed4a;
         box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
     }
+}
+
+/* **NUEVOS Y CORREGIDOS ESTILOS PARA EL CARD DE INFORMACIÓN DETALLADA** */
+/* El card principal en la pestaña de Licencia */
+.tab-pane#licencia .card {
+    background: var(--card-purple); /* Fondo oscuro consistente con tu tema */
+    border: 1px solid var(--glow-border); /* Borde consistente */
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* Sombra sutil */
+}
+
+/* El encabezado dentro del card (ej. "Información Detallada") */
+.tab-pane#licencia .card-header {
+    background: transparent; /* Transparente para que el fondo del card domine */
+    border-bottom: 1px solid var(--glow-border);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* El cuerpo del card (contiene la tabla de dominio, fechas, etc.) */
+.tab-pane#licencia .card-body {
+    background: transparent; /* Transparente */
+    color: var(--text-secondary); /* Color base para todos los textos dentro del cuerpo del card */
+    padding: 1.5rem;
+}
+
+/* Estilos para la tabla dentro del card de Información Detallada */
+.tab-pane#licencia .table {
+    color: var(--text-secondary); /* Color base para los textos de la tabla */
+    /* Eliminar cualquier fondo de fila de Bootstrap que pueda quedar blanco */
+    --bs-table-bg: transparent; 
+    --bs-table-accent-bg: transparent;
+    --bs-table-striped-bg: transparent;
+    --bs-table-active-bg: transparent;
+    --bs-table-hover-bg: transparent;
+    --bs-table-border-color: transparent; /* Eliminar bordes de la tabla */
+}
+
+.tab-pane#licencia .table td {
+    border-top: none; /* Eliminar bordes superiores de celdas de tabla */
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    color: inherit; /* Asegurar que herede el color del card-body */
+}
+
+/* Asegurar que los textos clave de la tabla tengan el color primario o de acento */
+.tab-pane#licencia .table td strong,
+.tab-pane#licencia .table td:first-child { /* Por si la primera celda es la "label" */
+    color: var(--text-primary); /* Ej. "Dominio autorizado:" */
+}
+
+/* Color para los valores específicos que deben resaltar */
+/* Dominio autorizado */
+.tab-pane#licencia .table td.text-primary { /* La celda que contiene el dominio */
+    color: var(--accent-green) !important; /* Color verde de acento para el dominio */
+}
+
+/* Clave de licencia (si es un span o tiene una clase específica) */
+.tab-pane#licencia .table code { /* Ajustar el color del código de licencia */
+    color: var(--text-secondary); /* Un color que se vea bien pero no tan llamativo como el dominio */
+}
+
+/* Ajuste para el badge "Active" dentro de este card */
+.tab-pane#licencia .badge.bg-success {
+    background-color: var(--accent-green) !important;
+    color: var(--bg-purple-dark) !important;
+}
+
+/* **ESTILOS PARA EL BOTÓN "Próxima verificación automática: En X horas"** */
+/* El span que contiene el badge */
+.tab-pane#licencia .d-flex span.badge {
+    background-color: var(--accent-green) !important; /* Tu verde de acento */
+    color: var(--bg-purple-dark) !important; /* Texto oscuro */
+    padding: 0.5em 0.8em;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+/* Si es un badge de warning, también adaptarlo */
+.tab-pane#licencia .d-flex span.badge.bg-warning {
+    background-color: var(--alert-warning-text) !important; /* Tu naranja de advertencia */
+    color: var(--bg-purple-dark) !important; /* Texto oscuro */
 }

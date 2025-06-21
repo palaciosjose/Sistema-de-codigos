@@ -21,7 +21,7 @@ $license_client = new ClientLicense();
 $message = '';
 $message_type = 'info';
 
-// Procesar acciones
+// Procesar acciones (se mantienen por si las quieres usar en el futuro, aunque la UI las oculte)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     switch ($_POST['action'] ?? '') {
         case 'force_validation':
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $license_info = $license_client->getLicenseInfo();
 $license_stats = $license_client->getLicenseStats();
 $diagnostic_info = $license_client->getDiagnosticInfo();
-$activity = $license_client->getLicenseActivity(30);
+$activity = $license_client->getLicenseActivity(30); // Se mantiene para depuración si es necesario, aunque no se muestre
 $is_valid = $license_client->isLicenseValid();
 
 ?>
@@ -85,24 +85,10 @@ $is_valid = $license_client->isLicenseValid();
         .stat-card.success { border-left-color: #28a745; }
         .stat-card.warning { border-left-color: #ffc107; }
         .stat-card.danger { border-left-color: #dc3545; }
+        /* Ocultar log de actividad para simplificar la vista si no es necesario */
         .activity-log {
-            max-height: 500px;
-            overflow-y: auto;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
+            display: none; /* Oculta completamente el log de actividad */
         }
-        .log-entry {
-            padding: 0.5rem 1rem;
-            border-bottom: 1px solid #f8f9fa;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-        .log-entry:last-child { border-bottom: none; }
-        .log-entry.success { background: rgba(40, 167, 69, 0.1); }
-        .log-entry.error { background: rgba(220, 53, 69, 0.1); }
-        .log-entry.warning { background: rgba(255, 193, 7, 0.1); }
-        .log-entry.info { background: rgba(23, 162, 184, 0.1); }
         .status-indicator {
             width: 12px;
             height: 12px;
@@ -127,7 +113,6 @@ $is_valid = $license_client->isLicenseValid();
     </style>
 </head>
 <body>
-    <!-- Header -->
     <div class="monitor-header">
         <div class="container">
             <div class="row align-items-center">
@@ -140,14 +125,13 @@ $is_valid = $license_client->isLicenseValid();
                         <span class="status-indicator <?= $is_valid ? 'online' : 'offline' ?>"></span>
                         <span class="fw-bold"><?= $is_valid ? 'LICENCIA VÁLIDA' : 'LICENCIA INVÁLIDA' ?></span>
                     </div>
-                    <small>Última actualización: <?= date('H:i:s') ?></small>
+                    <small>Última actualización: <span class="live-timestamp"><?= date('H:i:s') ?></span></small>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <!-- Mensajes -->
         <?php if (!empty($message)): ?>
             <div class="alert alert-<?= $message_type ?> alert-dismissible fade show" role="alert">
                 <i class="fas fa-<?= $message_type === 'success' ? 'check-circle' : ($message_type === 'danger' ? 'exclamation-triangle' : 'info-circle') ?> me-2"></i>
@@ -156,7 +140,6 @@ $is_valid = $license_client->isLicenseValid();
             </div>
         <?php endif; ?>
 
-        <!-- Resumen Ejecutivo -->
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="stat-card <?= $is_valid ? 'success' : 'danger' ?>">
@@ -217,7 +200,6 @@ $is_valid = $license_client->isLicenseValid();
             <?php endif; ?>
         </div>
 
-        <!-- Información de Licencia -->
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card">
@@ -246,10 +228,6 @@ $is_valid = $license_client->isLicenseValid();
                                 <tr>
                                     <td><strong>Última Verificación:</strong></td>
                                     <td><?= htmlspecialchars($license_info['last_check']) ?></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Archivo:</strong></td>
-                                    <td><code><?= htmlspecialchars($license_info['file_path']) ?></code></td>
                                 </tr>
                                 <?php if (!empty($license_info['license_key_preview'])): ?>
                                 <tr>
@@ -322,7 +300,6 @@ $is_valid = $license_client->isLicenseValid();
             </div>
         </div>
 
-        <!-- Acciones -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
@@ -331,7 +308,7 @@ $is_valid = $license_client->isLicenseValid();
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <form method="post" class="d-inline">
                                     <input type="hidden" name="action" value="force_validation">
                                     <button type="submit" class="btn btn-primary w-100">
@@ -339,71 +316,26 @@ $is_valid = $license_client->isLicenseValid();
                                     </button>
                                 </form>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <button class="btn btn-info w-100" onclick="location.reload()">
                                     <i class="fas fa-refresh me-1"></i>Actualizar Página
                                 </button>
                             </div>
-                            <div class="col-md-3">
-                                <form method="post" class="d-inline">
-                                    <input type="hidden" name="action" value="download_activity">
-                                    <button type="submit" class="btn btn-secondary w-100">
-                                        <i class="fas fa-download me-1"></i>Descargar Logs
-                                    </button>
-                                </form>
-                            </div>
-                            <div class="col-md-3">
+                             <div class="col-md-4">
                                 <form method="post" class="d-inline" onsubmit="return confirm('¿Está seguro de limpiar los logs antiguos?')">
                                     <input type="hidden" name="action" value="clean_logs">
                                     <button type="submit" class="btn btn-warning w-100">
-                                        <i class="fas fa-trash me-1"></i>Limpiar Logs
+                                        <i class="fas fa-trash me-1"></i>Limpiar Logs de Licencia
                                     </button>
                                 </form>
                             </div>
-                        </div>
+                            </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Actividad Reciente -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-list me-2"></i>Actividad Reciente</h5>
-                        <small class="text-muted">Últimas 30 entradas</small>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="activity-log">
-                            <?php if (empty($activity)): ?>
-                                <div class="log-entry text-center text-muted">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    No hay actividad registrada
-                                </div>
-                            <?php else: ?>
-                                <?php foreach ($activity as $entry): ?>
-                                    <div class="log-entry <?= $entry['type'] ?>">
-                                        <span class="text-muted"><?= htmlspecialchars($entry['timestamp']) ?></span>
-                                        <span class="badge badge-sm bg-<?= 
-                                            $entry['type'] === 'success' ? 'success' : 
-                                            ($entry['type'] === 'error' ? 'danger' : 
-                                            ($entry['type'] === 'warning' ? 'warning' : 'info')) 
-                                        ?> ms-2">
-                                            <?= strtoupper($entry['type']) ?>
-                                        </span>
-                                        <span class="ms-2"><?= htmlspecialchars($entry['message']) ?></span>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Información Diagnóstica -->
-        <div class="row mb-4">
+        
+        <div class="row mb-4 d-none"> <?php /* Añade 'd-none' para ocultar esta sección por defecto */ ?>
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
@@ -474,16 +406,14 @@ $is_valid = $license_client->isLicenseValid();
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="text-center text-muted mb-4">
             <small>
                 Sistema de Códigos - Monitor de Licencias v3.0<br>
-                Última actualización: <?= date('Y-m-d H:i:s') ?>
+                Última actualización: <span class="live-timestamp"><?= date('Y-m-d H:i:s') ?></span>
             </small>
         </div>
     </div>
 
-    <!-- Auto-refresh cada 30 segundos -->
     <script>
         // Auto-refresh cada 30 segundos (solo si no hay alertas)
         <?php if (empty($message)): ?>
