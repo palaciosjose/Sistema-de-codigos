@@ -1,0 +1,75 @@
+[21-Jun-2025 05:53:50 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 05:53:50 UTC] PERFORMANCE: No se encontraron emails en rango amplio para: digihome@streamdigi.co
+[21-Jun-2025 05:53:50 UTC] PERFORMANCE: Iniciando búsqueda simple (fallback)
+[21-Jun-2025 05:53:50 UTC] PERFORMANCE: No se encontraron emails en búsqueda simple
+[21-Jun-2025 05:53:52 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 05:53:53 UTC] PERFORMANCE: Emails encontrados en rango amplio: 5
+[21-Jun-2025 05:53:53 UTC] PERFORMANCE: Filtrando emails: límite 250 minutos, timestamp corte: 2025-06-21 01:43:53
+[21-Jun-2025 05:53:53 UTC] PERFORMANCE: Email válido por tiempo: 2025-06-21 04:30:52 (hace 83 min)
+[21-Jun-2025 05:53:53 UTC] PERFORMANCE: ¡MATCH! Asunto: 'Netflix: Tu código de inicio de sesión...' con patrón: 'Netflix: Tu código de inicio ...'
+[21-Jun-2025 05:53:53 UTC] PERFORMANCE: Early stop activado, deteniendo búsqueda
+[21-Jun-2025 05:53:53 UTC] PERFORMANCE: Encontrados 1 emails en servidor: SERVIDOR_2
+[21-Jun-2025 05:53:53 UTC] PROCESAMIENTO MINIMALISTA - Longitud original: 24709
+[21-Jun-2025 05:53:53 UTC] PROCESAMIENTO MINIMALISTA COMPLETADO - Longitud final: 24595
+[21-Jun-2025 05:53:54 UTC] PERFORMANCE: Email encontrado y procesado en servidor: SERVIDOR_2
+[21-Jun-2025 05:53:54 UTC] PERFORMANCE: Búsqueda completa: 6.369s
+[21-Jun-2025 05:54:22 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 05:54:22 UTC] PERFORMANCE: No se encontraron emails en rango amplio para: digihome@streamdigi.co
+[21-Jun-2025 05:54:22 UTC] PERFORMANCE: Iniciando búsqueda simple (fallback)
+[21-Jun-2025 05:54:23 UTC] PERFORMANCE: No se encontraron emails en búsqueda simple
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: Emails encontrados en rango amplio: 5
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: Filtrando emails: límite 250 minutos, timestamp corte: 2025-06-21 01:44:25
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: Email válido por tiempo: 2025-06-21 04:30:52 (hace 83.6 min)
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: ¡MATCH! Asunto: 'Netflix: Tu código de inicio de sesión...' con patrón: 'Netflix: Tu código de inicio ...'
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: Early stop activado, deteniendo búsqueda
+[21-Jun-2025 05:54:25 UTC] PERFORMANCE: Encontrados 1 emails en servidor: SERVIDOR_2
+[21-Jun-2025 05:54:26 UTC] PROCESAMIENTO MINIMALISTA - Longitud original: 24709
+[21-Jun-2025 05:54:26 UTC] PROCESAMIENTO MINIMALISTA COMPLETADO - Longitud final: 24595
+[21-Jun-2025 05:54:26 UTC] PERFORMANCE: Email encontrado y procesado en servidor: SERVIDOR_2
+[21-Jun-2025 05:54:26 UTC] PERFORMANCE: Búsqueda completa: 6.609s
+[21-Jun-2025 06:00:35 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 06:00:36 UTC] PERFORMANCE: No se encontraron emails en rango amplio para: digihome@streamdigi.co
+[21-Jun-2025 06:00:36 UTC] PERFORMANCE: Iniciando búsqueda simple (fallback)
+[21-Jun-2025 06:00:36 UTC] PERFORMANCE: No se encontraron emails en búsqueda simple
+[21-Jun-2025 06:00:38 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 06:00:39 UTC] PERFORMANCE: Emails encontrados en rango amplio: 5
+[21-Jun-2025 06:00:39 UTC] PERFORMANCE: Filtrando emails: límite 250 minutos, timestamp corte: 2025-06-21 01:50:39
+[21-Jun-2025 06:00:39 UTC] PERFORMANCE: Email válido por tiempo: 2025-06-21 04:30:52 (hace 89.8 min)
+[21-Jun-2025 06:00:39 UTC] PERFORMANCE: ¡MATCH! Asunto: 'Netflix: Tu código de inicio de sesión...' con patrón: 'Netflix: Tu código de inicio ...'
+[21-Jun-2025 06:00:39 UTC] PERFORMANCE: Early stop activado, deteniendo búsqueda
+[21-Jun-2025 06:00:39 UTC] PERFORMANCE: Encontrados 1 emails en servidor: SERVIDOR_2
+[21-Jun-2025 06:00:40 UTC] PROCESAMIENTO MINIMALISTA - Longitud original: 24709
+[21-Jun-2025 06:00:40 UTC] PROCESAMIENTO MINIMALISTA COMPLETADO - Longitud final: 24595
+[21-Jun-2025 06:00:40 UTC] PERFORMANCE: Email encontrado y procesado en servidor: SERVIDOR_2
+[21-Jun-2025 06:00:40 UTC] PERFORMANCE: Búsqueda completa: 6.8s
+[21-Jun-2025 06:00:52 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 06:00:52 UTC] PERFORMANCE: No se encontraron emails en rango amplio para: digihome@streamdigi.co
+[21-Jun-2025 06:00:52 UTC] PERFORMANCE: Iniciando búsqueda simple (fallback)
+[21-Jun-2025 06:00:53 UTC] PERFORMANCE: No se encontraron emails en búsqueda simple
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: Emails encontrados en rango amplio: 5
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: Filtrando emails: límite 250 minutos, timestamp corte: 2025-06-21 01:50:55
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: Email válido por tiempo: 2025-06-21 04:30:52 (hace 90.1 min)
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: ¡MATCH! Asunto: 'Netflix: Tu código de inicio de sesión...' con patrón: 'Netflix: Tu código de inicio ...'
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: Early stop activado, deteniendo búsqueda
+[21-Jun-2025 06:00:55 UTC] PERFORMANCE: Encontrados 1 emails en servidor: SERVIDOR_2
+[21-Jun-2025 06:00:56 UTC] PROCESAMIENTO MINIMALISTA - Longitud original: 24709
+[21-Jun-2025 06:00:56 UTC] PROCESAMIENTO MINIMALISTA COMPLETADO - Longitud final: 24595
+[21-Jun-2025 06:00:56 UTC] PERFORMANCE: Email encontrado y procesado en servidor: SERVIDOR_2
+[21-Jun-2025 06:00:56 UTC] PERFORMANCE: Búsqueda completa: 6.294s
+[21-Jun-2025 06:04:06 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 06:04:06 UTC] PERFORMANCE: No se encontraron emails en rango amplio para: digihome@streamdigi.co
+[21-Jun-2025 06:04:06 UTC] PERFORMANCE: Iniciando búsqueda simple (fallback)
+[21-Jun-2025 06:04:07 UTC] PERFORMANCE: No se encontraron emails en búsqueda simple
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: Búsqueda ampliada: últimas 48h desde 19-Jun-2025
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: Emails encontrados en rango amplio: 5
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: Filtrando emails: límite 250 minutos, timestamp corte: 2025-06-21 01:54:09
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: Email válido por tiempo: 2025-06-21 04:30:52 (hace 93.3 min)
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: ¡MATCH! Asunto: 'Netflix: Tu código de inicio de sesión...' con patrón: 'Netflix: Tu código de inicio ...'
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: Early stop activado, deteniendo búsqueda
+[21-Jun-2025 06:04:09 UTC] PERFORMANCE: Encontrados 1 emails en servidor: SERVIDOR_2
+[21-Jun-2025 06:04:10 UTC] PROCESAMIENTO MINIMALISTA - Longitud original: 24709
+[21-Jun-2025 06:04:10 UTC] PROCESAMIENTO MINIMALISTA COMPLETADO - Longitud final: 24595
+[21-Jun-2025 06:04:11 UTC] PERFORMANCE: Email encontrado y procesado en servidor: SERVIDOR_2
+[21-Jun-2025 06:04:11 UTC] PERFORMANCE: Búsqueda completa: 7.088s

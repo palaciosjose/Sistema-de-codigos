@@ -1617,93 +1617,512 @@ document.addEventListener('visibilitychange', function() {
             </form>
         </div>
 
-        <div class="tab-pane fade" id="servidores" role="tabpanel">
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-server me-2"></i>
-                        Configuración de Servidores IMAP
-                    </h3>
-                </div>
-                
-                <div class="alert-admin alert-info-admin">
-                    <i class="fas fa-info-circle"></i>
-                    <div>
-                        <strong>Información:</strong> Configura los servidores IMAP para la verificación de correos.<br>
-                        <small>Esta configuración no se ve afectada por cambios en otras pestañas.</small>
-                    </div>
-                </div>
-                
-                <form method="POST" action="admin.php" enctype="multipart/form-data">
-                    <input type="hidden" name="current_tab" value="servidores" class="current-tab-input">
-                    <input type="hidden" name="update_servers_only" value="1">
-                    
-                    <div class="row">
-                        <?php foreach ($email_servers_data as $server): ?>
-                            <div class="col-lg-6 mb-4">
-                                <div class="admin-card">
-                                    <div class="admin-card-header">
-                                        <div class="d-flex justify-content-between align-items-center w-100">
-                                            <h5 class="mb-0">
-                                                <i class="fas fa-server me-2"></i>
-                                                <?= str_replace("SERVIDOR_", "Servidor ", $server['server_name']) ?>
-                                            </h5>
-                                            <div class="form-check-admin">
-                                                <input type="checkbox" class="form-check-input-admin" id="srv_enabled_<?= $server['id'] ?>" name="enabled_<?= $server['id'] ?>" value="1" <?= $server['enabled'] ? 'checked' : '' ?> onchange="toggleServerView('<?= $server['id'] ?>')">
-                                                <label for="srv_enabled_<?= $server['id'] ?>" class="form-check-label-admin">Habilitado</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="server-settings" id="server_<?= $server['id'] ?>_settings" style="display: <?= $server['enabled'] ? 'block' : 'none' ?>;">
-                                        <div class="form-group-admin">
-                                            <label for="srv_imap_server_<?= $server['id'] ?>" class="form-label-admin">
-                                                <i class="fas fa-globe me-2"></i>
-                                                Servidor IMAP
-                                            </label>
-                                            <input type="text" class="form-control-admin" id="srv_imap_server_<?= $server['id'] ?>" name="imap_server_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_server']) ?>" placeholder="imap.gmail.com">
-                                        </div>
-                                        
-                                        <div class="form-group-admin">
-                                            <label for="srv_imap_port_<?= $server['id'] ?>" class="form-label-admin">
-                                                <i class="fas fa-plug me-2"></i>
-                                                Puerto IMAP
-                                            </label>
-                                            <input type="number" class="form-control-admin" id="srv_imap_port_<?= $server['id'] ?>" name="imap_port_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_port']) ?>" placeholder="993">
-                                            <small class="text-muted">Puerto estándar: 993 (SSL)</small>
-                                        </div>
-                                        
-                                        <div class="form-group-admin">
-                                            <label for="srv_imap_user_<?= $server['id'] ?>" class="form-label-admin">
-                                                <i class="fas fa-user me-2"></i>
-                                                Usuario IMAP
-                                            </label>
-                                            <input type="text" class="form-control-admin" id="srv_imap_user_<?= $server['id'] ?>" name="imap_user_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_user']) ?>" placeholder="usuario@gmail.com">
-                                        </div>
-                                        
-                                        <div class="form-group-admin">
-                                            <label for="srv_imap_password_<?= $server['id'] ?>" class="form-label-admin">
-                                                <i class="fas fa-key me-2"></i>
-                                                Contraseña IMAP
-                                            </label>
-                                            <input type="password" class="form-control-admin" id="srv_imap_password_<?= $server['id'] ?>" name="imap_password_<?= $server['id'] ?>" value="<?= empty($server['imap_password']) ? '' : '**********' ?>" placeholder="Contraseña o App Password">
-                                            <small class="text-muted">Deja en blanco para no cambiar. Para Gmail/Outlook usa App Password.</small>
-                                        </div>
+<div class="tab-pane fade" id="servidores" role="tabpanel">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h3 class="admin-card-title">
+                <i class="fas fa-server me-2"></i>
+                Configuración de Servidores IMAP
+            </h3>
+        </div>
+        
+        <div class="alert-admin alert-info-admin">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <strong>Información:</strong> Configura los servidores IMAP para la verificación de correos.<br>
+                <small>Esta configuración no se ve afectada por cambios en otras pestañas. 
+                <br>📋 <strong>Prueba de conexión:</strong> 
+                • Para servidores nuevos: completa todos los campos y presiona "Probar Conexión"
+                • Para servidores ya configurados: puedes probar con la contraseña guardada o ingresa una nueva</small>
+            </div>
+        </div>
+        
+        <form method="POST" action="admin.php" enctype="multipart/form-data">
+            <input type="hidden" name="current_tab" value="servidores" class="current-tab-input">
+            <input type="hidden" name="update_servers_only" value="1">
+            
+            <div class="row">
+                <?php foreach ($email_servers_data as $server): ?>
+                    <div class="col-lg-6 mb-4">
+                        <div class="admin-card">
+                            <div class="admin-card-header">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-server me-2"></i>
+                                        <?= str_replace("SERVIDOR_", "Servidor ", $server['server_name']) ?>
+                                    </h5>
+                                    <div class="form-check-admin">
+                                        <input type="checkbox" class="form-check-input-admin" id="srv_enabled_<?= $server['id'] ?>" name="enabled_<?= $server['id'] ?>" value="1" <?= $server['enabled'] ? 'checked' : '' ?> onchange="toggleServerView('<?= $server['id'] ?>')">
+                                        <label for="srv_enabled_<?= $server['id'] ?>" class="form-check-label-admin">Habilitado</label>
                                     </div>
                                 </div>
                             </div>
-                        <?php endforeach; ?>
+                            
+                            <div class="server-settings" id="server_<?= $server['id'] ?>_settings" style="display: <?= $server['enabled'] ? 'block' : 'none' ?>;">
+                                <div class="form-group-admin">
+                                    <label for="srv_imap_server_<?= $server['id'] ?>" class="form-label-admin">
+                                        <i class="fas fa-globe me-2"></i>
+                                        Servidor IMAP
+                                    </label>
+                                    <input type="text" class="form-control-admin" id="srv_imap_server_<?= $server['id'] ?>" name="imap_server_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_server']) ?>" placeholder="imap.gmail.com">
+                                </div>
+                                
+                                <div class="form-group-admin">
+                                    <label for="srv_imap_port_<?= $server['id'] ?>" class="form-label-admin">
+                                        <i class="fas fa-plug me-2"></i>
+                                        Puerto IMAP
+                                    </label>
+                                    <input type="number" class="form-control-admin" id="srv_imap_port_<?= $server['id'] ?>" name="imap_port_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_port']) ?>" placeholder="993">
+                                    <small class="text-muted">Puerto estándar: 993 (SSL)</small>
+                                </div>
+                                
+                                <div class="form-group-admin">
+                                    <label for="srv_imap_user_<?= $server['id'] ?>" class="form-label-admin">
+                                        <i class="fas fa-user me-2"></i>
+                                        Usuario IMAP
+                                    </label>
+                                    <input type="text" class="form-control-admin" id="srv_imap_user_<?= $server['id'] ?>" name="imap_user_<?= $server['id'] ?>" value="<?= htmlspecialchars($server['imap_user']) ?>" placeholder="usuario@gmail.com">
+                                </div>
+                                
+                                <div class="form-group-admin">
+                                    <label for="srv_imap_password_<?= $server['id'] ?>" class="form-label-admin">
+                                        <i class="fas fa-key me-2"></i>
+                                        Contraseña IMAP
+                                        <?php if (!empty($server['imap_password'])): ?>
+                                            <span class="badge-admin badge-success-admin ms-2">
+                                                <i class="fas fa-check"></i> Configurada
+                                            </span>
+                                        <?php endif; ?>
+                                    </label>
+                                    <input type="password" class="form-control-admin" id="srv_imap_password_<?= $server['id'] ?>" name="imap_password_<?= $server['id'] ?>" value="<?= empty($server['imap_password']) ? '' : '**********' ?>" placeholder="Contraseña o App Password">
+                                    <small class="text-muted">
+                                        <?php if (!empty($server['imap_password'])): ?>
+                                            <i class="fas fa-info-circle me-1"></i>Contraseña guardada. Puedes probar conexión directamente o cambiar por una nueva.
+                                        <?php else: ?>
+                                            Deja en blanco para no cambiar. Para Gmail/Outlook usa App Password.
+                                        <?php endif; ?>
+                                    </small>
+                                </div>
+                                
+                                <!-- Botón de Prueba de Conexión -->
+                                <div class="form-group-admin">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-plug me-2"></i>
+                                            Prueba de Conexión
+                                        </h6>
+                                        <button type="button" class="btn-admin btn-info-admin btn-sm-admin" onclick="testServerConnection(<?= $server['id'] ?>)" id="test_btn_<?= $server['id'] ?>">
+                                            <i class="fas fa-wifi"></i> Probar Conexión
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Área de Resultados de la Prueba -->
+                                    <div id="test_result_<?= $server['id'] ?>" class="connection-test-result mt-3" style="display: none;">
+                                        <!-- Los resultados se mostrarán aquí -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="text-center mt-4">
-                        <button type="submit" name="update" class="btn-admin btn-primary-admin btn-lg-admin">
-                            <i class="fas fa-sync-alt"></i>
-                            ACTUALIZAR SERVIDORES
-                        </button>
-                    </div>
-                </form>
+                <?php endforeach; ?>
             </div>
+            
+            <div class="text-center mt-4">
+                <button type="submit" name="update" class="btn-admin btn-primary-admin btn-lg-admin">
+                    <i class="fas fa-sync-alt"></i>
+                    ACTUALIZAR SERVIDORES
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CSS Styles para los resultados de prueba -->
+<style>
+/* Estilos para las pruebas de conexión */
+.connection-test-result {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.connection-test-result.success {
+    border-color: var(--accent-green);
+    background: rgba(50, 255, 181, 0.1);
+}
+
+.connection-test-result.error {
+    border-color: var(--danger-red);
+    background: rgba(255, 99, 132, 0.1);
+}
+
+.connection-test-result.testing {
+    border-color: #00f2fe;
+    background: rgba(0, 242, 254, 0.1);
+}
+
+.test-detail {
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.test-detail:last-child {
+    border-bottom: none;
+}
+
+.test-detail.success {
+    color: var(--accent-green);
+}
+
+.test-detail.error {
+    color: var(--danger-red);
+}
+
+.test-detail.warning {
+    color: #f59e0b;
+}
+
+.test-summary {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.test-summary.success {
+    color: var(--accent-green);
+    background: rgba(50, 255, 181, 0.1);
+    border: 1px solid rgba(50, 255, 181, 0.3);
+}
+
+.test-summary.error {
+    color: var(--danger-red);
+    background: rgba(255, 99, 132, 0.1);
+    border: 1px solid rgba(255, 99, 132, 0.3);
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.1em;
+}
+
+/* Animación para el botón durante la prueba */
+.btn-testing {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn-testing .fas {
+    animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .connection-test-result {
+        max-height: 200px;
+        font-size: 0.85rem;
+    }
+}
+</style>
+
+<style>
+.license-status-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.license-metric {
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.activity-timeline {
+    max-height: 300px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.timeline-item {
+    border-left: 3px solid #007bff;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #007bff;
+}
+
+.timeline-item.success { border-left-color: #28a745; }
+.timeline-item.success::before { background: #28a745; }
+.timeline-item.error { border-left-color: #dc3545; }
+.timeline-item.error::before { background: #dc3545; }
+.timeline-item.warning { border-left-color: #ffc107; }
+.timeline-item.warning::before { background: #ffc107; }
+
+.status-pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+
+.status-pulse.active { background: #28a745; }
+.status-pulse.inactive { background: #dc3545; }
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+</style>
+
+<!-- JavaScript Functions para las pruebas de conexión -->
+<script>
+/**
+ * Función para probar la conexión de un servidor IMAP
+ * @param {number} serverId - ID del servidor a probar
+ */
+function testServerConnection(serverId) {
+    console.log('Probando conexión del servidor:', serverId);
+    
+    // Obtener elementos del DOM
+    const button = document.getElementById('test_btn_' + serverId);
+    const resultContainer = document.getElementById('test_result_' + serverId);
+    const serverInput = document.getElementById('srv_imap_server_' + serverId);
+    const portInput = document.getElementById('srv_imap_port_' + serverId);
+    const userInput = document.getElementById('srv_imap_user_' + serverId);
+    const passwordInput = document.getElementById('srv_imap_password_' + serverId);
+    
+    if (!button || !resultContainer || !serverInput || !portInput || !userInput || !passwordInput) {
+        alert('Error: No se pudieron encontrar todos los elementos necesarios.');
+        return;
+    }
+    
+    // Obtener valores actuales de los campos
+    const serverData = {
+        imap_server: serverInput.value.trim(),
+        imap_port: portInput.value.trim(),
+        imap_user: userInput.value.trim(),
+        imap_password: passwordInput.value.trim()
+    };
+    
+    // Validaciones básicas
+    if (!serverData.imap_server) {
+        showTestResult(serverId, false, 'El campo Servidor IMAP es obligatorio', []);
+        return;
+    }
+    
+    if (!serverData.imap_port || isNaN(serverData.imap_port)) {
+        showTestResult(serverId, false, 'El puerto IMAP debe ser un número válido', []);
+        return;
+    }
+    
+    if (!serverData.imap_user) {
+        showTestResult(serverId, false, 'El campo Usuario IMAP es obligatorio', []);
+        return;
+    }
+    
+    if (!serverData.imap_password) {
+        showTestResult(serverId, false, 'El campo contraseña no puede estar vacío', []);
+        return;
+    }
+    
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(serverData.imap_user)) {
+        showTestResult(serverId, false, 'El formato del email de usuario no es válido', []);
+        return;
+    }
+    
+    // Cambiar estado del botón a "probando"
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Probando...';
+    button.classList.add('btn-testing');
+    button.disabled = true;
+    
+    // Mostrar estado de prueba en progreso
+    resultContainer.style.display = 'block';
+    resultContainer.className = 'connection-test-result testing';
+    resultContainer.innerHTML = `
+        <div class="test-summary">
+            <i class="fas fa-spinner fa-spin me-2"></i>
+            Probando conexión a ${serverData.imap_server}:${serverData.imap_port}...
         </div>
+        <div class="test-detail">Estableciendo conexión IMAP...</div>
+    `;
+    
+    // Realizar petición AJAX
+    const formData = new FormData();
+    formData.append('imap_server', serverData.imap_server);
+    formData.append('imap_port', serverData.imap_port);
+    formData.append('imap_user', serverData.imap_user);
+    formData.append('imap_password', serverData.imap_password);
+    formData.append('server_id', serverId); // Enviar ID del servidor
+    
+    fetch('test_server_connection.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Resultado de la prueba:', data);
+        showTestResult(serverId, data.success, data.error, data.details || [], data.server_info);
+    })
+    .catch(error => {
+        console.error('Error en la prueba de conexión:', error);
+        showTestResult(serverId, false, 'Error de red o del servidor: ' + error.message, []);
+    })
+    .finally(() => {
+        // Restaurar el botón
+        button.innerHTML = '<i class="fas fa-wifi"></i> Probar Conexión';
+        button.classList.remove('btn-testing');
+        button.disabled = false;
+    });
+}
+
+/**
+ * Mostrar los resultados de la prueba de conexión
+ * @param {number} serverId - ID del servidor
+ * @param {boolean} success - Si la prueba fue exitosa
+ * @param {string} error - Mensaje de error (si aplica)
+ * @param {Array} details - Detalles de la prueba
+ * @param {Object} serverInfo - Información del servidor
+ */
+function showTestResult(serverId, success, error, details = [], serverInfo = null) {
+    const resultContainer = document.getElementById('test_result_' + serverId);
+    if (!resultContainer) return;
+    
+    resultContainer.style.display = 'block';
+    resultContainer.className = `connection-test-result ${success ? 'success' : 'error'}`;
+    
+    let html = '';
+    
+    // Resumen principal
+    if (success) {
+        html += `
+            <div class="test-summary success">
+                <i class="fas fa-check-circle me-2"></i>
+                ¡Conexión exitosa!
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="test-summary error">
+                <i class="fas fa-times-circle me-2"></i>
+                Error de conexión: ${escapeHtml(error || 'Error desconocido')}
+            </div>
+        `;
+    }
+    
+    // Información del servidor (si está disponible)
+    if (serverInfo) {
+        html += `
+            <div class="test-detail">
+                <strong>Servidor:</strong> ${escapeHtml(serverInfo.server)}:${serverInfo.port}
+            </div>
+            <div class="test-detail">
+                <strong>Usuario:</strong> ${escapeHtml(serverInfo.user)}
+            </div>
+        `;
+    }
+    
+    // Detalles de la prueba
+    if (details && details.length > 0) {
+        html += '<hr style="border-color: rgba(255,255,255,0.2); margin: 0.75rem 0;">';
+        html += '<strong style="color: var(--text-secondary); font-size: 0.9rem;">Detalles de la prueba:</strong>';
+        
+        details.forEach(detail => {
+            let detailClass = '';
+            if (detail.includes('✅')) detailClass = 'success';
+            else if (detail.includes('❌')) detailClass = 'error';
+            else if (detail.includes('⚠️')) detailClass = 'warning';
+            
+            html += `<div class="test-detail ${detailClass}">${escapeHtml(detail)}</div>`;
+        });
+    }
+    
+    resultContainer.innerHTML = html;
+    
+    // Auto-ocultar después de 15 segundos si fue exitoso
+    if (success) {
+        setTimeout(() => {
+            if (resultContainer.style.display !== 'none') {
+                resultContainer.style.display = 'none';
+            }
+        }, 15000);
+    }
+}
+
+/**
+ * Función para probar todos los servidores habilitados
+ */
+function testAllEnabledServers() {
+    console.log('Probando todos los servidores habilitados...');
+    
+    const enabledCheckboxes = document.querySelectorAll('[id^="srv_enabled_"]:checked');
+    const serverIds = Array.from(enabledCheckboxes).map(checkbox => {
+        return checkbox.id.replace('srv_enabled_', '');
+    });
+    
+    if (serverIds.length === 0) {
+        alert('No hay servidores habilitados para probar.');
+        return;
+    }
+    
+    if (!confirm(`¿Quieres probar la conexión de todos los ${serverIds.length} servidores habilitados?`)) {
+        return;
+    }
+    
+    // Probar cada servidor con un delay entre cada uno
+    serverIds.forEach((serverId, index) => {
+        setTimeout(() => {
+            testServerConnection(serverId);
+        }, index * 2000); // 2 segundos de delay entre cada prueba
+    });
+}
+
+// Función utilitaria ya definida anteriormente
+// function escapeHtml(unsafe) { ... }
+</script>
 
         <div class="tab-pane fade" id="users" role="tabpanel">
             <div class="admin-card">
@@ -2197,37 +2616,276 @@ document.addEventListener('visibilitychange', function() {
         </div>
 
         <div class="tab-pane fade" id="licencia" role="tabpanel">
+    <?php
+    // Obtener información detallada de licencia
+    $license_info = $license_client->getLicenseInfo();
+    $license_stats = $license_client->getLicenseStats();
+    $recent_activity = $license_client->getLicenseActivity(10);
+    $diagnostic_info = $license_client->getDiagnosticInfo();
+    
+    // Procesar acciones específicas del admin
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['license_action'])) {
+        switch ($_POST['license_action']) {
+            case 'force_check':
+                $result = $license_client->forceValidation();
+                if ($result['success']) {
+                    $license_success_msg = $result['message'];
+                } else {
+                    $license_error_msg = $result['message'];
+                }
+                break;
+        }
+    }
+    ?>
+    
+    <!-- Mensajes de estado -->
+    <?php if (isset($license_success_msg)): ?>
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>
+            <?= htmlspecialchars($license_success_msg) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($license_error_msg)): ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <?= htmlspecialchars($license_error_msg) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Estado Principal de Licencia -->
+    <div class="license-status-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h3>
+                    <span class="status-pulse <?= $is_license_valid ? 'active' : 'inactive' ?>"></span>
+                    Estado de la Licencia
+                </h3>
+                <p class="mb-0 fs-5">
+                    <?php if ($is_license_valid): ?>
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>SISTEMA PROTEGIDO Y ACTIVO</strong>
+                    <?php else: ?>
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>SISTEMA REQUIERE ATENCIÓN</strong>
+                    <?php endif; ?>
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="license-metric">
+                    <div class="fs-6">Última verificación</div>
+                    <div class="fs-5 fw-bold">
+                        <?php if ($license_stats): ?>
+                            hace <?= round($license_stats['hours_since_last_check'], 1) ?> horas
+                        <?php else: ?>
+                            No disponible
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información Detallada -->
+        <div class="col-md-6">
             <div class="admin-card">
                 <div class="admin-card-header">
-                    <h3 class="admin-card-title">
-                        <i class="fas fa-certificate me-2 text-primary"></i>
-                        Estado de la Licencia
-                    </h3>
+                    <h4 class="admin-card-title">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>
+                        Información Detallada
+                    </h4>
                 </div>
-                <div class="mb-4">
-                    <?php if ($is_license_valid): ?>
-                        <div class="alert-admin alert-success-admin">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong>¡Licencia Válida!</strong> Tu sistema está activo y funcionando correctamente.
-                        </div>
-                        <p><strong>Dominio de la Licencia:</strong> <span class="text-primary"><?= htmlspecialchars($license_info['domain'] ?? 'N/A') ?></span></p>
-                        <p><strong>Activada el:</strong> <span class="text-primary"><?= htmlspecialchars($license_info['activated_at'] ?? 'N/A') ?></span></p>
-                        <p><strong>Última Verificación:</strong> <span class="text-primary"><?= htmlspecialchars($license_info['last_check'] ?? 'N/A') ?></span></p>
-                    <?php else: ?>
-                        <div class="alert-admin alert-danger-admin">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>¡Licencia Inválida o no Encontrada!</strong> Por favor, activa o verifica tu licencia.
-                        </div>
-                        <?php if ($license_info): ?>
-                            <p><strong>Estado Actual:</strong> <span class="text-danger"><?= htmlspecialchars($license_info['status'] ?? 'Desconocido') ?></span></p>
-                            <p><strong>Última Verificación:</strong> <span class="text-danger"><?= htmlspecialchars($license_info['last_check'] ?? 'N/A') ?></span></p>
+                <div class="admin-card-body">
+                    <?php if ($license_info): ?>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Dominio autorizado:</strong></td>
+                                <td class="text-primary"><?= htmlspecialchars($license_info['domain']) ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Estado actual:</strong></td>
+                                <td>
+                                    <span class="badge bg-<?= $license_info['status'] === 'active' ? 'success' : 'danger' ?> fs-6">
+                                        <?= ucfirst($license_info['status']) ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Fecha de activación:</strong></td>
+                                <td><?= htmlspecialchars($license_info['activated_at']) ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Última verificación:</strong></td>
+                                <td><?= htmlspecialchars($license_info['last_check']) ?></td>
+                            </tr>
+                            <?php if (!empty($license_info['license_key_preview'])): ?>
+                            <tr>
+                                <td><strong>Clave de licencia:</strong></td>
+                                <td><code><?= htmlspecialchars($license_info['license_key_preview']) ?></code></td>
+                            </tr>
+                            <?php endif; ?>
+                        </table>
+
+                        <!-- Métricas de rendimiento -->
+                        <?php if ($license_stats): ?>
+                            <hr>
+                            <h6><i class="fas fa-chart-line me-2"></i>Métricas de Verificación</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="license-metric bg-light text-dark">
+                                        <div class="fs-6 text-muted">Total verificaciones</div>
+                                        <div class="fs-4 fw-bold text-primary"><?= $license_stats['validation_count'] ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="license-metric bg-light text-dark">
+                                        <div class="fs-6 text-muted">Días activa</div>
+                                        <div class="fs-4 fw-bold text-success"><?= $license_stats['days_since_activation'] ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Próxima verificación -->
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><strong>Próxima verificación automática:</strong></span>
+                                    <span class="badge bg-<?= $license_stats['hours_until_next_check'] > 0 ? 'info' : 'warning' ?> fs-6">
+                                        <?php if ($license_stats['hours_until_next_check'] > 0): ?>
+                                            En <?= round($license_stats['hours_until_next_check'], 1) ?> horas
+                                        <?php else: ?>
+                                            Pendiente
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Errores si los hay -->
+                            <?php if ($license_stats['error_count'] > 0): ?>
+                                <div class="mt-3 alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Errores detectados:</strong> <?= $license_stats['error_count'] ?>
+                                    <?php if (!empty($license_stats['last_error'])): ?>
+                                        <br><small><?= htmlspecialchars($license_stats['last_error']) ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
-                        <div class="text-center mt-3">
-                            <a href="../instalacion/instalador.php?step=license" class="btn-admin btn-primary-admin">
-                                <i class="fas fa-key me-2"></i>Activar/Verificar Licencia
-                            </a>
+
+                    <?php else: ?>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>¡Licencia no encontrada o inválida!</strong><br>
+                            El sistema no puede acceder a la información de licencia.
                         </div>
                     <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actividad Reciente y Acciones -->
+        <div class="col-md-6">
+            <!-- Actividad Reciente -->
+            <div class="admin-card mb-3">
+                <div class="admin-card-header">
+                    <h4 class="admin-card-title">
+                        <i class="fas fa-history me-2 text-info"></i>
+                        Actividad Reciente
+                    </h4>
+                </div>
+                <div class="admin-card-body">
+                    <div class="activity-timeline">
+                        <?php if (!empty($recent_activity)): ?>
+                            <?php foreach (array_slice($recent_activity, 0, 8) as $activity): ?>
+                                <div class="timeline-item <?= $activity['type'] ?>">
+                                    <div class="d-flex justify-content-between">
+                                        <small class="text-muted"><?= htmlspecialchars($activity['timestamp']) ?></small>
+                                        <span class="badge badge-sm bg-<?= 
+                                            $activity['type'] === 'success' ? 'success' : 
+                                            ($activity['type'] === 'error' ? 'danger' : 
+                                            ($activity['type'] === 'warning' ? 'warning' : 'info')) 
+                                        ?>">
+                                            <?= strtoupper($activity['type']) ?>
+                                        </span>
+                                    </div>
+                                    <div class="fw-medium"><?= htmlspecialchars($activity['message']) ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                <p>No hay actividad registrada</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Acciones -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h4 class="admin-card-title">
+                        <i class="fas fa-cogs me-2 text-warning"></i>
+                        Acciones de Administrador
+                    </h4>
+                </div>
+                <div class="admin-card-body">
+                    <div class="d-grid gap-2">
+                        <!-- Verificación forzada -->
+                        <form method="post" class="mb-2">
+                            <input type="hidden" name="license_action" value="force_check">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-sync me-2"></i>
+                                Verificar Licencia Ahora
+                            </button>
+                        </form>
+
+                        <!-- Enlace al monitor completo -->
+                        <a href="license_monitor.php" class="btn btn-info w-100" target="_blank">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Monitor Completo
+                        </a>
+
+                        <!-- Diagnóstico rápido -->
+                        <button type="button" class="btn btn-secondary w-100" onclick="toggleDiagnostic()">
+                            <i class="fas fa-wrench me-2"></i>
+                            Información Técnica
+                        </button>
+                    </div>
+
+                    <!-- Panel de diagnóstico (oculto por defecto) -->
+                    <div id="diagnostic-panel" style="display: none;" class="mt-3">
+                        <hr>
+                        <h6><i class="fas fa-stethoscope me-2"></i>Diagnóstico del Sistema</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Servidor de licencias:</td>
+                                    <td><small><?= htmlspecialchars($diagnostic_info['server_url'] ?? 'N/A') ?></small></td>
+                                </tr>
+                                <tr>
+                                    <td>Archivo de licencia:</td>
+                                    <td>
+                                        <i class="fas fa-<?= ($diagnostic_info['file_exists'] ?? false) ? 'check text-success' : 'times text-danger' ?> me-1"></i>
+                                        <?= ($diagnostic_info['file_exists'] ?? false) ? 'Existe' : 'No encontrado' ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Permisos de escritura:</td>
+                                    <td>
+                                        <i class="fas fa-<?= ($diagnostic_info['directory_writable'] ?? false) ? 'check text-success' : 'times text-danger' ?> me-1"></i>
+                                        <?= ($diagnostic_info['directory_writable'] ?? false) ? 'Correcto' : 'Sin permisos' ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Directorio:</td>
+                                    <td><small><code><?= htmlspecialchars($diagnostic_info['license_dir'] ?? 'N/A') ?></code></small></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3540,4 +4198,426 @@ function loadUserEmails(userId) {
         }, 2000);
     });
 }
+
+
+/**
+ * Mostrar resultados con manejo de sugerencias inteligentes
+ */
+function showTestResultWithSuggestion(serverId, success, error, details = [], serverInfo = null, suggestion = null) {
+    const resultContainer = document.getElementById('test_result_' + serverId);
+    if (!resultContainer) return;
+    
+    resultContainer.style.display = 'block';
+    resultContainer.className = `connection-test-result ${success ? 'success' : 'error'}`;
+    
+    let html = '';
+    
+    // Resumen principal
+    if (success) {
+        html += `
+            <div class="test-summary success">
+                <i class="fas fa-check-circle me-2"></i>
+                ¡Conexión exitosa!
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="test-summary error">
+                <i class="fas fa-times-circle me-2"></i>
+                Error de conexión: ${escapeHtml(error || 'Error desconocido')}
+            </div>
+        `;
+    }
+    
+    // Información del servidor
+    if (serverInfo) {
+        html += `
+            <div class="test-detail">
+                <strong>🖥️ Servidor:</strong> ${escapeHtml(serverInfo.server)}:${serverInfo.port}
+            </div>
+            <div class="test-detail">
+                <strong>👤 Usuario:</strong> ${escapeHtml(serverInfo.user)}
+            </div>
+        `;
+    }
+    
+    // Detalles de la prueba
+    if (details && details.length > 0) {
+        html += '<hr style="border-color: rgba(255,255,255,0.2); margin: 0.75rem 0;">';
+        html += '<div class="test-details-header"><strong>📋 Detalles de la prueba:</strong></div>';
+        
+        details.forEach(detail => {
+            let detailClass = '';
+            if (detail.includes('✅')) detailClass = 'success';
+            else if (detail.includes('❌')) detailClass = 'error';
+            else if (detail.includes('⚠️') || detail.includes('💡')) detailClass = 'warning';
+            else if (detail.includes('🔧') || detail.includes('🚀')) detailClass = 'info';
+            
+            html += `<div class="test-detail ${detailClass}">${escapeHtml(detail)}</div>`;
+        });
+    }
+    
+    // Manejar sugerencias especiales
+    if (suggestion && suggestion.type === 'dns_fix') {
+        html += generateDNSFixSuggestion(serverId, suggestion);
+    }
+    
+    resultContainer.innerHTML = html;
+    
+    // Auto-ocultar después de 20 segundos si fue exitoso y no hay sugerencias
+    if (success && !suggestion) {
+        setTimeout(() => {
+            if (resultContainer.style.display !== 'none') {
+                resultContainer.style.display = 'none';
+            }
+        }, 20000);
+    }
+}
+
+/**
+ * Generar HTML para sugerencia de corrección DNS
+ */
+function generateDNSFixSuggestion(serverId, suggestion) {
+    return `
+        <hr style="border-color: rgba(255,255,255,0.2); margin: 1rem 0;">
+        <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+            <div>
+                <h6 style="color: var(--text-primary); margin-bottom: 0.75rem; font-weight: 600;">
+                    <i class="fas fa-lightbulb me-2 text-warning"></i>💡 Solución Automática Disponible
+                </h6>
+            </div>
+            
+            <div style="background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem;">
+                <p style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                    <strong>🔧 Problema detectado:</strong> Tu servidor no puede resolver DNS pero la conectividad IMAP funciona perfectamente.
+                </p>
+                <p style="margin-bottom: 0; color: var(--text-secondary); font-size: 0.9rem;">
+                    <strong>💡 Solución:</strong> Usar IP directa en lugar del nombre de dominio.
+                </p>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <div style="display: flex; align-items: center; padding: 0.5rem; margin-bottom: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px; font-size: 0.9rem; border-left: 3px solid var(--danger-red);">
+                    <span style="font-weight: 600; color: var(--text-secondary); min-width: 80px;">📍 Actual:</span>
+                    <span style="flex: 1; color: var(--text-primary); font-family: 'Courier New', monospace; margin: 0 0.75rem;">${escapeHtml(suggestion.current_server)}</span>
+                    <span style="font-size: 0.8rem; font-weight: 500; color: var(--danger-red);">❌ DNS no funciona</span>
+                </div>
+                <div style="display: flex; align-items: center; padding: 0.5rem; margin-bottom: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px; font-size: 0.9rem; border-left: 3px solid var(--accent-green);">
+                    <span style="font-weight: 600; color: var(--text-secondary); min-width: 80px;">🎯 Sugerido:</span>
+                    <span style="flex: 1; color: var(--text-primary); font-family: 'Courier New', monospace; margin: 0 0.75rem;">${escapeHtml(suggestion.suggested_ip)}</span>
+                    <span style="font-size: 0.8rem; font-weight: 500; color: var(--accent-green);">✅ Funciona perfectamente</span>
+                </div>
+            </div>
+            
+            <div style="background: rgba(0, 0, 0, 0.15); border-radius: 6px; padding: 0.75rem; margin: 1rem 0;">
+                <strong style="color: var(--text-primary); display: block; margin-bottom: 0.5rem;">🎉 Beneficios de usar IP directa:</strong>
+                <ul style="margin: 0; padding-left: 1.2rem; list-style: none;">
+                    ${suggestion.benefits.map(benefit => `
+                        <li style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.25rem;">
+                            ${escapeHtml(benefit)}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; margin: 1rem 0; flex-wrap: wrap;">
+                <button type="button" 
+                        style="padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: linear-gradient(135deg, var(--accent-green), #00d4aa); color: white; box-shadow: 0 2px 8px rgba(50, 255, 181, 0.3);"
+                        onclick="applyIPSuggestion(${serverId}, '${escapeHtml(suggestion.suggested_ip)}')">
+                    <i class="fas fa-magic me-2"></i>
+                    ${escapeHtml(suggestion.action_text)}
+                </button>
+                <button type="button" 
+                        style="padding: 0.5rem 1rem; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: var(--text-secondary);"
+                        onclick="dismissSuggestion(${serverId})">
+                    <i class="fas fa-times me-2"></i>
+                    Mantener Configuración Actual
+                </button>
+            </div>
+            
+            <div style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.2); border-radius: 4px; padding: 0.5rem; margin-top: 1rem;">
+                <small style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.4;">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Nota:</strong> Puedes cambiar de vuelta al nombre de dominio en cualquier momento editando la configuración del servidor.
+                </small>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Aplicar sugerencia de IP automáticamente
+ */
+function applyIPSuggestion(serverId, suggestedIP) {
+    if (!confirm(`¿Estás seguro de que quieres cambiar la configuración a usar la IP ${suggestedIP}?`)) {
+        return;
+    }
+    
+    // Deshabilitar botones temporalmente
+    const buttons = document.querySelectorAll(`#test_result_${serverId} button`);
+    buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent.includes('Usar IP')) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Aplicando...';
+        }
+    });
+    
+    // Realizar actualización
+    const formData = new FormData();
+    formData.append('action', 'update_to_ip');
+    formData.append('server_id', serverId);
+    formData.append('suggested_ip', suggestedIP);
+    
+    fetch('test_server_connection.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualizar la interfaz
+            const serverInput = document.getElementById('srv_imap_server_' + serverId);
+            if (serverInput) {
+                serverInput.value = suggestedIP;
+            }
+            
+            // Mostrar mensaje de éxito
+            showUpdateSuccess(serverId, suggestedIP);
+            
+            // Ocultar sugerencia después de 5 segundos
+            setTimeout(() => {
+                const resultContainer = document.getElementById('test_result_' + serverId);
+                if (resultContainer) {
+                    resultContainer.style.display = 'none';
+                }
+            }, 8000);
+            
+        } else {
+            alert('Error al aplicar la sugerencia: ' + (data.error || 'Error desconocido'));
+            
+            // Restaurar botones
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.textContent.includes('Aplicando')) {
+                    btn.innerHTML = '<i class="fas fa-magic me-2"></i>Usar IP: ' + suggestedIP;
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error aplicando sugerencia:', error);
+        alert('Error de red al aplicar la sugerencia');
+        
+        // Restaurar botones
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            if (btn.textContent.includes('Aplicando')) {
+                btn.innerHTML = '<i class="fas fa-magic me-2"></i>Usar IP: ' + suggestedIP;
+            }
+        });
+    });
+}
+
+/**
+ * Mostrar mensaje de actualización exitosa
+ */
+function showUpdateSuccess(serverId, newIP) {
+    const resultContainer = document.getElementById('test_result_' + serverId);
+    if (!resultContainer) return;
+    
+    resultContainer.className = 'connection-test-result success';
+    resultContainer.innerHTML = `
+        <div class="test-summary success">
+            <i class="fas fa-check-circle me-2"></i>
+            ¡Configuración actualizada exitosamente!
+        </div>
+        <div class="test-detail success">
+            <strong>🎯 Nueva configuración:</strong> ${escapeHtml(newIP)}
+        </div>
+        <div class="test-detail success">
+            ✅ El servidor ahora usará la IP directa para conexiones IMAP
+        </div>
+        <div class="test-detail">
+            💡 <strong>Próximos pasos:</strong> Puedes hacer clic en "Actualizar Servidores" para guardar permanentemente
+        </div>
+        <div class="test-detail">
+            🔄 <strong>Para deshacer:</strong> Edita manualmente el campo del servidor y cambia de vuelta al nombre de dominio
+        </div>
+    `;
+}
+
+/**
+ * Descartar sugerencia
+ */
+function dismissSuggestion(serverId) {
+    const resultContainer = document.getElementById('test_result_' + serverId);
+    if (resultContainer) {
+        const suggestion = resultContainer.querySelector('div[style*="rgba(255, 193, 7"]');
+        if (suggestion) {
+            suggestion.style.display = 'none';
+        }
+    }
+}
+
+// Actualizar la función testServerConnection para usar el sistema híbrido
+const originalTestServerConnection = window.testServerConnection;
+window.testServerConnection = function(serverId) {
+    console.log('Probando conexión del servidor:', serverId);
+    
+    const button = document.getElementById('test_btn_' + serverId);
+    const resultContainer = document.getElementById('test_result_' + serverId);
+    const serverInput = document.getElementById('srv_imap_server_' + serverId);
+    const portInput = document.getElementById('srv_imap_port_' + serverId);
+    const userInput = document.getElementById('srv_imap_user_' + serverId);
+    const passwordInput = document.getElementById('srv_imap_password_' + serverId);
+    
+    if (!button || !resultContainer || !serverInput || !portInput || !userInput || !passwordInput) {
+        alert('Error: No se pudieron encontrar todos los elementos necesarios.');
+        return;
+    }
+    
+    const serverData = {
+        imap_server: serverInput.value.trim(),
+        imap_port: portInput.value.trim(),
+        imap_user: userInput.value.trim(),
+        imap_password: passwordInput.value.trim()
+    };
+    
+    // Validaciones básicas
+    if (!serverData.imap_server) {
+        showTestResult(serverId, false, 'El campo Servidor IMAP es obligatorio', []);
+        return;
+    }
+    
+    if (!serverData.imap_port || isNaN(serverData.imap_port)) {
+        showTestResult(serverId, false, 'El puerto IMAP debe ser un número válido', []);
+        return;
+    }
+    
+    if (!serverData.imap_user) {
+        showTestResult(serverId, false, 'El campo Usuario IMAP es obligatorio', []);
+        return;
+    }
+    
+    if (!serverData.imap_password) {
+        showTestResult(serverId, false, 'El campo contraseña no puede estar vacío', []);
+        return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(serverData.imap_user)) {
+        showTestResult(serverId, false, 'El formato del email de usuario no es válido', []);
+        return;
+    }
+    
+    // Cambiar estado del botón
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
+    button.classList.add('btn-testing');
+    button.disabled = true;
+    
+    // Mostrar estado de prueba
+    resultContainer.style.display = 'block';
+    resultContainer.className = 'connection-test-result testing';
+    resultContainer.innerHTML = `
+        <div class="test-summary">
+            <i class="fas fa-cogs fa-spin me-2"></i>
+            🔍 Analizando conexión a ${serverData.imap_server}:${serverData.imap_port}...
+        </div>
+        <div class="test-detail">🚀 Ejecutando prueba híbrida inteligente...</div>
+        <div class="test-detail">📡 Paso 1: Probando configuración original</div>
+        <div class="test-detail">🔧 Paso 2: Detectando problemas DNS (si aplica)</div>
+        <div class="test-detail">💡 Paso 3: Sugiriendo soluciones automáticas</div>
+    `;
+    
+    // Realizar petición AJAX
+    const formData = new FormData();
+    formData.append('imap_server', serverData.imap_server);
+    formData.append('imap_port', serverData.imap_port);
+    formData.append('imap_user', serverData.imap_user);
+    formData.append('imap_password', serverData.imap_password);
+    formData.append('server_id', serverId);
+    
+    fetch('test_server_connection.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Resultado de la prueba:', data);
+        showTestResultWithSuggestion(serverId, data.success, data.error, data.details || [], data.server_info, data.suggestion);
+    })
+    .catch(error => {
+        console.error('Error en la prueba de conexión:', error);
+        showTestResult(serverId, false, 'Error de red o del servidor: ' + error.message, []);
+    })
+    .finally(() => {
+        button.innerHTML = '<i class="fas fa-wifi"></i> Probar Conexión';
+        button.classList.remove('btn-testing');
+        button.disabled = false;
+    });
+};
+
+// Función de compatibilidad para showTestResult
+const originalShowTestResult = window.showTestResult;
+window.showTestResult = function(serverId, success, error, details = [], serverInfo = null) {
+    showTestResultWithSuggestion(serverId, success, error, details, serverInfo, null);
+};
+
+// ===== FIN SISTEMA HÍBRIDO =====
+
 </script>
+
+<script>
+function toggleDiagnostic() {
+    const panel = document.getElementById('diagnostic-panel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+// Auto-actualizar la información de licencia cada 2 minutos
+setInterval(function() {
+    // Solo recargar la pestaña de licencia si está activa
+    if (document.querySelector('#licencia').classList.contains('active')) {
+        const currentUrl = window.location.href;
+        if (currentUrl.includes('#licencia')) {
+            // Realizar petición AJAX para actualizar solo el contenido de licencia
+            // O simplemente recargar la página si no hay formularios pendientes
+            if (!document.querySelector('form[method="post"]:invalid')) {
+                window.location.reload();
+            }
+        }
+    }
+}, 120000); // 2 minutos
+
+// Mostrar timestamp en tiempo real en algunos elementos
+function updateLiveTimestamps() {
+    const now = new Date();
+    const timestamp = now.toLocaleString('es-ES');
+    
+    // Actualizar elementos con clase 'live-time' si existen
+    document.querySelectorAll('.live-time').forEach(el => {
+        el.textContent = timestamp;
+    });
+}
+
+// Ejecutar cada 30 segundos
+setInterval(updateLiveTimestamps, 30000);
+</script>
+</body>
+</html>

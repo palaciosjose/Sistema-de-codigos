@@ -1,3 +1,5 @@
-2025-06-18 05:34:35 - Instalación completada exitosamente con licencia activada
-Archivo de licencia: /home/serverbussn/streamdigi.warsup.shop/license/license.dat
-Directorio de licencias: /home/serverbussn/streamdigi.warsup.shop/license
+2025-06-19 04:02:58 - Instalación completada exitosamente con licencia activada
+Archivo de licencia: /home/serverbussn/zonestore.warsup.shop/license/license.dat
+Directorio de licencias: /home/serverbussn/zonestore.warsup.shop/license
+Base de datos configurada: SÍ
+Configuración INSTALLED creada: SÍ

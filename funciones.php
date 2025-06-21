@@ -1,7 +1,8 @@
 <?php
 /**
  * Sistema de Consulta de Códigos por Email - Funciones Optimizadas
- * Versión: 2.1 - Integración de licencias corregida
+ * Versión: 2.2 - Corrección de Consistencia de Resultados
+ * CAMBIO PRINCIPAL: Elimina contradicción entre "¡Éxito!" y "0 mensajes encontrados"
  */
 
 // Inicializar sesión de forma segura
@@ -133,7 +134,7 @@ require_once 'instalacion/basededatos.php';
 require_once 'cache/cache_helper.php';
 
 /**
- * Clase principal para manejo de emails
+ * Clase principal para manejo de emails - VERSIÓN CORREGIDA
  */
 class EmailSearchEngine {
     private $conn;
@@ -212,75 +213,89 @@ class EmailSearchEngine {
     }
     
     /**
-     * Verificación de email autorizado con restricciones por usuario
-     */
-    private function isAuthorizedEmail($email) {
-        $auth_enabled = ($this->settings['EMAIL_AUTH_ENABLED'] ?? '0') === '1';
-        $user_restrictions_enabled = ($this->settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1';
-        
-        // Si no hay filtro de autorizacion, permitir todos
-        if (!$auth_enabled) {
-            return true;
-        }
-        
-        // Verificar si el email está en la lista de autorizados
-        $stmt = $this->conn->prepare("SELECT id FROM authorized_emails WHERE email = ? LIMIT 1");
-        if (!$stmt) {
-            error_log("Error preparando consulta de autorización: " . $this->conn->error);
-            return false;
-        }
-        
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows == 0) {
-            $stmt->close();
-            return false; // Email no está en la lista de autorizados
-        }
-        
-        $email_data = $result->fetch_assoc();
-        $authorized_email_id = $email_data['id'];
-        $stmt->close();
-        
-        // Si las restricciones por usuario están deshabilitadas, permitir
-        if (!$user_restrictions_enabled) {
-            return true;
-        }
-        
-        // Verificar si el usuario actual tiene acceso a este email específico
-        $user_id = $_SESSION['user_id'] ?? null;
-        
-        // Si no hay usuario logueado, denegar
-        if (!$user_id) {
-            return false;
-        }
-        
-        // Si es admin, permitir acceso a todos los correos
-        if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
-            return true;
-        }
-        
-        // Verificar si el usuario tiene asignado este email específico
-        $stmt_user = $this->conn->prepare("
-            SELECT 1 FROM user_authorized_emails 
-            WHERE user_id = ? AND authorized_email_id = ? 
-            LIMIT 1
-        ");
-        
-        if (!$stmt_user) {
-            error_log("Error preparando consulta de restricción por usuario: " . $this->conn->error);
-            return false;
-        }
-        
-        $stmt_user->bind_param("ii", $user_id, $authorized_email_id);
-        $stmt_user->execute();
-        $result_user = $stmt_user->get_result();
-        $has_access = $result_user->num_rows > 0;
-        $stmt_user->close();
-        
-        return $has_access;
+ * Verificación de email autorizado con BYPASS SILENCIOSO para ADMIN
+ * Solo logea errores críticos
+ */
+private function isAuthorizedEmail($email) {
+    // 🔑 BYPASS TOTAL PARA ADMIN - SIN LOGS NORMALES
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+        return true; // Admin acceso sin logs
     }
+    
+    $auth_enabled = ($this->settings['EMAIL_AUTH_ENABLED'] ?? '0') === '1';
+    $user_restrictions_enabled = ($this->settings['USER_EMAIL_RESTRICTIONS_ENABLED'] ?? '0') === '1';
+    
+    // Si no hay filtro de autorización, permitir todos
+    if (!$auth_enabled) {
+        return true;
+    }
+    
+    // Verificar si el email está en la lista de autorizados
+    $stmt = $this->conn->prepare("SELECT id FROM authorized_emails WHERE email = ? LIMIT 1");
+    if (!$stmt) {
+        error_log("❌ ERROR SQL: Error preparando consulta de autorización: " . $this->conn->error);
+        return false;
+    }
+    
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows == 0) {
+        $stmt->close();
+        return false; // Email no autorizado, sin log
+    }
+    
+    $email_data = $result->fetch_assoc();
+    $authorized_email_id = $email_data['id'];
+    $stmt->close();
+    
+    // Si las restricciones por usuario están deshabilitadas, permitir
+    if (!$user_restrictions_enabled) {
+        return true;
+    }
+    
+    // Verificar si el usuario actual tiene acceso a este email específico
+    $user_id = $_SESSION['user_id'] ?? null;
+    
+    // Si no hay usuario logueado, denegar
+    if (!$user_id) {
+        return false;
+    }
+    
+    // Verificar si el usuario tiene asignado este email específico
+    $stmt_user = $this->conn->prepare("
+        SELECT 1 FROM user_authorized_emails 
+        WHERE user_id = ? AND authorized_email_id = ? 
+        LIMIT 1
+    ");
+    
+    if (!$stmt_user) {
+        error_log("❌ ERROR SQL: Error preparando consulta de restricción por usuario: " . $this->conn->error);
+        return false;
+    }
+    
+    $stmt_user->bind_param("ii", $user_id, $authorized_email_id);
+    $stmt_user->execute();
+    $result_user = $stmt_user->get_result();
+    $has_access = $result_user->num_rows > 0;
+    $stmt_user->close();
+    
+    return $has_access;
+}
+
+/**
+ * Verificación de permisos con bypass silencioso para admin
+ */
+private function checkEmailPermission($email) {
+    // 🔑 BYPASS SILENCIOSO PARA ADMIN
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+        return true;
+    }
+    
+    // Para usuarios normales, usar la validación estándar
+    return $this->isAuthorizedEmail($email);
+}
 
     /**
      * Nueva función para obtener emails asignados a un usuario específico
@@ -333,59 +348,158 @@ class EmailSearchEngine {
     }
     
     /**
-     * Búsqueda en múltiples servidores con estrategia optimizada
+     * Búsqueda en múltiples servidores con estrategia optimizada - VERSIÓN MEJORADA
      */
     private function searchInServers($email, $subjects, $servers) {
         $early_stop = ($this->settings['EARLY_SEARCH_STOP'] ?? '1') === '1';
         
+        $all_results = [];
+        $total_emails_found = 0;
+        $servers_with_emails = 0;
+        
         foreach ($servers as $server) {
             $result = $this->searchInSingleServer($email, $subjects, $server);
+            $all_results[] = $result;
             
+            // Si encontró y procesó exitosamente, retornar inmediatamente
             if ($result['found']) {
-                $this->logPerformance("Email encontrado en servidor: " . $server['server_name']);
+                $this->logPerformance("Email encontrado y procesado en servidor: " . $server['server_name']);
                 return $result;
             }
             
+            // Acumular estadísticas para reporte final
+            if (isset($result['emails_found_count']) && $result['emails_found_count'] > 0) {
+                $total_emails_found += $result['emails_found_count'];
+                $servers_with_emails++;
+            }
+            
+            // Early stop solo si realmente encontró y procesó contenido
             if ($early_stop && $result['found']) {
                 break;
             }
         }
         
-        return $this->createNotFoundResponse();
+        // Si llegamos aquí, ningún servidor pudo procesar emails exitosamente
+        // Determinar el mejor mensaje basado en los resultados acumulados
+        
+        if ($total_emails_found > 0) {
+            // Encontró emails pero no pudo procesarlos
+            $message = $servers_with_emails > 1 
+                ? "Se encontraron {$total_emails_found} emails en {$servers_with_emails} servidores, pero ninguno contenía datos válidos."
+                : "Se encontraron {$total_emails_found} emails, pero ninguno contenía datos válidos.";
+                
+            return [
+                'found' => false,
+                'message' => $message,
+                'type' => 'found_but_unprocessable',
+                'emails_found_count' => $total_emails_found,
+                'servers_checked' => count($servers),
+                'servers_with_emails' => $servers_with_emails,
+                'search_performed' => true,
+                'processing_attempted' => true
+            ];
+        }
+        
+        // No encontró nada en ningún servidor
+        return [
+            'found' => false,
+            'message' => '0 mensajes encontrados.',
+            'type' => 'not_found',
+            'servers_checked' => count($servers),
+            'search_performed' => true,
+            'emails_found_count' => 0
+        ];
     }
     
     /**
-     * Búsqueda en un servidor individual
+     * Búsqueda en un servidor individual - VERSIÓN CORREGIDA
      */
     private function searchInSingleServer($email, $subjects, $server_config) {
         $inbox = $this->openImapConnection($server_config);
         
         if (!$inbox) {
-            return ['found' => false, 'error' => 'Error de conexión'];
+            return [
+                'found' => false, 
+                'error' => 'Error de conexión',
+                'message' => 'No se pudo conectar al servidor ' . $server_config['server_name'],
+                'type' => 'connection_error'
+            ];
         }
         
         try {
             // Estrategia de búsqueda inteligente
             $email_ids = $this->executeSearch($inbox, $email, $subjects);
             
-            if (!empty($email_ids)) {
-                $latest_email_id = max($email_ids);
-                $email_content = $this->processFoundEmail($inbox, $latest_email_id);
-                
-                if ($email_content) {
-                    return [
-                        'found' => true,
-                        'content' => $email_content,
-                        'server' => $server_config['server_name']
-                    ];
+            if (empty($email_ids)) {
+                // Caso 1: Realmente no hay emails que coincidan
+                return [
+                    'found' => false,
+                    'message' => '0 mensajes encontrados.',
+                    'search_performed' => true,
+                    'emails_found_count' => 0,
+                    'type' => 'not_found'
+                ];
+            }
+            
+            // Caso 2: SÍ encontró emails, ahora intentar procesarlos
+            $emails_found_count = count($email_ids);
+            $this->logPerformance("Encontrados {$emails_found_count} emails en servidor: " . $server_config['server_name']);
+            
+            // Intentar procesar múltiples emails, no solo el más reciente
+            $emails_processed = 0;
+            $last_error = '';
+            
+            // Ordenar por más recientes primero
+            rsort($email_ids);
+            
+            // Intentar procesar hasta 3 emails recientes para mayor probabilidad de éxito
+            $max_attempts = min(3, $emails_found_count);
+            
+            for ($i = 0; $i < $max_attempts; $i++) {
+                try {
+                    $email_content = $this->processFoundEmail($inbox, $email_ids[$i]);
+                    
+                    if ($email_content) {
+                        // ¡Éxito! Logró procesar el contenido
+                        return [
+                            'found' => true,
+                            'content' => $email_content,
+                            'server' => $server_config['server_name'],
+                            'emails_found_count' => $emails_found_count,
+                            'emails_processed' => $emails_processed + 1,
+                            'attempts_made' => $i + 1,
+                            'type' => 'success'
+                        ];
+                    }
+                    
+                    $emails_processed++;
+                    
+                } catch (Exception $e) {
+                    $last_error = $e->getMessage();
+                    continue;
                 }
             }
             
-            return ['found' => false];
+            // Caso 3: Encontró emails pero no pudo procesar ninguno
+            return [
+                'found' => false,
+                'message' => "{$emails_found_count} emails encontrados, pero ninguno contenía datos válidos.",
+                'search_performed' => true,
+                'emails_found_count' => $emails_found_count,
+                'emails_processed' => $emails_processed,
+                'processing_error' => $last_error,
+                'server' => $server_config['server_name'],
+                'type' => 'found_but_unprocessable'
+            ];
             
         } catch (Exception $e) {
             error_log("Error en búsqueda: " . $e->getMessage());
-            return ['found' => false, 'error' => $e->getMessage()];
+            return [
+                'found' => false, 
+                'error' => $e->getMessage(),
+                'message' => 'Error durante la búsqueda: ' . $e->getMessage(),
+                'type' => 'search_error'
+            ];
         } finally {
             if ($inbox) {
                 imap_close($inbox);
@@ -449,7 +563,7 @@ private function filterEmailsByTimeAndSubject($inbox, $email_ids, $subjects) {
     $max_check = (int)($this->settings['MAX_EMAILS_TO_CHECK'] ?? 50);
     
     // Obtener el límite de tiempo configurado (en minutos)
-    $time_limit_minutes = (int)($this->settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? 20);
+    $time_limit_minutes = (int)($this->settings['EMAIL_QUERY_TIME_LIMIT_MINUTES'] ?? 30);
     $cutoff_timestamp = time() - ($time_limit_minutes * 60);
     
     $this->logPerformance("Filtrando emails: límite " . $time_limit_minutes . " minutos, timestamp corte: " . date('Y-m-d H:i:s', $cutoff_timestamp));
@@ -762,24 +876,31 @@ private function searchSimple($inbox, $email, $subjects) {
         }
     }
     
-    /**
-     * Procesar email encontrado
-     */
-    private function processFoundEmail($inbox, $email_id) {
-        try {
-            $header = imap_headerinfo($inbox, $email_id);
-            $body = get_email_body($inbox, $email_id, $header);
-            
-            if (!empty($body)) {
-                return process_email_body($body);
-            }
-            
-            return null;
-        } catch (Exception $e) {
-            error_log("Error procesando email: " . $e->getMessage());
-            return null;
+/**
+ * Procesar email encontrado - VERSIÓN SIMPLE
+ */
+private function processFoundEmail($inbox, $email_id) {
+    try {
+        $header = imap_headerinfo($inbox, $email_id);
+        if (!$header) {
+            return '<div style="padding: 15px; color: #ff0000;">Error: No se pudo obtener la información del mensaje.</div>';
         }
+
+        // Obtener el cuerpo del email con las nuevas funciones de decodificación
+        $body = get_email_body($inbox, $email_id, $header);
+        
+        if (!empty($body)) {
+            // Procesar el cuerpo preservando el contenido original
+            return process_email_body($body);
+        }
+        
+        return '<div style="padding: 15px; color: #666;">No se pudo extraer el contenido del mensaje.</div>';
+        
+    } catch (Exception $e) {
+        error_log("Error procesando email ID $email_id: " . $e->getMessage());
+        return '<div style="padding: 15px; color: #ff0000;">Error al procesar el mensaje: ' . htmlspecialchars($e->getMessage()) . '</div>';
     }
+}
     
     /**
      * Crear respuesta de error
@@ -788,27 +909,96 @@ private function searchSimple($inbox, $email, $subjects) {
         return [
             'found' => false,
             'error' => true,
-            'message' => $message
+            'message' => $message,
+            'type' => 'error'
         ];
     }
     
     /**
-     * Crear respuesta de no encontrado
+     * Crear respuesta de no encontrado (cuando realmente no hay emails)
      */
     private function createNotFoundResponse() {
         return [
             'found' => false,
-            'message' => '0 mensajes encontrados.'
+            'message' => '0 mensajes encontrados.',
+            'type' => 'not_found',
+            'search_performed' => true,
+            'emails_found_count' => 0
         ];
     }
     
     /**
-     * Registrar búsqueda en log
+     * Crear respuesta para emails encontrados pero no procesables
+     */
+    private function createFoundButUnprocessableResponse($emails_count, $details = '') {
+        $message = $emails_count > 1 
+            ? "{$emails_count} emails encontrados, pero ninguno contenía datos válidos."
+            : "1 email encontrado, pero no contenía datos válidos.";
+        
+        if ($details) {
+            $message .= " ({$details})";
+        }
+        
+        return [
+            'found' => false,
+            'message' => $message,
+            'type' => 'found_but_unprocessable',
+            'search_performed' => true,
+            'emails_found_count' => $emails_count,
+            'processing_attempted' => true
+        ];
+    }
+    
+    /**
+     * Crear respuesta de éxito
+     */
+    private function createSuccessResponse($content, $server_name, $additional_info = []) {
+        return [
+            'found' => true,
+            'content' => $content,
+            'server' => $server_name,
+            'type' => 'success',
+            'message' => 'Contenido extraído exitosamente.',
+            'emails_found_count' => $additional_info['emails_found_count'] ?? 1,
+            'emails_processed' => $additional_info['emails_processed'] ?? 1
+        ];
+    }
+    
+    /**
+     * Registrar búsqueda en log - VERSIÓN MEJORADA
      */
     private function logSearch($user_id, $email, $platform, $result) {
         try {
-            $status = $result['found'] ? 'Éxito' : 'No Encontrado';
-            $detail = $result['found'] ? '[Contenido Omitido]' : ($result['message'] ?? 'Sin detalles');
+            // Determinar el estado más preciso basado en el nuevo sistema
+            if ($result['found']) {
+                $status = 'Éxito';
+                $detail = '[Contenido Encontrado y Procesado]';
+            } elseif (isset($result['type'])) {
+                switch ($result['type']) {
+                    case 'found_but_unprocessable':
+                        $status = 'Encontrado Sin Procesar';
+                        $emails_count = $result['emails_found_count'] ?? 0;
+                        $detail = "Encontrados {$emails_count} emails, pero sin contenido válido";
+                        break;
+                    case 'not_found':
+                        $status = 'No Encontrado';
+                        $detail = '0 emails coinciden con los criterios';
+                        break;
+                    case 'error':
+                    case 'connection_error':
+                    case 'search_error':
+                        $status = 'Error';
+                        $detail = $result['message'] ?? 'Error desconocido';
+                        break;
+                    default:
+                        $status = 'No Encontrado';
+                        $detail = $result['message'] ?? 'Sin detalles';
+                }
+            } else {
+                // Fallback para compatibilidad
+                $status = $result['found'] ? 'Éxito' : 'No Encontrado';
+                $detail = $result['found'] ? '[Contenido Omitido]' : ($result['message'] ?? 'Sin detalles');
+            }
             
             $stmt = $this->conn->prepare(
                 "INSERT INTO logs (user_id, email_consultado, plataforma, ip, resultado) VALUES (?, ?, ?, ?, ?)"
@@ -925,7 +1115,7 @@ function get_setting_value($setting_name, $conn, $default = '') {
 }
 
 // ================================================
-// PROCESAMIENTO DE FORMULARIO PRINCIPAL
+// PROCESAMIENTO DE FORMULARIO PRINCIPAL - VERSIÓN CORREGIDA
 // ================================================
 
 if (isset($_POST['email']) && isset($_POST['plataforma'])) {
@@ -948,27 +1138,59 @@ if (isset($_POST['email']) && isset($_POST['plataforma'])) {
         
         $result = $search_engine->searchEmails($email, $platform, $user_id);
         
-        // Establecer respuesta en sesión
+        // NUEVA LÓGICA: Establecer respuesta en sesión basada en el tipo de resultado
         if ($result['found']) {
+            // CASO 1: Éxito real - encontró y procesó contenido
             $_SESSION['resultado'] = $result['content'];
+            $_SESSION['resultado_tipo'] = 'success';
+            $_SESSION['resultado_info'] = [
+                'emails_found' => $result['emails_found_count'] ?? 1,
+                'server' => $result['server'] ?? 'Desconocido'
+            ];
             unset($_SESSION['error_message']);
+            
         } else {
-            if (isset($result['error']) && $result['error']) {
-                $_SESSION['error_message'] = '<div class="alert alert-danger text-center" role="alert">' . 
-                                            htmlspecialchars($result['message']) . '</div>';
-            } else {
-                $_SESSION['resultado'] = '<div class="alert alert-success alert-light text-center" 
-                                         style="background-color: #d1e7dd; color: #0f5132;" role="alert">' . 
-                                         htmlspecialchars($result['message']) . '</div>';
+            // CASO 2: No encontró O encontró pero no pudo procesar
+            switch ($result['type'] ?? 'unknown') {
+                case 'found_but_unprocessable':
+                    // Encontró emails pero no pudo procesarlos
+                    $_SESSION['resultado'] = $result['message'];
+                    $_SESSION['resultado_tipo'] = 'found_but_unprocessable';
+                    $_SESSION['resultado_info'] = [
+                        'emails_found' => $result['emails_found_count'] ?? 0,
+                        'servers_checked' => $result['servers_checked'] ?? 1
+                    ];
+                    unset($_SESSION['error_message']);
+                    break;
+                    
+                case 'not_found':
+                    // Realmente no encontró ningún email
+                    $_SESSION['resultado'] = $result['message'];
+                    $_SESSION['resultado_tipo'] = 'not_found';
+                    $_SESSION['resultado_info'] = [
+                        'servers_checked' => $result['servers_checked'] ?? 1
+                    ];
+                    unset($_SESSION['error_message']);
+                    break;
+                    
+                case 'error':
+                case 'connection_error':
+                case 'search_error':
+                default:
+                    // Error real del sistema
+                    $_SESSION['error_message'] = $result['message'];
+                    $_SESSION['error_tipo'] = 'system_error';
+                    unset($_SESSION['resultado'], $_SESSION['resultado_tipo'], $_SESSION['resultado_info']);
+                    break;
             }
         }
         
         $conn->close();
         
     } catch (Exception $e) {
-        $_SESSION['error_message'] = '<div class="alert alert-danger text-center" role="alert">
-            Error del sistema. Inténtalo de nuevo más tarde.
-        </div>';
+        $_SESSION['error_message'] = 'Error del sistema. Inténtalo de nuevo más tarde.';
+        $_SESSION['error_tipo'] = 'system_error';
+        unset($_SESSION['resultado'], $_SESSION['resultado_tipo'], $_SESSION['resultado_info']);
         error_log("Error en procesamiento principal: " . $e->getMessage());
     }
     
